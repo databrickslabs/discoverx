@@ -1,0 +1,4 @@
+input:
+  database: "default"
+  table: "sklearn_housing"
+experiment: "/Shared/discoverx_experiment"
