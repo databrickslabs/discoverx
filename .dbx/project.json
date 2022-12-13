@@ -1,0 +1,15 @@
+{
+    "environments": {
+        "default": {
+            "profile": "discoverx",
+            "storage_type": "mlflow",
+            "properties": {
+                "workspace_directory": "/Shared/dbx/discoverx",
+                "artifact_location": "dbfs:/Shared/dbx/projects/discoverx"
+            }
+        }
+    },
+    "inplace_jinja_support": false,
+    "failsafe_cluster_reuse_with_assets": false,
+    "context_based_upload_for_execute": false
+}
