@@ -35,9 +35,9 @@ jobs:
         run: |
           pip install -e ".[local,test]"
 
-      - name: Deploy the workflow as a job
-        run: |
-          dbx deploy discoverx-sample-etl
+      # - name: Deploy the workflow as a job
+      #   run: |
+      #     dbx deploy discoverx-sample-etl
 
       - name: Create Release
         id: create_release
