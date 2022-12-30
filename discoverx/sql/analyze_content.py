@@ -1,10 +1,9 @@
 from discoverx.data_models import *
 from discoverx.common import trim_sql
 
-def rule_matching_sql(
-                        table_info: TableInfo,
-                        rules: list[Rule],
-                        sample_size: int = 1000):
+def rule_matching_sql(table_info: TableInfo,
+                      rules: list[Rule],
+                      sample_size: int = 1000):
 
     expressions = [r for r in rules if r.type == "regex"]
     cols = [c for c in table_info.columns if c.data_type == "string"]
