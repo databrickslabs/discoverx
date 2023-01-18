@@ -1,6 +1,7 @@
 from discoverx.sql_builder import *
 from discoverx.config import *
 from discoverx.sql_builder import SqlBuilder
+import unittest
 import logging
 
 def test_generate_sql():
@@ -80,6 +81,7 @@ FROM
         )
     )
 )"""
+
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
     logging.info(f"Generated SQL is: \n{actual}")
