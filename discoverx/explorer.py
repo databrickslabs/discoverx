@@ -1,0 +1,2 @@
+class Explorer:
+    pass

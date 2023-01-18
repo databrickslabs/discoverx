@@ -1,5 +1,6 @@
 from discoverx.sql.analyze_content import *
-from discoverx.data_models import *
+from discoverx.config import *
+from discoverx.sql_builder import SqlBuilder
 import logging
 
 def test_generate_sql():
@@ -36,7 +37,8 @@ FROM
         )
     )
 )"""
-    actual = rule_matching_sql(table_info, rules, 100)
+
+    actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
     logging.info(f"Generated SQL is: \n{actual}")
     
@@ -78,7 +80,7 @@ FROM
         )
     )
 )"""
-    actual = rule_matching_sql(table_info, rules, 100)
+    actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
     logging.info(f"Generated SQL is: \n{actual}")
     

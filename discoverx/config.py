@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+# TODO: Add pydantic
 @dataclass
 class Rule:
     name: str
