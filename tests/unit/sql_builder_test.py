@@ -1,4 +1,4 @@
-from discoverx.sql.analyze_content import *
+from discoverx.sql_builder import *
 from discoverx.config import *
 from discoverx.sql_builder import SqlBuilder
 import logging
