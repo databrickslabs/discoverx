@@ -28,5 +28,3 @@ import logging
 #     runs = mlflow.search_runs(experiment_ids=[experiment.experiment_id])
 #     assert runs.empty is False
 #     logging.info("Testing the ML job - done")
-
-

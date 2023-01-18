@@ -8,6 +8,7 @@ import pandas as pd
 import mlflow.sklearn
 import mlflow
 
+
 class SampleMLTask(Task):
     TARGET_COLUMN: str = "MedHouseVal"
 
@@ -21,10 +22,7 @@ class SampleMLTask(Task):
 
     @staticmethod
     def get_pipeline() -> Pipeline:
-        pipeline = Pipeline([
-            ("scaler", StandardScaler()),
-            ('random_forest', RandomForestRegressor())
-        ])
+        pipeline = Pipeline([("scaler", StandardScaler()), ("random_forest", RandomForestRegressor())])
         return pipeline
 
     def _train_model(self):
@@ -45,11 +43,13 @@ class SampleMLTask(Task):
         self._train_model()
         self.logger.info("Sample ML task finished")
 
+
 # if you're using python_wheel_task, you'll need the entrypoint function to be used in setup.py
 def entrypoint():  # pragma: no cover
     task = SampleMLTask()
     task.launch()
 
+
 # if you're using spark_python_task, you'll need the __main__ block to start the code execution
-if __name__ == '__main__':
+if __name__ == "__main__":
     entrypoint()

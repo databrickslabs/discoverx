@@ -8,11 +8,13 @@ class Rule:
     description: str
     definition: str
 
+
 @dataclass
 class ColumnInfo:
     name: str
     data_type: str
     is_partition: bool
+
 
 @dataclass
 class TableInfo:
