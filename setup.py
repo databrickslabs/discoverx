@@ -25,20 +25,21 @@ TEST_REQUIREMENTS = [
     "pytest",
     "coverage[toml]",
     "pytest-cov",
-    "dbx>=0.7,<0.8"
+    "dbx>=0.7,<0.8",
 ]
 
 setup(
     name="discoverx",
     packages=find_packages(exclude=["tests", "tests.*"]),
-    setup_requires=["setuptools","wheel"],
+    setup_requires=["setuptools", "wheel"],
     install_requires=PACKAGE_REQUIREMENTS,
     extras_require={"local": LOCAL_REQUIREMENTS, "test": TEST_REQUIREMENTS},
-    entry_points = {
+    entry_points={
         "console_scripts": [
             "etl = discoverx.tasks.sample_etl_task:entrypoint",
             "ml = discoverx.tasks.sample_ml_task:entrypoint",
-    ]},
+        ]
+    },
     version=__version__,
     description="",
     author="",

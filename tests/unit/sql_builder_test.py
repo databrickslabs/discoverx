@@ -4,16 +4,12 @@ from discoverx.sql_builder import SqlBuilder
 import unittest
 import logging
 
+
 def test_generate_sql():
 
-    columns = [
-        ColumnInfo("id", "number", False),
-        ColumnInfo("name", "string", False)
-    ]
+    columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
     table_info = TableInfo("meta", "db", "tb", columns)
-    rules = [
-        Rule("any_word", "regex", "Any word", "\w")
-    ]
+    rules = [Rule("any_word", "regex", "Any word", "\w")]
 
     expected = """SELECT
     'meta' as metastore,
@@ -42,15 +38,13 @@ FROM
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
     logging.info(f"Generated SQL is: \n{actual}")
-    
+
     assert actual == expected
+
 
 def test_generate_sql_multiple_rules():
 
-    columns = [
-        ColumnInfo("id", "number", False),
-        ColumnInfo("name", "string", False)
-    ]
+    columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
     table_info = TableInfo("meta", "db", "tb", columns)
     rules = [
         Rule("any_word", "regex", "Any word", "\w."),
@@ -85,5 +79,5 @@ FROM
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
     logging.info(f"Generated SQL is: \n{actual}")
-    
+
     assert actual == expected

@@ -1,12 +1,9 @@
 from discoverx.config import *
 from discoverx.common import trim_sql
 
+
 class SqlBuilder:
-    
-    def rule_matching_sql(self, 
-                        table_info: TableInfo,
-                        rules: list[Rule],
-                        sample_size: int = 1000):
+    def rule_matching_sql(self, table_info: TableInfo, rules: list[Rule], sample_size: int = 1000):
 
         expressions = [r for r in rules if r.type == "regex"]
         cols = [c for c in table_info.columns if c.data_type == "string"]
@@ -42,7 +39,5 @@ class SqlBuilder:
                 )
             )
         """
-        
+
         return trim_sql(sql)
-
-

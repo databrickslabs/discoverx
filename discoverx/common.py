@@ -6,9 +6,10 @@ import pathlib
 from pyspark.sql import SparkSession
 import sys
 
+
 def trim_sql(sql):
     if not sql:
-        return ''
+        return ""
     # Convert tabs to spaces (following the normal Python rules)
     # and split into a list of lines:
     lines = sql.expandtabs().splitlines()
@@ -29,7 +30,8 @@ def trim_sql(sql):
     while trimmed and not trimmed[0]:
         trimmed.pop(0)
     # Return a single string:
-    return '\n'.join(trimmed)
+    return "\n".join(trimmed)
+
 
 def get_dbutils(
     spark: SparkSession,
