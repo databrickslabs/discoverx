@@ -97,6 +97,25 @@ def spark() -> SparkSession:
 
 
 @pytest.fixture(scope="session", autouse=True)
+def sample_datasets(spark: SparkSession):
+    """
+    This fixture 
+    :return: None
+    """
+    logging.info("Creating sample datasets")
+    
+    spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 (id INT, ip STRING, description STRING)")
+    spark.sql('''INSERT INTO default.tb_1 VALUES (1, "1.2.3.4", "desc")''')
+
+    logging.info("Sample datasets created")
+
+    yield None
+    
+    logging.info("Test session finished, removing sample datasets")
+
+    spark.sql("DROP TABLE IF EXISTS default.tb_1")
+
+@pytest.fixture(scope="session", autouse=True)
 def mlflow_local():
     """
     This fixture provides local instance of mlflow with support for tracking and registry functions.

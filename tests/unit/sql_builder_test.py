@@ -1,9 +1,8 @@
 from discoverx.sql_builder import *
 from discoverx.config import *
 from discoverx.sql_builder import SqlBuilder
-import unittest
 import logging
-
+from pyspark.sql import SparkSession
 
 def test_generate_sql():
 
@@ -14,7 +13,7 @@ def test_generate_sql():
     expected = """SELECT
     'meta' as metastore,
     'db' as database,
-    `tb` as table,
+    'tb' as table,
     column,
     rule_name,
     (sum(value) / count(value)) as frequency
@@ -33,7 +32,8 @@ FROM
         TABLESAMPLE (100 ROWS)
         )
     )
-)"""
+)
+GROUP BY metastore, database, table, column, rule_name"""
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
@@ -54,7 +54,7 @@ def test_generate_sql_multiple_rules():
     expected = """SELECT
     'meta' as metastore,
     'db' as database,
-    `tb` as table,
+    'tb' as table,
     column,
     rule_name,
     (sum(value) / count(value)) as frequency
@@ -74,10 +74,31 @@ FROM
         TABLESAMPLE (100 ROWS)
         )
     )
-)"""
+)
+GROUP BY metastore, database, table, column, rule_name"""
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
     logging.info(f"Generated SQL is: \n{actual}")
 
     assert actual == expected
+
+
+
+def test_sql_runs(spark: SparkSession):
+
+    columns = [ColumnInfo("id", "number", False), ColumnInfo("ip", "string", False), ColumnInfo("description", "string", False)]
+    table_info = TableInfo("hive_metastore", "default", "tb_1", columns)
+    rules = [
+        Rule("any_word", "regex", "Any word", "\w+"),
+        Rule("any_number", "regex", "Any number", "\d+"),
+    ]
+
+    actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
+
+    logging.info(f"Generated SQL is: \n{actual}")
+
+    expected = spark.sql(actual).collect()
+
+    print(expected)
+    
