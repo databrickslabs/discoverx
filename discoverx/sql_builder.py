@@ -3,7 +3,8 @@ from discoverx.common import trim_sql
 
 class SqlBuilder:
     
-    def rule_matching_sql(table_info: TableInfo,
+    def rule_matching_sql(self, 
+                        table_info: TableInfo,
                         rules: list[Rule],
                         sample_size: int = 1000):
 
@@ -11,7 +12,7 @@ class SqlBuilder:
         cols = [c for c in table_info.columns if c.data_type == "string"]
 
         matching_columns = [f"INT(regexp_like(value, '{r.definition}')) AS {r.name}" for r in expressions]
-        matching_string = ",\n                ".join(matching_columns)
+        matching_string = ",\n                    ".join(matching_columns)
 
         unpivot_expressions = ", ".join([f"'{r.name}', {r.name}" for r in expressions])
         unpivot_columns = ", ".join([f"'{c.name}', {c.name}" for c in cols])
