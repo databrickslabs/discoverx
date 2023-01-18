@@ -37,3 +37,9 @@ mlruns/
 # Environment variables
 .env
 .env*
+
+# Hive metastore
+metastore_db/
+
+
+derby.log

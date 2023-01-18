@@ -85,6 +85,7 @@ def spark() -> SparkSession:
             "spark.sql.catalog.spark_catalog",
             "org.apache.spark.sql.delta.catalog.DeltaCatalog",
         )
+        .enableHiveSupport()
     )
     spark: SparkSession = configure_spark_with_delta_pip(_builder).getOrCreate()
     logging.info("Spark session configured")
