@@ -18,7 +18,7 @@ class SqlBuilder:
             SELECT 
                 '{table_info.metastore}' as metastore,
                 '{table_info.database}' as database,
-                `{table_info.table}` as table, 
+                '{table_info.table}' as table, 
                 column,
                 rule_name,
                 (sum(value) / count(value)) as frequency
@@ -38,6 +38,7 @@ class SqlBuilder:
                     )
                 )
             )
+            GROUP BY metastore, database, table, column, rule_name
         """
 
         return trim_sql(sql)
