@@ -22,7 +22,4 @@
 
 # COMMAND ----------
 
-from discoverx.tasks.sample_ml_task import SampleMLTask
-
-pipeline = SampleMLTask.get_pipeline()
-print(pipeline)
+print("Hey there!")
