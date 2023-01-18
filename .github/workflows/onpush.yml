@@ -41,12 +41,12 @@ jobs:
           echo "Launching unit tests"
           pytest tests/unit
 
-      # - name: Workflow deployment (assets only upload)
-      #   run: |
-      #     dbx deploy discoverx-sample-etl --assets-only
+      - name: Workflow deployment (assets only upload)
+        run: |
+          dbx deploy discoverx-sample-etl --assets-only
 
-      # - name: Run the workflow in a jobless fashion
-      #   run: |
-      #     dbx launch discoverx-sample-etl --from-assets --trace
+      - name: Run the workflow in a jobless fashion
+        run: |
+          dbx launch discoverx-sample-etl --from-assets --trace
 
 
