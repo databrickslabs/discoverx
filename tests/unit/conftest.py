@@ -105,7 +105,7 @@ def sample_datasets(spark: SparkSession):
     logging.info("Creating sample datasets")
 
     spark.read.option("header", True).schema("id integer,ip string,description string").csv(
-        "data/sql_builder_test_table.csv"
+        "tests/unit/data/sql_builder_test_table.csv"
     ).createOrReplaceTempView("sqlBuildTestData")
     spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 AS SELECT * FROM sqlBuildTestData")
 
