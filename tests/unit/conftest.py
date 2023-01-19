@@ -2,10 +2,12 @@
 This conftest.py contains handy components that prepare SparkSession and other relevant objects.
 """
 
+import logging
 import os
-from pathlib import Path
 import shutil
 import tempfile
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterator
 from unittest.mock import patch
 
@@ -13,8 +15,6 @@ import mlflow
 import pytest
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
-import logging
-from dataclasses import dataclass
 
 
 @dataclass
@@ -99,21 +99,24 @@ def spark() -> SparkSession:
 @pytest.fixture(scope="session", autouse=True)
 def sample_datasets(spark: SparkSession):
     """
-    This fixture 
+    This fixture
     :return: None
     """
     logging.info("Creating sample datasets")
-    
-    spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 (id INT, ip STRING, description STRING)")
-    spark.sql('''INSERT INTO default.tb_1 VALUES (1, "1.2.3.4", "desc")''')
+
+    spark.read.option("header", True).schema("id integer,ip string,description string").csv(
+        "data/sql_builder_test_table.csv"
+    ).createOrReplaceTempView("sqlBuildTestData")
+    spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 AS SELECT * FROM sqlBuildTestData")
 
     logging.info("Sample datasets created")
 
     yield None
-    
+
     logging.info("Test session finished, removing sample datasets")
 
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def mlflow_local():
