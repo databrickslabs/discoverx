@@ -23,6 +23,7 @@ LOCAL_REQUIREMENTS = [
 TEST_REQUIREMENTS = [
     # development & testing tools
     "pytest",
+    "black",
     "coverage[toml]",
     "pytest-cov",
     "dbx>=0.7,<0.8",

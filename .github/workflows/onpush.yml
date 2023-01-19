@@ -36,6 +36,12 @@ jobs:
         run: |
           pip install -e ".[local,test]"
 
+      - name: Code checks
+          continue-on-error: true #for now, just inform
+          run: |
+            echo "Check black formatting"
+            black forecasting_sa --check
+
       - name: Run unit tests
         run: |
           echo "Launching unit tests"
