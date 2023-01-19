@@ -40,7 +40,7 @@ jobs:
         continue-on-error: true #for now, just inform
         run: |
           echo "Check black formatting"
-          black forecasting_sa --check
+          black discoverx --check
 
       - name: Run unit tests
         run: |
