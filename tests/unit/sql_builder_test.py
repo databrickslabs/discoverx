@@ -1,16 +1,18 @@
-from discoverx.sql_builder import *
-from discoverx.config import *
-from discoverx.sql_builder import SqlBuilder
+# pylint: disable=missing-function-docstring, missing-module-docstring
 import logging
+
 from pyspark.sql import SparkSession
 
-def test_generate_sql():
+from discoverx.config import Rule, ColumnInfo, TableInfo
+from discoverx.sql_builder import SqlBuilder
 
+
+def test_generate_sql():
     columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
     table_info = TableInfo("meta", "db", "tb", columns)
-    rules = [Rule("any_word", "regex", "Any word", "\w")]
+    rules = [Rule("any_word", "regex", "Any word", r"\w")]
 
-    expected = """SELECT
+    expected = r"""SELECT
     'meta' as metastore,
     'db' as database,
     'tb' as table,
@@ -37,21 +39,20 @@ GROUP BY metastore, database, table, column, rule_name"""
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
-    logging.info(f"Generated SQL is: \n{actual}")
+    logging.info("Generated SQL is: \n%s", actual)
 
     assert actual == expected
 
 
 def test_generate_sql_multiple_rules():
-
     columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
     table_info = TableInfo("meta", "db", "tb", columns)
     rules = [
-        Rule("any_word", "regex", "Any word", "\w."),
-        Rule("any_number", "regex", "Any number", "\d."),
+        Rule("any_word", "regex", "Any word", r"\w."),
+        Rule("any_number", "regex", "Any number", r"\d."),
     ]
 
-    expected = """SELECT
+    expected = r"""SELECT
     'meta' as metastore,
     'db' as database,
     'tb' as table,
@@ -79,26 +80,27 @@ GROUP BY metastore, database, table, column, rule_name"""
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
-    logging.info(f"Generated SQL is: \n{actual}")
+    logging.info("Generated SQL is: \n%s", actual)
 
     assert actual == expected
 
 
-
 def test_sql_runs(spark: SparkSession):
-
-    columns = [ColumnInfo("id", "number", False), ColumnInfo("ip", "string", False), ColumnInfo("description", "string", False)]
+    columns = [
+        ColumnInfo("id", "number", False),
+        ColumnInfo("ip", "string", False),
+        ColumnInfo("description", "string", False),
+    ]
     table_info = TableInfo("hive_metastore", "default", "tb_1", columns)
     rules = [
-        Rule("any_word", "regex", "Any word", "\w+"),
-        Rule("any_number", "regex", "Any number", "\d+"),
+        Rule("any_word", "regex", "Any word", r"\w+"),
+        Rule("any_number", "regex", "Any number", r"\d+"),
     ]
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
-    logging.info(f"Generated SQL is: \n{actual}")
+    logging.info("Generated SQL is: \n%s", actual)
 
     expected = spark.sql(actual).collect()
 
     print(expected)
-    
