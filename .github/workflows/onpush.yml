@@ -36,12 +36,15 @@ jobs:
         run: |
           pip install -e ".[local,test]"
 
-      - name: Code checks
+      - name: Black format check
         continue-on-error: true #for now, just inform
         run: |
           echo "Check black formatting"
           black discoverx --check
 
+      - name: Pylint check
+        continue-on-error: true #for now, just inform
+        run: |
           echo "Run pylint"
           pylint discoverx
 
