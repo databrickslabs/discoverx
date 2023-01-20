@@ -23,6 +23,7 @@ LOCAL_REQUIREMENTS = [
 TEST_REQUIREMENTS = [
     # development & testing tools
     "pytest",
+    "pylint",
     "black",
     "coverage[toml]",
     "pytest-cov",
