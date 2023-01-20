@@ -42,6 +42,9 @@ jobs:
           echo "Check black formatting"
           black discoverx --check
 
+          echo "Run pylint"
+          pylint discoverx
+
       - name: Run unit tests
         run: |
           echo "Launching unit tests"
