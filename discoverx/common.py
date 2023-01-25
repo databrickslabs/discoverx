@@ -54,7 +54,7 @@ def get_dbutils(
     please note that this function is used in mocking by its name
     """
     try:
-        #pylint: disable=import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from pyspark.dbutils import DBUtils  # noqa
 
         if "dbutils" not in locals():
