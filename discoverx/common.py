@@ -1,13 +1,27 @@
+"""
+This module contains common utility functions used throughout the package
+"""
+import pathlib
+import sys
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser
 from typing import Dict, Any
+
 import yaml
-import pathlib
 from pyspark.sql import SparkSession
-import sys
 
 
 def trim_sql(sql):
+    """ Trim SQL strings
+    TODO This function mimicks some specific Scala functions, which one?
+
+    Args:
+        sql (string): The SQL string
+
+    Returns:
+        string: The trimmed SQL string
+
+    """
     if not sql:
         return ""
     # Convert tabs to spaces (following the normal Python rules)
@@ -35,15 +49,18 @@ def trim_sql(sql):
 
 def get_dbutils(
     spark: SparkSession,
-):  # please note that this function is used in mocking by its name
+):
+    """
+    please note that this function is used in mocking by its name
+    """
     try:
+        #pylint: disable=import-outside-toplevel
         from pyspark.dbutils import DBUtils  # noqa
 
         if "dbutils" not in locals():
             utils = DBUtils(spark)
             return utils
-        else:
-            return locals().get("dbutils")
+        return locals().get("dbutils")
     except ImportError:
         return None
 
@@ -73,10 +90,12 @@ class Task(ABC):
     def _prepare_spark(spark) -> SparkSession:
         if not spark:
             return SparkSession.builder.getOrCreate()
-        else:
-            return spark
+        return spark
 
     def get_dbutils(self):
+        """
+        Check if DBUtils are available in the runtime and return them
+        """
         utils = get_dbutils(self.spark)
 
         if not utils:
@@ -95,23 +114,24 @@ class Task(ABC):
                 "Please override configuration in subclass init method"
             )
             return {}
-        else:
-            self.logger.info(f"Conf file was provided, reading configuration from {conf_file}")
-            return self._read_config(conf_file)
+        self.logger.info(f"Conf file was provided, reading configuration from {conf_file}")
+        return self._read_config(conf_file)
 
     @staticmethod
     def _get_conf_file():
-        p = ArgumentParser()
-        p.add_argument("--conf-file", required=False, type=str)
-        namespace = p.parse_known_args(sys.argv[1:])[0]
+        parser = ArgumentParser()
+        parser.add_argument("--conf-file", required=False, type=str)
+        namespace = parser.parse_known_args(sys.argv[1:])[0]
         return namespace.conf_file
 
     @staticmethod
     def _read_config(conf_file) -> Dict[str, Any]:
+        # pylint: disable=unspecified-encoding
         config = yaml.safe_load(pathlib.Path(conf_file).read_text())
         return config
 
     def _prepare_logger(self):
+        # pylint: disable=protected-access
         log4j_logger = self.spark._jvm.org.apache.log4j  # noqa
         return log4j_logger.LogManager.getLogger(self.__class__.__name__)
 
@@ -119,7 +139,7 @@ class Task(ABC):
         # log parameters
         self.logger.info("Launching job with configuration parameters:")
         for key, item in self.conf.items():
-            self.logger.info("\t Parameter: %-30s with value => %-30s" % (key, item))
+            self.logger.info("\t Parameter: %-30s with value => %-30s", (key, item))
 
     @abstractmethod
     def launch(self):
@@ -127,4 +147,3 @@ class Task(ABC):
         Main method of the job.
         :return:
         """
-        pass
