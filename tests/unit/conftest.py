@@ -96,16 +96,27 @@ def spark() -> SparkSession:
         shutil.rmtree(warehouse_dir)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def sample_datasets(spark: SparkSession):
+@pytest.fixture(autouse=True)
+def sample_datasets(spark: SparkSession, request):
     """
-    This fixture
-    :return: None
+    This fixture loads a sample dataset defined in a csv and
+    creates a table registered in the metastore to be used for
+    tests.
+
+    Args:
+        spark: Spark session
+        request: the pytest request fixture contains information about
+            the current test. Used here to get current path.
+
+    Returns:
+
     """
     logging.info("Creating sample datasets")
 
+    module_path = Path(request.module.__file__)
+    test_file_path = module_path.parent / "data/sql_builder_test_table.csv"
     spark.read.option("header", True).schema("id integer,ip string,description string").csv(
-        "tests/unit/data/sql_builder_test_table.csv"
+        str(test_file_path.resolve())
     ).createOrReplaceTempView("sqlBuildTestData")
     spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 AS SELECT * FROM sqlBuildTestData")
 
