@@ -139,7 +139,7 @@ class Task(ABC):
         # log parameters
         self.logger.info("Launching job with configuration parameters:")
         for key, item in self.conf.items():
-            self.logger.info("\t Parameter: %-30s with value => %-30s", (key, item))
+            self.logger.info(f"\t Parameter: {key} with value => {item}")
 
     @abstractmethod
     def launch(self):
