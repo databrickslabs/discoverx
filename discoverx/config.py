@@ -18,7 +18,7 @@ class ColumnInfo:
 
 @dataclass
 class TableInfo:
-    metastore: str
+    catalog: str
     database: str
     table: str
     columns: list[ColumnInfo]
