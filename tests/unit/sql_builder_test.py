@@ -13,7 +13,7 @@ def test_generate_sql():
     rules = [Rule("any_word", "regex", "Any word", r"\w")]
 
     expected = r"""SELECT
-    'meta' as metastore,
+    'meta' as catalog,
     'db' as database,
     'tb' as table,
     column,
@@ -35,7 +35,7 @@ FROM
         )
     )
 )
-GROUP BY metastore, database, table, column, rule_name"""
+GROUP BY catalog, database, table, column, rule_name"""
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
@@ -53,7 +53,7 @@ def test_generate_sql_multiple_rules():
     ]
 
     expected = r"""SELECT
-    'meta' as metastore,
+    'meta' as catalog,
     'db' as database,
     'tb' as table,
     column,
@@ -76,7 +76,7 @@ FROM
         )
     )
 )
-GROUP BY metastore, database, table, column, rule_name"""
+GROUP BY catalog, database, table, column, rule_name"""
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 

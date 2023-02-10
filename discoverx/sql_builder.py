@@ -43,7 +43,7 @@ class SqlBuilder:
 
         sql = f"""
             SELECT 
-                '{table_info.metastore}' as metastore,
+                '{table_info.catalog}' as catalog,
                 '{table_info.database}' as database,
                 '{table_info.table}' as table, 
                 column,
@@ -65,7 +65,7 @@ class SqlBuilder:
                     )
                 )
             )
-            GROUP BY metastore, database, table, column, rule_name
+            GROUP BY catalog, database, table, column, rule_name
         """
 
         return trim_sql(sql)
