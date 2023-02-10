@@ -1,12 +1,12 @@
 from discoverx.common import Task
 from discoverx.data_model import DataModel
 
-class Explorer(Task):
-    def __init__(self, spark=None, init_conf=None, date_model: DataModel = None):
-        super().__init__(spark, init_conf)
+class Explorer:
+    def __init__(self, logger, spark=None, init_conf=None, date_model: DataModel = None):
+        self.logger = logger
 
-    def launch(self):
-        self.logger.info("Launching rule mathcing task")
+    def scan(self):
+        self.logger.info("Launching lakehouse scanning task")
         
         # Get table info from information schema
         # table_info = data_model.information_schema.get_table_info(self.spark, "default", "sklearn_housing")
