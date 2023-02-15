@@ -11,22 +11,21 @@ import yaml
 from pyspark.sql import SparkSession
 
 
-def trim_sql(sql):
-    """ Trim SQL strings
-    TODO This function mimicks some specific Scala functions, which one?
-
+def strip_margin(text):
+    """ Trim margin in strings
+    
     Args:
-        sql (string): The SQL string
+        text (string): The string
 
     Returns:
-        string: The trimmed SQL string
+        string: The trimmed string
 
     """
-    if not sql:
+    if not text:
         return ""
     # Convert tabs to spaces (following the normal Python rules)
     # and split into a list of lines:
-    lines = sql.expandtabs().splitlines()
+    lines = text.expandtabs().splitlines()
     # Determine minimum indentation (first line doesn't count):
     indent = sys.maxsize
     for line in lines[1:]:
