@@ -28,17 +28,17 @@ from discoverx import dx
 # COMMAND ----------
 
 conf = {
-  'discoverx_': ''
+  'discoverx_': '',
   'output_table': 'default.discoverx_results',
   'column_type_classification_threshold': 0.95,
-  'catalogs': '*'
+  'catalogs': '*',
   'databases': 'dev_*',
   'tables': '*',
   'sample_size': 10000,
   'rules': '*'
 }
 
-dx.configure(conf)
+# dx.configure(conf)
 
 # COMMAND ----------
 
@@ -52,7 +52,7 @@ custom_rules = [
   }
 ]
 
-dx.register_rules(custom_rules)
+# dx.register_rules(custom_rules)
 
 # COMMAND ----------
 
@@ -60,7 +60,7 @@ pipeline = [
   { 'task_type': 'scan',
     'task_id': 'pii_dev',
     'configuration': {
-      'catalogs': '*'
+      'catalogs': '*',
       'databases': 'dev_*',
       'tables': '*',
       'sample_size': 10000,
@@ -69,7 +69,7 @@ pipeline = [
   }
 ]
 
-dx.run(pipeline)
+# dx.run(pipeline)
 
 # COMMAND ----------
 
@@ -100,9 +100,9 @@ dx.scan(catalogs="discoverx", databases="*")
 
 # COMMAND ----------
 
-dx.search("erni@databricks.com", databases="prod_*") # This will only search inside columns tagged with dx_email.
-dx.search("127.0.0.1", databases="prod_*") # This will only search inside columns tagged as dx_ip_address.
-dx.search("127.0.0.1", restrict_to_matched_rules=False) # This not use tags to restrict the columns to search 
+# dx.search("erni@databricks.com", databases="prod_*") # This will only search inside columns tagged with dx_email.
+# dx.search("127.0.0.1", databases="prod_*") # This will only search inside columns tagged as dx_ip_address.
+# dx.search("127.0.0.1", restrict_to_matched_rules=False) # This not use tags to restrict the columns to search 
 
 # COMMAND ----------
 
@@ -120,130 +120,9 @@ dx.rules()
 
 # COMMAND ----------
 
-dx.tag_columns(rule_match_frequency_table=None, apply=False, column_type_classification_threshold=0.95) # This will show the SQL commands to apply tags from the temp view discoverx_temp_rule_match_frequency_table
+# dx.tag_columns(rule_match_frequency_table=None, column_type_classification_threshold=0.95) # This will show the SQL commands to apply tags from the temp view discoverx_temp_rule_match_frequency_table
 
-dx.tag_columns(rule_match_frequency_table="", apply=True) # This will apply the tags 
-
-
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Config based flow
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## ipywidgets flow
-# MAGIC 
-# MAGIC - Current problem is that UC-enabled clusters and their notebooks don't support running spark in ipywidgets' callback functions (Missing Credential Scope error)
-# MAGIC - Thought to explore calling REST API instead but that does not seem to be a proper workaround. Need to fetch a proper token from somewhere and it might lead to problems in workspaces with IP Access Lists enabled as these would need to add the driver to the access list.
-# MAGIC - This notebook runs in the `e2-demo-field-eng workspace`
-# MAGIC - Some more info in https://databricks.slack.com/archives/C027U33QZ9R/p1673970711362629
-# MAGIC - Will need to get more info when this will be possible or if there is any workaround
-
-# COMMAND ----------
-
-import ipywidgets as widgets
-
-# COMMAND ----------
-
-catalog_list = spark.sql("SHOW CATALOGS").collect()
-
-# COMMAND ----------
-
-[catalog.catalog for catalog in catalog_list]
-
-# COMMAND ----------
-
-catalog_widget = widgets.Combobox(
-    # value='John',
-    placeholder='Choose Catalog',
-    options=[catalog.catalog for catalog in catalog_list],
-    description='Catalog',
-    ensure_option=True,
-    disabled=False
-)
-
-catalog_widget
-
-# COMMAND ----------
-
-# MAGIC %sql 
-# MAGIC USE CATALOG discoverx; SHOW SCHEMAS
-
-# COMMAND ----------
-
-spark.sql("""USE CATALOG discoverx""")
-display(spark.sql("SHOW SCHEMAS"))
-
-# COMMAND ----------
-
-catalog_widget = widgets.Dropdown(
-    # value='John',
-    placeholder='Choose Catalog',
-    options=[catalog.catalog for catalog in catalog_list],
-    description='Catalog',
-)
-
-schema_widget = widgets.Dropdown(
-    # value='John',
-    placeholder='Choose Schema',
-    options=["-"],
-    description='Schema',
-)
-
-output2 = widgets.Output()
-
-def on_value_change(change):
-    with output2:
-        print('hej')
-
-def catalog_chosen(change):
-  spark.sql(f"USE CATALOG discoverx")
-  #schemas = [schema.databaseName for schema in spark.sql("SHOW SCHEMAS").collect()]
-  #print("hej")
-  
-  schema_widget.options = ['1', '2', '3']
-  
-catalog_widget.observe(catalog_chosen, names='value')
-catalog_widget.observe(on_value_change, names='value')
-
-
-HBox([catalog_widget, schema_widget, output2])
-
-# COMMAND ----------
-
-on_value_change('j')
-
-# COMMAND ----------
-
-dropdown
-
-# COMMAND ----------
-
-from ipywidgets import *
-x = Dropdown(options=['z', 'a', 'b'])
-y = Dropdown(options=[' - '])
-out = Output()
-
-def change_x(*args):
-  if x.value=='a':
-    y.options=[1, 2, 3]
-  else:
-    try:
-      spark.sql("USE CATALOG discoverx")
-    except Exception as e:
-      with out:
-        print(e)
-      y.options=[4, 5, 6]
-x.observe(change_x, 'value')
-
-HBox([x,y, out])
+# dx.tag_columns(rule_match_frequency_table="", yes_i_am_sure=True) # This will apply the tags 
 
 # COMMAND ----------
 
