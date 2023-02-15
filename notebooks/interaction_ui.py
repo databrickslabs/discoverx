@@ -28,24 +28,48 @@ from discoverx import dx
 # COMMAND ----------
 
 conf = {
-  'custom_rules': [
-    { 
-      'name': 'custom_device_id',
-      'type': 'regex',
-      'description': 'Custom device ID XX-XXXX-XXXXXXXX',
-      'definition': '\d{2}-\d{4}-\d{8}}'
-    }
-  ],
+  'discoverx_': ''
   'output_table': 'default.discoverx_results',
-  'defaults': {
-    'catalogs': '*'
-    'databases': 'dev_*',
-    'tables': '*',
-    'sample_size': 10000,
-    'rules': '*'
-  }
+  'column_type_classification_threshold': 0.95,
+  'catalogs': '*'
+  'databases': 'dev_*',
+  'tables': '*',
+  'sample_size': 10000,
+  'rules': '*'
 }
-# dx.configure(conf)
+
+dx.configure(conf)
+
+# COMMAND ----------
+
+custom_rules = [
+  { 
+    'name': 'custom_device_id',
+    'type': 'regex',
+    'description': 'Custom device ID XX-XXXX-XXXXXXXX',
+    'definition': '\d{2}-\d{4}-\d{8}}',
+    'example': '00-1111-22222222'
+  }
+]
+
+dx.register_rules(custom_rules)
+
+# COMMAND ----------
+
+pipeline = [
+  { 'task_type': 'scan',
+    'task_id': 'pii_dev',
+    'configuration': {
+      'catalogs': '*'
+      'databases': 'dev_*',
+      'tables': '*',
+      'sample_size': 10000,
+      'rules': ['custom_device_id', 'dx_ip_address']
+    }
+  }
+]
+
+dx.run(pipeline)
 
 # COMMAND ----------
 
@@ -76,8 +100,9 @@ dx.scan(catalogs="discoverx", databases="*")
 
 # COMMAND ----------
 
-dx.search("erni@databricks.com", databases="prod_*") # This will only search inside email columns.
-dx.search("127.0.0.1", databases="prod_*") # This will only search inside IP columns.
+dx.search("erni@databricks.com", databases="prod_*") # This will only search inside columns tagged with dx_email.
+dx.search("127.0.0.1", databases="prod_*") # This will only search inside columns tagged as dx_ip_address.
+dx.search("127.0.0.1", restrict_to_matched_rules=False) # This not use tags to restrict the columns to search 
 
 # COMMAND ----------
 
@@ -89,6 +114,15 @@ dx.search("127.0.0.1", databases="prod_*") # This will only search inside IP col
 dx.rules()
 
 # COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Tagging
+
+# COMMAND ----------
+
+dx.tag_columns(rule_match_frequency_table=None, apply=False, column_type_classification_threshold=0.95) # This will show the SQL commands to apply tags from the temp view discoverx_temp_rule_match_frequency_table
+
+dx.tag_columns(rule_match_frequency_table="", apply=True) # This will apply the tags 
 
 
 
