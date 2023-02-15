@@ -2,7 +2,6 @@ from discoverx.interaction import Interaction
 
 interaction = Interaction()
 
-
 def intro():
     interaction.intro()
 
