@@ -30,10 +30,11 @@ class Explorer:
         self.logger.debug("Launching lakehouse scanning task\n")
         
         n_tables = len(table_list)
-
+        import time
         for i, table in enumerate(table_list):
+            time.sleep(3)
             self.logger.friendly(
-                f"            Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
+                f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
             )
 
         self.logger.debug("Finished lakehouse scanning task")

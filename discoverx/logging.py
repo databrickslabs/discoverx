@@ -1,9 +1,20 @@
 import logging
+import re
+
 class Logging:
     def friendly(self, message):
-        print(message)
+        print(re.sub('<[^<]+?>', '', message))
         logging.info(message)
 
+    def friendlyHTML(self, message):
+        try:
+            from dbruntime.display import displayHTML 
+            displayHTML(message)
+        except:
+            # Strip HTML tags
+            print(re.sub('<[^<]+?>', '', message))
+        logging.info(message)
+        
     def info(self, message):
         print(message)
         logging.info(message)
