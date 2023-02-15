@@ -3,7 +3,7 @@ This module contains classes and functions which automatically build
 SQL expressions for specified tables and rules
 """
 from discoverx.config import TableInfo, Rule
-from discoverx.common import trim_sql
+from discoverx.common import strip_margin
 
 
 class SqlBuilder:
@@ -68,4 +68,4 @@ class SqlBuilder:
             GROUP BY catalog, database, table, column, rule_name
         """
 
-        return trim_sql(sql)
+        return strip_margin(sql)
