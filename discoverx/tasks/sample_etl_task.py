@@ -1,4 +1,4 @@
-from discoverx.common import Task
+from discoverx.common.task import Task
 from sklearn.datasets import fetch_california_housing
 import pandas as pd
 
