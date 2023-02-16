@@ -34,10 +34,13 @@ environments:
         tasks:
           - task_key: "main"
             <<: *basic-static-cluster
-            python_wheel_task:
-              package_name: "discoverx"
-              entry_point: "etl" # take a look at the setup.py entry_points section for details on how to define an entrypoint
-              parameters: ["--conf-file", "file:fuse://conf/tasks/sample_etl_config.yml"]
+            spark_python_task:
+              python_file: "file://discoverx/notebooks/interaction_ui.py"
+            # deployment_config:
+            #   no_package: true
+            # notebook_task:
+            #   notebook_path: "/Repos/Staging/discoverx/notebooks/interaction_ui"
+            #   parameters: ["--conf-file", "file:fuse://conf/tasks/sample_etl_config.yml"]
       #############################################################
       # this is an example multitask job with notebook task       #
       #############################################################
