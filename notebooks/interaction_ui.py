@@ -16,7 +16,8 @@
 
 # COMMAND ----------
 
-from discoverx import dx
+from discoverx import DX
+dx = DX()
 
 # COMMAND ----------
 
@@ -28,16 +29,10 @@ from discoverx import dx
 # COMMAND ----------
 
 conf = {
-  'discoverx_': '',
   'output_table': 'default.discoverx_results',
   'column_type_classification_threshold': 0.95,
-  'catalogs': '*',
-  'databases': 'dev_*',
-  'tables': '*',
-  'sample_size': 10000,
-  'rules': '*'
 }
-
+dx = DX(conf)
 # dx.configure(conf)
 
 # COMMAND ----------
@@ -48,26 +43,28 @@ custom_rules = [
     'type': 'regex',
     'description': 'Custom device ID XX-XXXX-XXXXXXXX',
     'definition': '\d{2}-\d{4}-\d{8}}',
-    'example': '00-1111-22222222'
+    'example': '00-1111-22222222',
+    'tag': 'device_id'
   }
 ]
-
+dx = DX(custom_rules=custom_rules)
 # dx.register_rules(custom_rules)
 
 # COMMAND ----------
 
-pipeline = [
-  { 'task_type': 'scan',
-    'task_id': 'pii_dev',
-    'configuration': {
-      'catalogs': '*',
-      'databases': 'dev_*',
-      'tables': '*',
-      'sample_size': 10000,
-      'rules': ['custom_device_id', 'dx_ip_address']
-    }
-  }
-]
+#  IDEA:
+# pipeline = [
+#   { 'task_type': 'scan',
+#     'task_id': 'pii_dev',
+#     'configuration': {
+#       'catalogs': '*',
+#       'databases': 'dev_*',
+#       'tables': '*',
+#       'sample_size': 10000,
+#       'rules': ['custom_device_id', 'dx_ip_address']
+#     }
+#   }
+# ]
 
 # dx.run(pipeline)
 
@@ -78,7 +75,7 @@ pipeline = [
 
 # COMMAND ----------
 
-dx.help()
+help(DX)
 
 # COMMAND ----------
 
