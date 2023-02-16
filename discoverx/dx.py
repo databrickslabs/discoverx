@@ -3,7 +3,7 @@ from discoverx.data_model import DataModel
 from discoverx.common.helper import strip_margin
 
 class DX:
-    def __init__(self):
+    def __init__(self, conf=None, custom_rules=None):
         self.logger = logging.Logging()
         self.explorer = explorer.Explorer(self.logger)
 

@@ -33,7 +33,6 @@ conf = {
   'column_type_classification_threshold': 0.95,
 }
 dx = DX(conf)
-# dx.configure(conf)
 
 # COMMAND ----------
 
