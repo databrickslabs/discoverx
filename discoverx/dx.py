@@ -121,6 +121,6 @@ class DX:
 
     def results(self):
         self.logger.friendly("Here are the results:")
-        self.explorer.scan_summary()
-        self.explorer.scan_details()
+        # self.explorer.scan_summary()
+        # self.explorer.scan_details()
 
