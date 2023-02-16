@@ -26,7 +26,7 @@ class Explorer:
         
         return filtered_rules
 
-    def scan(self, table_list: list[TableInfo], rule_list, sample_size, output_table):
+    def scan(self, table_list: list[TableInfo], rule_list, sample_size):
         self.logger.debug("Launching lakehouse scanning task\n")
         
         n_tables = len(table_list)

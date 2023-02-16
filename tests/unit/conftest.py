@@ -166,6 +166,6 @@ def dbutils_fixture() -> Iterator[None]:
     :return:
     """
     logging.info("Patching the DBUtils object")
-    with patch("discoverx.common.get_dbutils", lambda _: DBUtilsFixture()):
+    with patch("discoverx.common.databricks.get_dbutils", lambda _: DBUtilsFixture()):
         yield
     logging.info("Test session finished, patching completed")
