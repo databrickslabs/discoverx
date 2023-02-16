@@ -8,7 +8,7 @@ class Logging:
 
     def friendlyHTML(self, message):
         try:
-            from dbruntime.display import displayHTML 
+            from dbruntime.display import displayHTML # pylint: disable=import-error
             displayHTML(message)
         except:
             # Strip HTML tags
