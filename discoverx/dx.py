@@ -1,4 +1,4 @@
-from pyspark.sql.session import SparkSession
+from pyspark.sql import SparkSession
 from typing import List, Optional
 
 from discoverx import logging, explorer
