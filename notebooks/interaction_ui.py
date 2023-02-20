@@ -16,7 +16,7 @@
 
 # COMMAND ----------
 
-from discoverx import DX
+from discoverx.dx import DX
 dx = DX()
 
 # COMMAND ----------
