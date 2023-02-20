@@ -43,6 +43,7 @@ class DX:
         )
 
     def intro(self):
+        # TODO: Decide on how to do the introduction
         text = """
         <h1>Hi there, I'm DiscoverX.</h1>
 
