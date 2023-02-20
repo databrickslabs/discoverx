@@ -13,7 +13,7 @@ PACKAGE_REQUIREMENTS = ["pyyaml"]
 # packages for local development and unit testing
 # please note that these packages are already available in DBR, there is no need to install them on DBR.
 LOCAL_REQUIREMENTS = [
-    "pyspark>3.3.0",
+    "pyspark",
     "delta-spark",
     "scikit-learn",
     "pandas",
