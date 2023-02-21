@@ -1,11 +1,13 @@
+import pandas as pd
 from discoverx.config import TableInfo, Rule
 from discoverx.data_model import DataModel
 from discoverx.logging import Logging
 from fnmatch import fnmatch
+from discoverx.sql_builder import SqlBuilder
 
 class Explorer:
 
-    def __init__(self, spark=None, init_conf=None, date_model: DataModel = None, logger=None):
+    def __init__(self, spark=None, date_model: DataModel = None, logger=None):
         if logger is None:
             logger = Logging()
         self.logger = logger
@@ -13,6 +15,8 @@ class Explorer:
         if date_model is None:
             date_model = DataModel()
         self.data_model = date_model
+
+        self.spark = spark
 
     def get_table_list(self, catalogs_filter, databases_filter, tables_filter):
         return self.data_model.get_table_list(catalogs_filter, databases_filter, tables_filter)
@@ -26,25 +30,33 @@ class Explorer:
         
         return filtered_rules
 
-    def scan(self, table_list: list[TableInfo], rule_list, sample_size):
+    def scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int) -> pd.DataFrame:
         self.logger.debug("Launching lakehouse scanning task\n")
         
         n_tables = len(table_list)
-        import time
+        builder = SqlBuilder()
+        dfs = []
+
         for i, table in enumerate(table_list):
-            time.sleep(3)
             self.logger.friendly(
                 f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
             )
+            
+            try:
+                # Build rule matching SQL
+                sql = builder.rule_matching_sql(table, rule_list, sample_size)
+
+                # Execute SQL and append result
+                dfs.append(self.spark.sql(sql).toPandas())
+            except Exception as e:
+                self.logger.error(f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}")
+                continue        
 
         self.logger.debug("Finished lakehouse scanning task")
 
-        # Get table info from information schema
-        # table_info = data_model.information_schema.get_table_info(self.spark, "default", "sklearn_housing")
-        # Get rules
-        # Build SQL
-        # Execute SQL
-        # Write to Delta
+        return pd.concat(dfs)
+
+        
 
 
 

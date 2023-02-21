@@ -58,10 +58,10 @@ class SqlBuilder:
                     column,
                     {matching_string}
                     FROM (
-                    SELECT
-                        stack({len(cols)}, {unpivot_columns}) AS (column, value)
-                    FROM {table_info.database}.{table_info.table}
-                    TABLESAMPLE ({sample_size} ROWS)
+                        SELECT
+                            stack({len(cols)}, {unpivot_columns}) AS (column, value)
+                        FROM {table_info.database}.{table_info.table}
+                        TABLESAMPLE ({sample_size} ROWS)
                     )
                 )
             )
