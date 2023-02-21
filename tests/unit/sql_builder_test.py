@@ -10,7 +10,7 @@ from discoverx.sql_builder import SqlBuilder
 def test_generate_sql():
     columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
     table_info = TableInfo("meta", "db", "tb", columns)
-    rules = [Rule("any_word", "regex", "Any word", r"\w")]
+    rules = [Rule("any_word", "regex", "Any word", "\w.")]
 
     expected = r"""SELECT
     'meta' as catalog,
@@ -26,12 +26,12 @@ FROM
     (
         SELECT
         column,
-        INT(regexp_like(value, '\w')) AS any_word
+        INT(regexp_like(value, '\w.')) AS any_word
         FROM (
-        SELECT
-            stack(1, 'name', name) AS (column, value)
-        FROM db.tb
-        TABLESAMPLE (100 ROWS)
+            SELECT
+                stack(1, 'name', name) AS (column, value)
+            FROM db.tb
+            TABLESAMPLE (100 ROWS)
         )
     )
 )
@@ -48,8 +48,8 @@ def test_generate_sql_multiple_rules():
     columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
     table_info = TableInfo("meta", "db", "tb", columns)
     rules = [
-        Rule("any_word", "regex", "Any word", r"\w."),
-        Rule("any_number", "regex", "Any number", r"\d."),
+        Rule("any_word", "regex", "Any word", "\w."),
+        Rule("any_number", "regex", "Any number", "\d."),
     ]
 
     expected = r"""SELECT
@@ -69,10 +69,10 @@ FROM
         INT(regexp_like(value, '\w.')) AS any_word,
         INT(regexp_like(value, '\d.')) AS any_number
         FROM (
-        SELECT
-            stack(1, 'name', name) AS (column, value)
-        FROM db.tb
-        TABLESAMPLE (100 ROWS)
+            SELECT
+                stack(1, 'name', name) AS (column, value)
+            FROM db.tb
+            TABLESAMPLE (100 ROWS)
         )
     )
 )
@@ -93,8 +93,8 @@ def test_sql_runs(spark: SparkSession):
     ]
     table_info = TableInfo("hive_metastore", "default", "tb_1", columns)
     rules = [
-        Rule("any_word", "regex", "Any word", r"\w+"),
-        Rule("any_number", "regex", "Any number", r"\d+"),
+        Rule("any_word", "regex", "Any word", "\w+"),
+        Rule("any_number", "regex", "Any number", "\d+"),
     ]
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
