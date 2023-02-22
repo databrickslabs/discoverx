@@ -1,5 +1,6 @@
 from discoverx.config import ColumnInfo, TableInfo
 from discoverx.sql_builder import SqlBuilder
+from pyspark.sql import SparkSession
 
 class DataModel:
     def __init__(self, logger=None):
@@ -8,11 +9,14 @@ class DataModel:
             from discoverx.logging import Logging
             logger = Logging()
         self.logger = logger
+        
+        self.spark = SparkSession.getActiveSession()
 
 
     def get_table_list(self, catalogs_filter, databases_filter, tables_filter):
         sql = SqlBuilder().get_table_list_sql(catalogs_filter, databases_filter, tables_filter)
-        rows = spark.sql(sql).collect()
+        
+        rows = self.spark.sql(sql).collect()
         filtered_tables = [
             TableInfo(
                 row["table_catalog"], 

@@ -30,7 +30,7 @@ class DX:
         column_type_classification_threshold: float = 0.95,
     ):
         self.logger = logging.Logging()
-        self.explorer = explorer.Explorer(self.logger)
+        self.explorer = explorer.Explorer()
         self.spark = SparkSession.getActiveSession()
 
         self.custom_rules = custom_rules
