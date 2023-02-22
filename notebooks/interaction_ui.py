@@ -50,7 +50,7 @@ device_rule_def = {
 device_rule = Rule(**device_rule_def)
 
 dx = DX(custom_rules=[device_rule])
-dx.rules()
+dx.display_rules()
 # dx.register_rules(custom_rules)
 
 # COMMAND ----------
