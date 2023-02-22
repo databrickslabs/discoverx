@@ -22,6 +22,19 @@ dx = DX()
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### Scan
+
+# COMMAND ----------
+
+dx.scan(catalogs="discoverx*", databases="*")
+
+# COMMAND ----------
+
+dx.scan_result
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### Configuration
 # MAGIC 
 # MAGIC This section is optional, and can be used to customize the behaviour of DiscoverX
@@ -76,15 +89,6 @@ dx = DX(custom_rules=custom_rules)
 # COMMAND ----------
 
 help(DX)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Scan
-
-# COMMAND ----------
-
-dx.scan(catalogs="discoverx", databases="*")
 
 # COMMAND ----------
 
