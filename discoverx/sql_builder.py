@@ -13,6 +13,9 @@ class SqlBuilder:
     match specified rules
     """
 
+    def format_regex(self, expression):
+        return expression #.replace(r'\', r'\\')
+                                  
     # pylint: disable=too-few-public-methods
     def rule_matching_sql(self, table_info: TableInfo, rules: list[Rule], sample_size: int = 1000):
         """
@@ -44,8 +47,8 @@ class SqlBuilder:
         matching_columns = [f"INT(regexp_like(value, '{r.definition}')) AS {r.name}" for r in expressions]
         matching_string = ",\n                    ".join(matching_columns)
 
-        unpivot_expressions = ", ".join([f"'{r.name}', '{r.name}'" for r in expressions])
-        unpivot_columns = ", ".join([f"'{c.name}', '{c.name}'" for c in cols])
+        unpivot_expressions = ", ".join([f"'{r.name}', {r.name}" for r in expressions])
+        unpivot_columns = ", ".join([f"'{c.name}', {c.name}" for c in cols])
 
         sql = f"""
             SELECT 
