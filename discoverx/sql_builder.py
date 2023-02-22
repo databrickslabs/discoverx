@@ -12,7 +12,7 @@ class SqlBuilder:
     scanning tables and determining the likelihood of its columns to
     match specified rules
     """
-    # TODO: move table_info, rules, ... to an init method
+
     # pylint: disable=too-few-public-methods
     def rule_matching_sql(self, table_info: TableInfo, rules: list[Rule], sample_size: int = 1000):
         """
@@ -66,6 +66,36 @@ class SqlBuilder:
                 )
             )
             GROUP BY catalog, database, table, column, rule_name
+        """
+
+        return strip_margin(sql)
+
+    def get_table_info_sql(self, catalog_filter: str, database_filter: str, table_filter: str):
+        """
+        Returns a SQL expression which returns a list of columns matching
+        the specified filters
+        Args:
+            catalog_filter (str): A filter expression for catalogs
+            database_filter (str): A filter expression for databases
+            table_filter (str): A filter expression for tables
+
+        Returns:
+            string: The SQL expression
+        """
+
+        sql = f"""
+        SELECT 
+            table_catalog, 
+            table_schema, 
+            table_name, 
+            collect_list(struct(column_name, data_type, partition_index)) as table_columns
+        FROM system.information_schema.columns
+        WHERE 
+            table_schema != "information_schema" 
+            AND regexp_like(table_catalog, "^.{catalog_filter.replace("*", ".*")}$")
+            AND regexp_like(table_schema, "^{database_filter.replace("*", ".*")}$")
+            AND regexp_like(table_name, "^{table_filter.replace("*", ".*")}$")
+        GROUP BY table_catalog, table_schema, table_name
         """
 
         return strip_margin(sql)

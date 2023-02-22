@@ -13,7 +13,7 @@ class Rule:
 class ColumnInfo:
     name: str
     data_type: str
-    is_partition: bool
+    partition_index: int
 
 
 @dataclass
