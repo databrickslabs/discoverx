@@ -17,6 +17,7 @@
 # COMMAND ----------
 
 from discoverx import DX
+from discoverx.config import Rule
 dx = DX()
 
 # COMMAND ----------
@@ -37,8 +38,7 @@ dx = DX(column_type_classification_threshold=0.95)
 
 # COMMAND ----------
 
-custom_rules = [
-  { 
+device_rule_def = {
     'name': 'custom_device_id',
     'type': 'regex',
     'description': 'Custom device ID XX-XXXX-XXXXXXXX',
@@ -46,8 +46,11 @@ custom_rules = [
     'example': '00-1111-22222222',
     'tag': 'device_id'
   }
-]
-dx = DX(custom_rules=custom_rules)
+
+device_rule = Rule(**device_rule_def)
+
+dx = DX(custom_rules=[device_rule])
+dx.rules()
 # dx.register_rules(custom_rules)
 
 # COMMAND ----------

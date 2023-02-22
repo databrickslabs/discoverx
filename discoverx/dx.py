@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from discoverx import logging, explorer
 from discoverx.common.helper import strip_margin
-from discoverx.config import Rule
+from discoverx.rules import Rules, Rule
 
 
 class DX:
@@ -33,7 +33,7 @@ class DX:
         self.explorer = explorer.Explorer(self.logger)
         self.spark = SparkSession.getActiveSession()
 
-        self.custom_rules = custom_rules
+        self.rules = Rules(custom_rules=custom_rules)
         self.column_type_classification_threshold = self._validate_classification_threshold(
             column_type_classification_threshold
         )
@@ -99,30 +99,13 @@ class DX:
         self.logger.friendlyHTML(text)
 
     def rules(self):
-        rules = self.explorer.get_rule_list()
-        rule_text = [f"<li>{rule.name} - {rule.description}</li>" for rule in rules]
-        rules_text = "\n              ".join(rule_text)
-
-        text = f"""
-        <h2>Matching rules</h2>
-        <p>
-          Here are the {len(rules)} rules that are available to you:
-        </p>
-        <ul>
-          {rules_text}
-        </ul>
-        <p>
-          You can also specify your own rules. 
-          For example, 
-          # TODO
-        </p>
-        """
+        text = self.rules.get_rules_info()
         self.logger.friendlyHTML(text)
 
     def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000):
 
         table_list = self.explorer.get_table_list(catalogs, databases, tables)
-        rule_list = self.explorer.get_rule_list(rules)
+        rule_list = self.rules.get_rules(rule_filter=rules)
 
         n_catalogs = len(set(map(lambda x: x.catalog, table_list)))
         n_databases = len(set(map(lambda x: x.database, table_list)))

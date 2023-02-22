@@ -1,13 +1,5 @@
 from dataclasses import dataclass
 
-# TODO: Add pydantic
-@dataclass
-class Rule:
-    name: str
-    type: str
-    description: str
-    definition: str
-
 
 @dataclass
 class ColumnInfo:
