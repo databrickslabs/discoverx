@@ -63,7 +63,7 @@ class DX:
 
           dx.intro() # This will show you a short introduction to me
 
-          dx.rules() # This will show you the rules that are available to you
+          dx.display_rules() # This will show you the rules that are available to you
 
           dx.scan()  # This will scan your lakehouse for data that matches a set of rules
         """
@@ -98,7 +98,7 @@ class DX:
         """
         self.logger.friendlyHTML(text)
 
-    def rules(self):
+    def display_rules(self):
         text = self.rules.get_rules_info()
         self.logger.friendlyHTML(text)
 
