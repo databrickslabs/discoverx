@@ -104,14 +104,6 @@ dx.scan(catalogs="discoverx", databases="*")
 # dx.search("127.0.0.1", databases="prod_*") # This will only search inside columns tagged as dx_ip_address.
 # dx.search("127.0.0.1", restrict_to_matched_rules=False) # This not use tags to restrict the columns to search 
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Rules
-
-# COMMAND ----------
-
-dx.rules()
 
 # COMMAND ----------
 
