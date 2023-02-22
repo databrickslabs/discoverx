@@ -16,7 +16,7 @@
 
 # COMMAND ----------
 
-from discoverx.dx import DX
+from discoverx import DX
 dx = DX()
 
 # COMMAND ----------
@@ -29,12 +29,11 @@ dx = DX()
 # COMMAND ----------
 
 conf = {
-  'output_table': 'default.discoverx_results',
   'column_type_classification_threshold': 0.95,
 }
 dx = DX(**conf)
 
-dx = DX(output_table="default.discoverx_results", column_type_classification_threshold=0.95)
+dx = DX(column_type_classification_threshold=0.95)
 
 # COMMAND ----------
 
