@@ -15,8 +15,6 @@ class DX:
         custom_rules (List[Rule], Optional): Custom rules which will be
             used to detect columns with corresponding patterns in your
             data
-        output_table (str): Name of the table storing the output of the
-            scan. Format should be "<database>.<table>".
         column_type_classification_threshold (float, optional):
             The threshold which will associate a column with a specific
             rule and classify accordingly. The minimum and maximum
@@ -29,7 +27,6 @@ class DX:
     def __init__(
         self,
         custom_rules: Optional[List[Rule]] = None,
-        output_table: str = "default.discoverx_results",  # TODO: Add catalog once we use UC
         column_type_classification_threshold: float = 0.95,
     ):
         self.logger = logging.Logging()
@@ -37,10 +34,10 @@ class DX:
         self.spark = SparkSession.getActiveSession()
 
         self.custom_rules = custom_rules
-        self.output_table = self._validate_output_table(output_table)
         self.column_type_classification_threshold = self._validate_classification_threshold(
             column_type_classification_threshold
         )
+        self.database: Optional[str] = None  # TODO: for later use
 
     def intro(self):
         # TODO: Decide on how to do the introduction
@@ -178,22 +175,10 @@ class DX:
             raise ValueError(error_msg)
         return threshold
 
-    def _validate_output_table(self, output_table) -> str:
+    def _validate_database(self):
         """Validate that output table exists, otherwise raise error
-        Args:
-            output_table (str): The name of the output-table with
-                format "<database-name>.<table-name>"
-        Returns:
-            str: The validated name of the output-table
         """
-        output_table_split = output_table.split(".")
-        db_name = output_table_split[0]
-        table_name = output_table_split[1]
-        if not self.spark.catalog.databaseExists(db_name):
-            db_error = f"The given database {db_name} does not exist."
+        if not self.spark.catalog.databaseExists(self.database):
+            db_error = f"The given database {self.database} does not exist."
             self.logger.error(db_error)
             raise ValueError(db_error)
-        if not self.spark.catalog.tableExists(table_name):
-            table_info = f"The given table {table_name} does not exist and will be created"
-            self.logger.info(table_info)
-        return output_table
