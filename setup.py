@@ -4,17 +4,26 @@ This file configures the Python package with entrypoints used for future runs on
 Please follow the `entry_points` documentation for more details on how to configure the entrypoint:
 * https://setuptools.pypa.io/en/latest/userguide/entry_point.html
 """
-
+import re
 from setuptools import find_packages, setup
-from discoverx import __version__
+
+# import version
+VERSIONFILE = "discoverx/version.py"
+version_line = open(VERSIONFILE, "rt").read()
+VERSION_PATTERN = r"^__version__ = ['\"]([^'\"]*)['\"]"
+parsed_version = re.search(VERSION_PATTERN, version_line, re.M)
+if parsed_version:
+    version_string = parsed_version.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
 PACKAGE_REQUIREMENTS = ["pyyaml"]
 
 # packages for local development and unit testing
 # please note that these packages are already available in DBR, there is no need to install them on DBR.
 LOCAL_REQUIREMENTS = [
-    "pyspark==3.2.1",
-    "delta-spark==1.1.0",
+    "pyspark",
+    "delta-spark",
     "scikit-learn",
     "pandas",
     "mlflow",
@@ -42,7 +51,7 @@ setup(
             "ml = discoverx.tasks.sample_ml_task:entrypoint",
         ]
     },
-    version=__version__,
+    version=version_string,
     description="",
     author="",
 )
