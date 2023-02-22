@@ -3,14 +3,15 @@ import logging
 
 from pyspark.sql import SparkSession
 
-from discoverx.config import Rule, ColumnInfo, TableInfo
+from discoverx.config import ColumnInfo, TableInfo
+from discoverx.rules import Rule
 from discoverx.sql_builder import SqlBuilder
 
 
 def test_generate_sql():
     columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
     table_info = TableInfo("meta", "db", "tb", columns)
-    rules = [Rule("any_word", "regex", "Any word", r"\w")]
+    rules = [Rule(name="any_word", type="regex", description="Any word", definition=r"\w")]
 
     expected = r"""SELECT
     'meta' as catalog,
@@ -48,8 +49,8 @@ def test_generate_sql_multiple_rules():
     columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
     table_info = TableInfo("meta", "db", "tb", columns)
     rules = [
-        Rule("any_word", "regex", "Any word", r"\w."),
-        Rule("any_number", "regex", "Any number", r"\d."),
+        Rule(name="any_word", type="regex", description="Any word", definition=r"\w."),
+        Rule(name="any_number", type="regex", description="Any number", definition=r"\d."),
     ]
 
     expected = r"""SELECT
@@ -93,8 +94,8 @@ def test_sql_runs(spark: SparkSession):
     ]
     table_info = TableInfo("hive_metastore", "default", "tb_1", columns)
     rules = [
-        Rule("any_word", "regex", "Any word", r"\w+"),
-        Rule("any_number", "regex", "Any number", r"\d+"),
+        Rule(name="any_word", type="regex", description="Any word", definition=r"\w+"),
+        Rule(name="any_number", type="regex", description="Any number", definition=r"\d+"),
     ]
 
     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
