@@ -53,9 +53,11 @@ class Explorer:
                 continue        
 
         self.logger.debug("Finished lakehouse scanning task")
-
-        return pd.concat(dfs)
-
+        
+        if dfs:
+          return pd.concat(dfs)
+        else:
+          return pd.DataFrame()
         
 
 
