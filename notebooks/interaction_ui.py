@@ -38,6 +38,11 @@ dx = DX(column_type_classification_threshold=0.95)
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### Rules
+
+# COMMAND ----------
+
 device_rule_def = {
     'name': 'custom_device_id',
     'type': 'regex',
