@@ -6,7 +6,7 @@ def test_ruleslist():
     assert none_rules_list.rules_info == ""
 
     rules_list = RulesList([ip_v4_rule, ip_v6_rule])
-    assert rules_list == "<li>ip_v4 - IP address v4</li>\n              <li>ip_v6 - IP address v6</li>"
+    assert rules_list.rules_info == "<li>ip_v4 - IP address v4</li>\n              <li>ip_v6 - IP address v6</li>"
 
 
 def test_rules():
