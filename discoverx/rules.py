@@ -23,12 +23,21 @@ class Rule(BaseModel):
 
 @dataclass
 class RulesList:
-    rules: List[Rule]
+    rules: Optional[List[Rule]] = None
 
     @property
-    def display_rules(self) -> str:
-        text = [f"<li>{rule.name} - {rule.description}</li>" for rule in self.rules]
-        return "\n              ".join(text)
+    def rules_info(self) -> str:
+        if self.rules:
+            text = [f"<li>{rule.name} - {rule.description}</li>" for rule in self.rules]
+            return "\n              ".join(text)
+
+        return ""
+
+    @property
+    def number_of_rules(self) -> int:
+        if self.rules:
+            return len(self.rules)
+        return 0
 
 
 # define builtin rules
@@ -56,16 +65,16 @@ class Rules:
         text = f"""
                 <h2>Matching rules</h2>
                 <p>
-                  Here are the {len(self.builtin_rules.rules)} built-in rules that are available to you:
+                  Here are the {self.builtin_rules.number_of_rules} built-in rules that are available to you:
                 </p>
                 <ul>
-                  {self.builtin_rules.display_rules}
+                  {self.builtin_rules.rules_info}
                 </ul>
                 <p>
-                  You've also defined {len(self.custom_rules.rules)} which are:
+                  You've also defined {self.custom_rules.number_of_rules} custom rule(s) which is/are:
                 </p>
                 <ul>
-                  {self.custom_rules.display_rules}
+                  {self.custom_rules.rules_info}
                 </ul>
                 """
         return text
