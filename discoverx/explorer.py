@@ -4,10 +4,11 @@ from discoverx.data_model import DataModel
 from discoverx.logging import Logging
 from fnmatch import fnmatch
 from discoverx.sql_builder import SqlBuilder
+from pyspark.sql import SparkSession
 
 class Explorer:
 
-    def __init__(self, spark=None, date_model: DataModel = None, logger=None):
+    def __init__(self, date_model: DataModel = None, logger=None):
         if logger is None:
             logger = Logging()
         self.logger = logger
@@ -16,7 +17,7 @@ class Explorer:
             date_model = DataModel()
         self.data_model = date_model
 
-        self.spark = spark
+        self.spark = SparkSession.getActiveSession()
 
     def get_table_list(self, catalogs_filter, databases_filter, tables_filter):
         return self.data_model.get_table_list(catalogs_filter, databases_filter, tables_filter)

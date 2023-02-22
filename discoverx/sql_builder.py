@@ -33,13 +33,19 @@ class SqlBuilder:
         """
 
         expressions = [r for r in rules if r.type == "regex"]
-        cols = [c for c in table_info.columns if c.data_type == "string"]
+        cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
+        
+        if (not cols):
+            raise Exception(f"There are no columns of type string to be scanned in {table_info.table}")
+            
+        if (not expressions):
+            raise Exception(f"There are no rules to scan for.")
 
         matching_columns = [f"INT(regexp_like(value, '{r.definition}')) AS {r.name}" for r in expressions]
         matching_string = ",\n                    ".join(matching_columns)
 
-        unpivot_expressions = ", ".join([f"'{r.name}', {r.name}" for r in expressions])
-        unpivot_columns = ", ".join([f"'{c.name}', {c.name}" for c in cols])
+        unpivot_expressions = ", ".join([f"'{r.name}', '{r.name}'" for r in expressions])
+        unpivot_columns = ", ".join([f"'{c.name}', '{c.name}'" for c in cols])
 
         sql = f"""
             SELECT 
@@ -60,7 +66,7 @@ class SqlBuilder:
                     FROM (
                         SELECT
                             stack({len(cols)}, {unpivot_columns}) AS (column, value)
-                        FROM {table_info.database}.{table_info.table}
+                        FROM {table_info.catalog}.{table_info.database}.{table_info.table}
                         TABLESAMPLE ({sample_size} ROWS)
                     )
                 )
@@ -70,7 +76,7 @@ class SqlBuilder:
 
         return strip_margin(sql)
 
-    def get_table_info_sql(self, catalog_filter: str, database_filter: str, table_filter: str):
+    def get_table_list_sql(self, catalog_filter: str, database_filter: str, table_filter: str):
         """
         Returns a SQL expression which returns a list of columns matching
         the specified filters
@@ -92,7 +98,7 @@ class SqlBuilder:
         FROM system.information_schema.columns
         WHERE 
             table_schema != "information_schema" 
-            AND regexp_like(table_catalog, "^.{catalog_filter.replace("*", ".*")}$")
+            AND regexp_like(table_catalog, "^{catalog_filter.replace("*", ".*")}$")
             AND regexp_like(table_schema, "^{database_filter.replace("*", ".*")}$")
             AND regexp_like(table_name, "^{table_filter.replace("*", ".*")}$")
         GROUP BY table_catalog, table_schema, table_name
