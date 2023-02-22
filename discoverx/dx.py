@@ -160,7 +160,7 @@ class DX:
         """
         self.logger.friendly(strip_margin(text))
 
-        result = self.explorer.scan(table_list, rule_list, sample_size)
+        self.scan_result = self.explorer.scan(table_list, rule_list, sample_size)
 
         self.logger.friendlyHTML(
             f"""
