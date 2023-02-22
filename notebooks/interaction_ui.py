@@ -29,10 +29,11 @@ dx = DX()
 # COMMAND ----------
 
 conf = {
-  'output_table': 'default.discoverx_results',
   'column_type_classification_threshold': 0.95,
 }
-dx = DX(conf)
+dx = DX(**conf)
+
+dx = DX(column_type_classification_threshold=0.95)
 
 # COMMAND ----------
 
