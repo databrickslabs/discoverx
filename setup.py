@@ -4,9 +4,18 @@ This file configures the Python package with entrypoints used for future runs on
 Please follow the `entry_points` documentation for more details on how to configure the entrypoint:
 * https://setuptools.pypa.io/en/latest/userguide/entry_point.html
 """
-
+import re
 from setuptools import find_packages, setup
-from discoverx import __version__
+
+# import version
+VERSIONFILE = "discoverx/version.py"
+version_line = open(VERSIONFILE, "rt").read()
+VERSION_PATTERN = r"^__version__ = ['\"]([^'\"]*)['\"]"
+parsed_version = re.search(VERSION_PATTERN, version_line, re.M)
+if parsed_version:
+    version_string = parsed_version.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
 PACKAGE_REQUIREMENTS = ["pyyaml"]
 
@@ -27,7 +36,7 @@ TEST_REQUIREMENTS = [
     "black",
     "coverage[toml]",
     "pytest-cov",
-    "dbx",
+    "dbx>=0.7,<0.8",
 ]
 
 setup(
@@ -42,7 +51,7 @@ setup(
             "ml = discoverx.tasks.sample_ml_task:entrypoint",
         ]
     },
-    version=__version__,
+    version=version_string,
     description="",
     author="",
 )
