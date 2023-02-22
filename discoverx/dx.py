@@ -38,10 +38,14 @@ class DX:
             column_type_classification_threshold
         )
         self.database: Optional[str] = None  # TODO: for later use
+        
+        self.uc_enabled = self.spark.conf.get('spark.databricks.unityCatalog.enabled')
+        
+        self.intro()
 
     def intro(self):
         # TODO: Decide on how to do the introduction
-        text = """
+        intro_text = """
         <h1>Hi there, I'm DiscoverX.</h1>
 
         <p>
@@ -54,7 +58,19 @@ class DX:
         </p>
         <pre><code>dx.help()</code></pre>
         """
-        self.logger.friendlyHTML(text)
+        
+        missing_uc_text = """
+        <h1>Uch! DiscoverX needs Unity Catalog to be enabled</h1>
+
+        <p>
+          Please make sure you have Unity Catalog enabled, and that you are running a Cluster that supports Unity Catalog.
+        </p>
+        """
+        
+        if (self.uc_enabled == 'true'):
+            self.logger.friendlyHTML(intro_text)
+        else:
+            self.logger.friendlyHTML(missing_uc_text)
 
     def help(self):
         snippet1 = strip_margin(
