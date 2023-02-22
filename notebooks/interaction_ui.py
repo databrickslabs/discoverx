@@ -17,7 +17,7 @@
 # COMMAND ----------
 
 from discoverx import DX
-from discoverx.config import Rule
+from discoverx.rules import Rule
 dx = DX()
 
 # COMMAND ----------
