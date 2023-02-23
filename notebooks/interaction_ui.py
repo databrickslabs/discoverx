@@ -47,7 +47,7 @@ device_rule_def = {
     'name': 'custom_device_id',
     'type': 'regex',
     'description': 'Custom device ID XX-XXXX-XXXXXXXX',
-    'definition': '\d{2}-\d{4}-\d{8}}',
+    'definition': '\d{2}[-]\d{4}[-]\d{8}',
     'example': '00-1111-22222222',
     'tag': 'device_id'
   }

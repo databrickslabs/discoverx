@@ -1,3 +1,4 @@
+import pytest
 from discoverx.rules import Rule, Rules, RulesList, ip_v4_rule, ip_v6_rule
 
 def test_ruleslist():
@@ -26,7 +27,7 @@ def test_rules():
         'name': 'custom_device_id',
         'type': 'regex',
         'description': 'Custom device ID XX-XXXX-XXXXXXXX',
-        'definition': '\d{2}-\d{4}-\d{8}}',
+        'definition': '\d{2}[-]\d{4}[-]\d{8}',
         'example': '00-1111-22222222',
         'tag': 'device_id'
     }
@@ -36,3 +37,27 @@ def test_rules():
 
     assert "custom_device_id" in cust_rules.get_rules_info()
     assert [rule.name for rule in cust_rules.get_rules(rule_filter="*")] == ['ip_v4', 'ip_v6', 'custom_device_id']
+
+def test_rule_validation():
+
+    # The definition of the following rule should match the example
+    try:
+        ip_v4_rule_test = Rule(
+            name="ip_v4_test",
+            type="regex",
+            description="IP address v4",
+            definition=r"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
+            example="192.0.2.1"
+        )
+    except ValueError:
+        pytest.fail("The example does not match the rule definition")
+
+    # The next test should fail and result in a ValueError
+    with pytest.raises(ValueError):
+        ip_v4_rule_fail = Rule(
+            name="ip_v4",
+            type="regex",
+            description="IP address v4",
+            definition=r"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
+            example="192"
+        )
