@@ -46,7 +46,7 @@ class DX:
         )
         self.database: Optional[str] = None  # TODO: for later use
         
-        self.uc_enabled = self.spark.conf.get('spark.databricks.unityCatalog.enabled')
+        self.uc_enabled = self.spark.conf.get('spark.databricks.unityCatalog.enabled', 'false')
         
         self.intro()
 

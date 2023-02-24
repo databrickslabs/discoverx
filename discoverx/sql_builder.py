@@ -14,9 +14,6 @@ class SqlBuilder:
     match specified rules
     """
 
-    def format_regex(self, expression):
-        return expression #.replace(r'\', r'\\')
-                                  
     # pylint: disable=too-few-public-methods
     def rule_matching_sql(self, table_info: TableInfo, rules: list[Rule], sample_size: int = 1000):
         """

@@ -81,7 +81,7 @@ def spark() -> SparkSession:
         SparkSession.builder.master("local[1]")
         .config("spark.hive.metastore.warehouse.dir", Path(warehouse_dir).as_uri())
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-        .config("spark.databricks.unityCatalog.enabled", "true")
+        .config("spark.databricks.unityCatalog.enabled", "false")
         .config(
             "spark.sql.catalog.spark_catalog",
             "org.apache.spark.sql.delta.catalog.DeltaCatalog",
