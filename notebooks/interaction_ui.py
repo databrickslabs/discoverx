@@ -17,6 +17,7 @@
 # COMMAND ----------
 
 from discoverx import DX
+from discoverx.rules import Rule
 dx = DX()
 
 # COMMAND ----------
@@ -50,17 +51,24 @@ dx = DX(column_type_classification_threshold=0.95)
 
 # COMMAND ----------
 
-custom_rules = [
-  { 
+# MAGIC %md
+# MAGIC ### Rules
+
+# COMMAND ----------
+
+device_rule_def = {
     'name': 'custom_device_id',
     'type': 'regex',
     'description': 'Custom device ID XX-XXXX-XXXXXXXX',
-    'definition': '\d{2}-\d{4}-\d{8}}',
+    'definition': '\d{2}[-]\d{4}[-]\d{8}',
     'example': '00-1111-22222222',
     'tag': 'device_id'
   }
-]
-dx = DX(custom_rules=custom_rules)
+
+device_rule = Rule(**device_rule_def)
+
+dx = DX(custom_rules=[device_rule])
+dx.display_rules()
 # dx.register_rules(custom_rules)
 
 # COMMAND ----------
@@ -105,14 +113,6 @@ help(DX)
 # dx.search("127.0.0.1", databases="prod_*") # This will only search inside columns tagged as dx_ip_address.
 # dx.search("127.0.0.1", restrict_to_matched_rules=False) # This not use tags to restrict the columns to search 
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Rules
-
-# COMMAND ----------
-
-dx.rules()
 
 # COMMAND ----------
 
