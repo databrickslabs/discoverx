@@ -1,9 +1,12 @@
+import pandas as pd
 from pyspark.sql import SparkSession
 from typing import List, Optional
-
-from discoverx import logging, explorer
+from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.rules import Rules, Rule
+from discoverx.config import TableInfo
+from discoverx.data_model import DataModel
+from discoverx.sql_builder import SqlBuilder
 
 
 class DX:
@@ -28,9 +31,13 @@ class DX:
         self,
         custom_rules: Optional[List[Rule]] = None,
         column_type_classification_threshold: float = 0.95,
+        data_model: Optional[DataModel] = None,
     ):
+        if data_model is None:
+            data_model = DataModel()
+        self.data_model = data_model
+
         self.logger = logging.Logging()
-        self.explorer = explorer.Explorer()
         self.spark = SparkSession.getActiveSession()
 
         self.rules = Rules(custom_rules=custom_rules)
@@ -120,7 +127,7 @@ class DX:
 
     def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000):
 
-        table_list = self.explorer.get_table_list(catalogs, databases, tables)
+        table_list = self.data_model.get_table_list(catalogs, databases, tables)
         rule_list = self.rules.get_rules(rule_filter=rules)
 
         n_catalogs = len(set(map(lambda x: x.catalog, table_list)))
@@ -143,7 +150,7 @@ class DX:
         """
         self.logger.friendly(strip_margin(text))
 
-        self.scan_result = self.explorer.scan(table_list, rule_list, sample_size)
+        self.scan_result = self._execute_scan(table_list, rule_list, sample_size)
 
         self.logger.friendlyHTML(
             f"""
@@ -155,6 +162,37 @@ class DX:
         
         """
         )
+
+
+    def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int) -> pd.DataFrame:
+
+        self.logger.debug("Launching lakehouse scanning task\n")
+        
+        n_tables = len(table_list)
+        builder = SqlBuilder()
+        dfs = []
+
+        for i, table in enumerate(table_list):
+            self.logger.friendly(
+                f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
+            )
+            
+            try:
+                # Build rule matching SQL
+                sql = builder.rule_matching_sql(table, rule_list, sample_size)
+
+                # Execute SQL and append result
+                dfs.append(self.spark.sql(sql).toPandas())
+            except Exception as e:
+                self.logger.error(f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}")
+                continue        
+
+        self.logger.debug("Finished lakehouse scanning task")
+        
+        if dfs:
+          return pd.concat(dfs)
+        else:
+          return pd.DataFrame()
 
     def results(self):
         self.logger.friendly("Here are the results:")
