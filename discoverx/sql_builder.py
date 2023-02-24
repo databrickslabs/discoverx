@@ -4,7 +4,7 @@ SQL expressions for specified tables and rules
 """
 from discoverx.config import TableInfo
 from discoverx.common.helper import strip_margin
-from discoverx.rules import Rule
+from discoverx.rules import Rule, RuleTypes
 
 
 class SqlBuilder:
@@ -36,7 +36,7 @@ class SqlBuilder:
 
         """
 
-        expressions = [r for r in rules if r.type == "regex"]
+        expressions = [r for r in rules if r.type == RuleTypes.REGEX]
         cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
         
         if (not cols):
