@@ -28,11 +28,11 @@ FROM
     (
         SELECT
         column,
-        INT(regexp_like(value, '\w.')) AS any_word
+        INT(regexp_like(value, '\w')) AS any_word
         FROM (
             SELECT
                 stack(1, 'name', name) AS (column, value)
-            FROM db.tb
+            FROM meta.db.tb
             TABLESAMPLE (100 ROWS)
         )
     )
@@ -73,7 +73,7 @@ FROM
         FROM (
             SELECT
                 stack(1, 'name', name) AS (column, value)
-            FROM db.tb
+            FROM meta.db.tb
             TABLESAMPLE (100 ROWS)
         )
     )
@@ -93,7 +93,7 @@ def test_sql_runs(spark: SparkSession):
         ColumnInfo("ip", "string", False),
         ColumnInfo("description", "string", False),
     ]
-    table_info = TableInfo("hive_metastore", "default", "tb_1", columns)
+    table_info = TableInfo(None, "default", "tb_1", columns)
     rules = [
         Rule(name="any_word", type="regex", description="Any word", definition=r"\w+"),
         Rule(name="any_number", type="regex", description="Any number", definition=r"\d+"),
