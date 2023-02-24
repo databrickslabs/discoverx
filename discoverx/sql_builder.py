@@ -45,6 +45,7 @@ class SqlBuilder:
         if (not expressions):
             raise Exception(f"There are no rules to scan for.")
 
+        catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
         matching_columns = [f"INT(regexp_like(value, '{r.definition}')) AS {r.name}" for r in expressions]
         matching_string = ",\n                    ".join(matching_columns)
 
@@ -70,7 +71,7 @@ class SqlBuilder:
                     FROM (
                         SELECT
                             stack({len(cols)}, {unpivot_columns}) AS (column, value)
-                        FROM {table_info.catalog}.{table_info.database}.{table_info.table}
+                        FROM {catalog_str}{table_info.database}.{table_info.table}
                         TABLESAMPLE ({sample_size} ROWS)
                     )
                 )
