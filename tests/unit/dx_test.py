@@ -21,3 +21,9 @@ def test_dx_instantiation():
 
     with pytest.raises(ValueError) as e_threshold_error_minus:
         dx = DX(column_type_classification_threshold=-1.0)
+
+    # simple test for displaying rules
+    try:
+        dx.display_rules()
+    except Exception as display_rules_error:
+        pytest.fail(f"Displaying rules failed with {display_rules_error}")
