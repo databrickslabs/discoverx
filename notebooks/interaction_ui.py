@@ -4,6 +4,10 @@
 
 # COMMAND ----------
 
+# MAGIC %pip install pydantic
+
+# COMMAND ----------
+
 # MAGIC %load_ext autoreload
 # MAGIC %autoreload 2
 
@@ -17,7 +21,6 @@
 # COMMAND ----------
 
 from discoverx import DX
-from discoverx.rules import Rule
 dx = DX()
 
 # COMMAND ----------
@@ -31,7 +34,16 @@ dx.scan(catalogs="discoverx*", databases="*")
 
 # COMMAND ----------
 
-dx.scan_result
+dx.display_scan_summary()
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM discoverx_sample.sample_datasets.cyber_data
 
 # COMMAND ----------
 
@@ -55,6 +67,8 @@ dx = DX(column_type_classification_threshold=0.95)
 # MAGIC ### Rules
 
 # COMMAND ----------
+
+from discoverx.rules import Rule
 
 device_rule_def = {
     'name': 'custom_device_id',
