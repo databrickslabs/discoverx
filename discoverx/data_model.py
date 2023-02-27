@@ -3,7 +3,7 @@ from discoverx.sql_builder import SqlBuilder
 from pyspark.sql import SparkSession
 
 class DataModel:
-    def __init__(self, logger=None, sql_builder = None):
+    def __init__(self, logger=None, sql_builder = None, spark=None):
         
         if logger is None:
             from discoverx.logging import Logging
@@ -14,7 +14,9 @@ class DataModel:
             sql_builder = SqlBuilder()
         self.sql_builder = sql_builder
 
-        self.spark = SparkSession.getActiveSession()
+        if spark is None:
+            spark = SparkSession.getActiveSession()
+        self.spark = spark
 
 
     def get_table_list(self, catalogs_filter, databases_filter, tables_filter):

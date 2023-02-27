@@ -97,7 +97,7 @@ def spark() -> SparkSession:
         shutil.rmtree(warehouse_dir)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="module")
 def sample_datasets(spark: SparkSession, request):
     """
     This fixture loads a sample dataset defined in a csv and

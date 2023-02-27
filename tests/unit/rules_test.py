@@ -1,7 +1,7 @@
 import pytest
 from discoverx.rules import Rule, Rules, RulesList, ip_v4_rule, ip_v6_rule
 
-def test_ruleslist():
+def test_ruleslist(spark):
 
     none_rules_list = RulesList()
     assert none_rules_list.rules_info == ""
