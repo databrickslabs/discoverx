@@ -3,18 +3,22 @@ from discoverx.sql_builder import SqlBuilder
 from pyspark.sql import SparkSession
 
 class DataModel:
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, sql_builder = None):
         
         if logger is None:
             from discoverx.logging import Logging
             logger = Logging()
         self.logger = logger
-        
+
+        if sql_builder is None:
+            sql_builder = SqlBuilder()
+        self.sql_builder = sql_builder
+
         self.spark = SparkSession.getActiveSession()
 
 
     def get_table_list(self, catalogs_filter, databases_filter, tables_filter):
-        sql = SqlBuilder().get_table_list_sql(catalogs_filter, databases_filter, tables_filter)
+        sql = self.sql_builder.get_table_list_sql(catalogs_filter, databases_filter, tables_filter)
         
         rows = self.spark.sql(sql).collect()
         filtered_tables = [

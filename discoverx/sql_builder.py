@@ -14,6 +14,8 @@ class SqlBuilder:
     match specified rules
     """
 
+    columns_table_name = "system.information_schema.columns"
+
     # pylint: disable=too-few-public-methods
     def rule_matching_sql(self, table_info: TableInfo, rules: list[Rule], sample_size: int = 1000):
         """
@@ -97,7 +99,7 @@ class SqlBuilder:
             table_schema, 
             table_name, 
             collect_list(struct(column_name, data_type, partition_index)) as table_columns
-        FROM system.information_schema.columns
+        FROM {self.columns_table_name}
         WHERE 
             table_schema != "information_schema" 
             AND regexp_like(table_catalog, "^{catalog_filter.replace("*", ".*")}$")
