@@ -115,11 +115,27 @@ def sample_datasets(spark: SparkSession, request):
     logging.info("Creating sample datasets")
 
     module_path = Path(request.module.__file__)
-    test_file_path = module_path.parent / "data/sql_builder_test_table.csv"
-    spark.read.option("header", True).schema("id integer,ip string,description string").csv(
-        str(test_file_path.resolve())
-    ).createOrReplaceTempView("sqlBuildTestData")
-    spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 AS SELECT * FROM sqlBuildTestData")
+
+    # tb_1
+    test_file_path = module_path.parent / "data/tb_1.csv"
+    (spark
+        .read
+        .option("header", True)
+        .schema("id integer,ip string,description string")
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("view_tb_1")
+    spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 AS SELECT * FROM view_tb_1")
+
+    # columns_mock
+    test_file_path = module_path.parent / "data/columns_mock.csv"
+    (spark
+        .read
+        .option("header", True)
+        .schema("table_catalog string,table_schema string,table_name string,column_name string,data_type string,partition_index int")
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("view_columns_mock")
+    spark.sql("CREATE TABLE IF NOT EXISTS default.columns_mock AS SELECT * FROM view_columns_mock")
+    
 
     logging.info("Sample datasets created")
 
@@ -128,6 +144,7 @@ def sample_datasets(spark: SparkSession, request):
     logging.info("Test session finished, removing sample datasets")
 
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
+    spark.sql("DROP TABLE IF EXISTS default.columns_mock")
 
 
 @pytest.fixture(scope="session", autouse=True)
