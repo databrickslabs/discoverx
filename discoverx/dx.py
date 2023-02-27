@@ -32,11 +32,16 @@ class DX:
         custom_rules: Optional[List[Rule]] = None,
         column_type_classification_threshold: float = 0.95,
         data_model: Optional[DataModel] = None,
+        sql_builder: Optional[SqlBuilder] = None,
         spark: Optional[SparkSession] = None,
     ):
         if data_model is None:
             data_model = DataModel()
         self.data_model = data_model
+
+        if sql_builder is None:
+            sql_builder = SqlBuilder()
+        self.sql_builder = sql_builder
 
         self.logger = logging.Logging()
 
@@ -167,13 +172,15 @@ class DX:
         """
         )
 
+        return self.scan_result
+
 
     def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int) -> pd.DataFrame:
 
         self.logger.debug("Launching lakehouse scanning task\n")
         
         n_tables = len(table_list)
-        builder = SqlBuilder()
+        
         dfs = []
 
         for i, table in enumerate(table_list):
@@ -183,7 +190,7 @@ class DX:
             
             try:
                 # Build rule matching SQL
-                sql = builder.rule_matching_sql(table, rule_list, sample_size)
+                sql = self.sql_builder.rule_matching_sql(table, rule_list, sample_size)
 
                 # Execute SQL and append result
                 dfs.append(self.spark.sql(sql).toPandas())

@@ -1,4 +1,5 @@
 import pytest
+from discoverx.data_model import DataModel
 
 from discoverx.dx import DX
 from discoverx.config import ColumnInfo, TableInfo
@@ -7,6 +8,8 @@ from pyspark.sql import SparkSession
 from pathlib import Path
 import logging
 import pandas as pd
+
+from discoverx.sql_builder import SqlBuilder
 
 def test_dx_instantiation(spark):
 
@@ -60,3 +63,22 @@ def test_execute_scan(spark: SparkSession):
     logging.info("Scan result is: \n%s", actual)
     
     assert actual.equals(expected)
+
+
+def test_scan(spark: SparkSession):
+    
+    expected = pd.DataFrame([
+        ["None", "default", "tb_1", "ip", "ip_v4", 1.0],
+        ["None", "default", "tb_1", "ip", "ip_v6", 0.0],
+        ["None", "default", "tb_1", "description", "ip_v4", 0.0],
+        ["None", "default", "tb_1", "description", "ip_v6", 0.0]
+    ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
+
+    sql_builder = SqlBuilder()
+    sql_builder.columns_table_name = "default.columns_mock"
+    data_model = DataModel(sql_builder=sql_builder, spark=spark)
+
+    dx = DX(data_model=data_model, sql_builder=sql_builder, spark=spark)
+    dx.scan(tables="tb_1", rules="ip_*")
+    
+    assert dx.scan_result.equals(expected)

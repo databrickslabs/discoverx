@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-
+from typing import Optional
 
 @dataclass
 class ColumnInfo:
@@ -10,7 +10,7 @@ class ColumnInfo:
 
 @dataclass
 class TableInfo:
-    catalog: str
+    catalog: Optional[str]
     database: str
     table: str
     columns: list[ColumnInfo]

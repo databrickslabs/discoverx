@@ -93,6 +93,10 @@ class SqlBuilder:
             string: The SQL expression
         """
 
+        catalog_sql = f"""AND regexp_like(table_catalog, "^{catalog_filter.replace("*", ".*")}$")"""
+        database_sql = f"""AND regexp_like(table_schema, "^{database_filter.replace("*", ".*")}$")"""
+        table_sql = f"""AND regexp_like(table_name, "^{table_filter.replace("*", ".*")}$")"""
+
         sql = f"""
         SELECT 
             table_catalog, 
@@ -102,9 +106,9 @@ class SqlBuilder:
         FROM {self.columns_table_name}
         WHERE 
             table_schema != "information_schema" 
-            AND regexp_like(table_catalog, "^{catalog_filter.replace("*", ".*")}$")
-            AND regexp_like(table_schema, "^{database_filter.replace("*", ".*")}$")
-            AND regexp_like(table_name, "^{table_filter.replace("*", ".*")}$")
+            {catalog_sql if catalog_filter != "*" else ""}
+            {database_sql if database_filter != "*" else ""}
+            {table_sql if table_filter != "*" else ""}
         GROUP BY table_catalog, table_schema, table_name
         """
 
