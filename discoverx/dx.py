@@ -76,7 +76,7 @@ class DX:
         """
         
         missing_uc_text = """
-        <h1>Uch! DiscoverX needs Unity Catalog to be enabled</h1>
+        <h1 style="color: red">Uch! DiscoverX needs Unity Catalog to be enabled</h1>
 
         <p>
           Please make sure you have Unity Catalog enabled, and that you are running a Cluster that supports Unity Catalog.
@@ -136,6 +136,8 @@ class DX:
 
     def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000):
 
+        self.logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
+        
         table_list = self.data_model.get_table_list(catalogs, databases, tables)
         rule_list = self.rules.get_rules(rule_filter=rules)
 
@@ -145,7 +147,6 @@ class DX:
         n_rules = len(rule_list)
 
         text = f"""
-        Ok, I'm going to scan your lakehouse for data that matches your rules.
         This is what you asked for:
         
             catalogs ({n_catalogs}) = {catalogs}
@@ -164,16 +165,63 @@ class DX:
         self.logger.friendlyHTML(
             f"""
         <h2>I've finished scanning your data lake.</h2>
-        <p>
-          Here is a summary of the results:
-            # TODO
-        </p>
+        
         
         """
         )
 
-        return self.scan_result
+        self.display_scan_summary()
+        
+#         return self.scan_result
 
+    def display_scan_summary(self):
+        column_type_classification_threshold = 0.95
+
+        self.scan_result['class_matched'] = self.scan_result['frequency'] > self.column_type_classification_threshold
+        classified_cols = self.scan_result[self.scan_result['class_matched']]
+
+        n_scanned = len(self.scan_result[['catalog', 'database', 'table', 'column']].drop_duplicates())
+        n_classified = len(classified_cols[['catalog', 'database', 'table', 'column']].drop_duplicates())
+        
+        
+        rule_match_counts = []
+        df = classified_cols.groupby(['rule_name']).agg({'class_matched': 'count'})
+        df = df.reset_index()  # make sure indexes pair with number of rows
+        for index, row in df.iterrows():
+            rule_match_counts.append(f"            <li>{row['class_matched']} {row['rule_name']}</li>")
+        rule_match_str = "\n".join(rule_match_counts)
+        
+        # Summary
+        classified_cols.index = pd.MultiIndex.from_frame(classified_cols[["catalog", "database", "table", "column"]])
+        summart_html_table = classified_cols[["rule_name", "frequency"]].to_html()
+      
+        html = f"""
+        <p>
+          Here is a summary of the results
+        </p>
+        <p>
+          I've been able to classify {n_classified} out of {n_scanned} columns.
+        </p>
+        <p>
+          I've found:
+          <ul>
+            {rule_match_str}
+          </ul>
+        </p>
+        <p>
+          To be more precise:
+        </p>
+        {summart_html_table}
+        <p>
+          You can see the full classification output with 'dx.scan_result'.
+        </p>
+        
+        
+        """
+        
+        self.logger.friendlyHTML(html)
+        
+        
 
     def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int) -> pd.DataFrame:
 
