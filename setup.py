@@ -22,8 +22,8 @@ PACKAGE_REQUIREMENTS = ["pyyaml", "pydantic"]
 # packages for local development and unit testing
 # please note that these packages are already available in DBR, there is no need to install them on DBR.
 LOCAL_REQUIREMENTS = [
-    "pyspark",
-    "delta-spark",
+    "pyspark>=3.3.0",
+    "delta-spark>=2.2.0",
     "scikit-learn",
     "pandas",
     "mlflow",

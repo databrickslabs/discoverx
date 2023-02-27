@@ -32,13 +32,17 @@ class DX:
         custom_rules: Optional[List[Rule]] = None,
         column_type_classification_threshold: float = 0.95,
         data_model: Optional[DataModel] = None,
+        spark: Optional[SparkSession] = None,
     ):
         if data_model is None:
             data_model = DataModel()
         self.data_model = data_model
 
         self.logger = logging.Logging()
-        self.spark = SparkSession.getActiveSession()
+
+        if spark is None:
+            spark = SparkSession.getActiveSession()
+        self.spark = spark
 
         self.rules = Rules(custom_rules=custom_rules)
         self.column_type_classification_threshold = self._validate_classification_threshold(

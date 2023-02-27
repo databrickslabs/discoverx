@@ -10,22 +10,22 @@ import pandas as pd
 
 def test_dx_instantiation(spark):
 
-    dx = DX()
+    dx = DX(spark=spark)
     assert dx.column_type_classification_threshold == 0.95
 
     # The validation should fail if the database does not exist
     with pytest.raises(ValueError) as e_error:
-        dx = DX()
+        dx = DX(spark=spark)
         dx.database = "testdb"
         dx._validate_database()
     assert e_error.value.args[0] == "The given database testdb does not exist."
 
     # The validation should fail if threshold is outside of [0,1]
     with pytest.raises(ValueError) as e_threshold_error_plus:
-        dx = DX(column_type_classification_threshold=1.4)
+        dx = DX(column_type_classification_threshold=1.4, spark=spark)
 
     with pytest.raises(ValueError) as e_threshold_error_minus:
-        dx = DX(column_type_classification_threshold=-1.0)
+        dx = DX(column_type_classification_threshold=-1.0, spark=spark)
 
     # simple test for displaying rules
     try:
@@ -54,7 +54,7 @@ def test_execute_scan(spark: SparkSession):
         Rule(name="any_word", type="regex", description="Any word", definition=r"^\\w*$"),
         Rule(name="any_number", type="regex", description="Any number", definition=r"^\\d*$"),
     ]
-    dx = DX(spark)
+    dx = DX(spark=spark)
     actual = dx._execute_scan(table_list, rules, 100)
 
     logging.info("Scan result is: \n%s", actual)

@@ -6,7 +6,7 @@ from discoverx.config import ColumnInfo, TableInfo
 def test_get_table_list(spark):
     sql_builder = SqlBuilder()
     sql_builder.columns_table_name = "default.columns_mock"
-    data_model = DataModel(sql_builder=sql_builder)
+    data_model = DataModel(sql_builder=sql_builder, spark=spark)
     expected = [
         TableInfo("hive_metastore", "default", "tb_all_types", [
             ColumnInfo("str_col", "STRING", None),
