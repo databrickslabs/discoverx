@@ -28,7 +28,7 @@ FROM
     (
         SELECT
         column,
-        INT(regexp_like(value, '\w')) AS any_word
+        INT(regexp_like(value, '\\w')) AS any_word
         FROM (
             SELECT
                 stack(1, 'name', name) AS (column, value)
@@ -68,8 +68,8 @@ FROM
     (
         SELECT
         column,
-        INT(regexp_like(value, '\w.')) AS any_word,
-        INT(regexp_like(value, '\d.')) AS any_number
+        INT(regexp_like(value, '\\w.')) AS any_word,
+        INT(regexp_like(value, '\\d.')) AS any_number
         FROM (
             SELECT
                 stack(1, 'name', name) AS (column, value)

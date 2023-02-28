@@ -54,8 +54,8 @@ def test_execute_scan(spark: SparkSession):
         TableInfo(None, "default", "tb_1", columns)
     ]
     rules = [
-        Rule(name="any_word", type="regex", description="Any word", definition=r"^\\w*$"),
-        Rule(name="any_number", type="regex", description="Any number", definition=r"^\\d*$"),
+        Rule(name="any_word", type="regex", description="Any word", definition=r"^\w*$"),
+        Rule(name="any_number", type="regex", description="Any number", definition=r"^\d*$"),
     ]
     dx = DX(spark=spark)
     actual = dx._execute_scan(table_list, rules, 100)

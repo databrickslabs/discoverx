@@ -172,23 +172,19 @@ class DX:
 
         self.display_scan_summary()
         
-#         return self.scan_result
-
     def display_scan_summary(self):
-        column_type_classification_threshold = 0.95
+        df = self.scan_result
+        classified_cols = df[df['frequency'] > self.column_type_classification_threshold]
 
-        self.scan_result['class_matched'] = self.scan_result['frequency'] > self.column_type_classification_threshold
-        classified_cols = self.scan_result[self.scan_result['class_matched']]
-
-        n_scanned = len(self.scan_result[['catalog', 'database', 'table', 'column']].drop_duplicates())
+        n_scanned = len(df[['catalog', 'database', 'table', 'column']].drop_duplicates())
         n_classified = len(classified_cols[['catalog', 'database', 'table', 'column']].drop_duplicates())
         
         
         rule_match_counts = []
-        df = classified_cols.groupby(['rule_name']).agg({'class_matched': 'count'})
-        df = df.reset_index()  # make sure indexes pair with number of rows
-        for index, row in df.iterrows():
-            rule_match_counts.append(f"            <li>{row['class_matched']} {row['rule_name']}</li>")
+        df_summary = classified_cols.groupby(['rule_name']).agg({'frequency': 'count'})
+        df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
+        for _, row in df_summary.iterrows():
+            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']}</li>")
         rule_match_str = "\n".join(rule_match_counts)
         
         # Summary
