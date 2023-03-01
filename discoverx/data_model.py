@@ -14,8 +14,6 @@ class DataModel:
             sql_builder = SqlBuilder()
         self.sql_builder = sql_builder
 
-        if spark is None:
-            spark = SparkSession.getActiveSession()
         self.spark = spark
 
 

@@ -31,23 +31,16 @@ class DX:
         self,
         custom_rules: Optional[List[Rule]] = None,
         column_type_classification_threshold: float = 0.95,
-        data_model: Optional[DataModel] = None,
-        sql_builder: Optional[SqlBuilder] = None,
         spark: Optional[SparkSession] = None,
     ):
-        if data_model is None:
-            data_model = DataModel()
-        self.data_model = data_model
-
-        if sql_builder is None:
-            sql_builder = SqlBuilder()
-        self.sql_builder = sql_builder
-
-        self.logger = logging.Logging()
 
         if spark is None:
             spark = SparkSession.getActiveSession()
         self.spark = spark
+
+        self.sql_builder = SqlBuilder()
+        self.data_model = DataModel(spark=self.spark, sql_builder=self.sql_builder)
+        self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules)
         self.column_type_classification_threshold = self._validate_classification_threshold(
@@ -170,9 +163,9 @@ class DX:
         """
         )
 
-        self.display_scan_summary()
+        self._display_scan_summary()
         
-    def display_scan_summary(self):
+    def _display_scan_summary(self):
         df = self.scan_result
         classified_cols = df[df['frequency'] > self.column_type_classification_threshold]
 
