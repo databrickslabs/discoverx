@@ -34,10 +34,6 @@ dx.scan(catalogs="discoverx*", databases="*")
 
 # COMMAND ----------
 
-dx.display_scan_summary()
-
-# COMMAND ----------
-
 
 
 # COMMAND ----------

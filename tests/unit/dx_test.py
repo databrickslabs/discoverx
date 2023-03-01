@@ -78,7 +78,10 @@ def test_scan(spark: SparkSession):
     sql_builder.columns_table_name = "default.columns_mock"
     data_model = DataModel(sql_builder=sql_builder, spark=spark)
 
-    dx = DX(data_model=data_model, sql_builder=sql_builder, spark=spark)
+    dx = DX(spark=spark)
+    dx.data_model = data_model
+    dx.sql_builder = sql_builder
+    
     dx.scan(tables="tb_1", rules="ip_*")
     
     assert dx.scan_result.equals(expected)
