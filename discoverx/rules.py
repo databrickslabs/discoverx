@@ -62,7 +62,9 @@ class Rule(BaseModel):
 
         for ex in validation_example:
             if ((values["type"] == RuleTypes.REGEX) and not re.match(values["definition"], ex)) != fail_match:
-                raise ValueError(f"The definition of the rule {values['name']} does not match the provided example {ex}")
+                raise ValueError(
+                    f"The definition of the rule {values['name']} does not match the provided example {ex}"
+                )
         return example
 
 
@@ -126,6 +128,43 @@ mac_rule = Rule(
     definition="^([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2})$",
     match_example=["01:02:03:04:ab:cd", "01-02-03-04-ab-cd", "0102-0304-abcd", "01020304abcd"],
     nomatch_example=["01:02:03:04:ab", "01.02.03.04.ab.cd"],
+)
+
+# Regular Expression from https://www.regexlib.com/REDetails.aspx?regexp_id=1374
+# TODO: http://www.domain-.com should not be matched according to above link but is currently
+url_rule = Rule(
+    name="url",
+    type="regex",
+    description="URL",
+    definition="(([\\w]+:)?//)?(([\\d\w]|%[a-fA-f\\d]{2,2})+(:([\\d\w]|%[a-fA-f\\d]{2,2})+)?@)?([\\d\\w][-\\d\\w]{0,253}[\\d\\w]\\.)+[\\w]{2,4}(:[\\d]+)?(/([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})*)*(\\?(&?([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})=?)*)?(#([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})*)?",
+    match_example=[
+        "http://www.domain.com",
+        "http://domain.com",
+        "http://domain.com",
+        "https://domain.com",
+        "https://sub.domain-name.com:8080",
+        "http://domain.com/dir%201/dir_2/program.ext?var1=x&var2=my%20value",
+        "domain.com/index.html#bookmark",
+    ],
+    nomatch_example=["Normal Text.", "http://a.com"],
+)
+
+fqdn_rule = Rule(
+    name="fqdn",
+    type="regex",
+    description="Fully Qualified Domain Names",
+    definition="^(?!:\\/\\/)(?=.{1,255}$)((.{1,63}\\.){1,127}(?![0-9]*$)[a-z0-9-]+\\.?)$",
+    match_example=[
+        "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com",
+        "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com.mx.gmail.com.",
+        "1.2.3.4.com",
+        "xn--kxae4bafwg.xn--pxaix.gr",
+    ],
+    nomatch_example=[
+        "so-me.na-me.567",
+        "label.name.321",
+        "1234567890-1234567890-1234567890-1234567890-12345678901234567890.123.com",
+    ],
 )
 
 
