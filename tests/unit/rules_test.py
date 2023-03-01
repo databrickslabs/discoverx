@@ -1,5 +1,6 @@
 import pytest
-from discoverx.rules import Rule, Rules, RulesList, ip_v4_rule, ip_v6_rule, email_rule
+from discoverx.rules import Rule, Rules, RulesList, ip_v4_rule, ip_v6_rule, email_rule, mac_rule
+
 
 def test_ruleslist():
 
@@ -24,19 +25,20 @@ def test_rules():
 
     # add some custom rules
     device_rule_def = {
-        'name': 'custom_device_id',
-        'type': 'regex',
-        'description': 'Custom device ID XX-XXXX-XXXXXXXX',
-        'definition': '\d{2}[-]\d{4}[-]\d{8}',
-        'match_example': '00-1111-22222222',
-        'tag': 'device_id'
+        "name": "custom_device_id",
+        "type": "regex",
+        "description": "Custom device ID XX-XXXX-XXXXXXXX",
+        "definition": "\d{2}[-]\d{4}[-]\d{8}",
+        "match_example": "00-1111-22222222",
+        "tag": "device_id",
     }
     cust_rule = Rule(**device_rule_def)
     cust_rules = Rules(custom_rules=[cust_rule])
     cust_rules.builtin_rules = RulesList([ip_v4_rule, ip_v6_rule])
 
     assert "custom_device_id" in cust_rules.get_rules_info()
-    assert [rule.name for rule in cust_rules.get_rules(rule_filter="*")] == ['ip_v4', 'ip_v6', 'custom_device_id']
+    assert [rule.name for rule in cust_rules.get_rules(rule_filter="*")] == ["ip_v4", "ip_v6", "custom_device_id"]
+
 
 def test_rule_validation():
 
@@ -47,7 +49,7 @@ def test_rule_validation():
             type="regex",
             description="IP address v4",
             definition=r"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
-            match_example=["192.0.2.1", "0.0.0.0"]
+            match_example=["192.0.2.1", "0.0.0.0"],
         )
     except ValueError:
         pytest.fail("The example does not match the rule definition")
@@ -60,7 +62,7 @@ def test_rule_validation():
             description="IP address v4",
             definition=r"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
             match_example=["192.0.2.1", "0.0.0.0"],
-            nomatch_example="192"
+            nomatch_example="192",
         )
     except ValueError:
         pytest.fail("The example does not match the rule definition")
@@ -72,7 +74,7 @@ def test_rule_validation():
             type="regex",
             description="IP address v4",
             definition=r"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
-            match_example="192"
+            match_example="192",
         )
 
     with pytest.raises(ValueError):
@@ -81,7 +83,7 @@ def test_rule_validation():
             type="regex",
             description="IP address v4",
             definition=r"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
-            nomatch_example=["192.1.1.1", "192"]
+            nomatch_example=["192.1.1.1", "192"],
         )
 
     with pytest.raises(ValueError):
@@ -90,8 +92,9 @@ def test_rule_validation():
             type="regex",
             description="IP address v4",
             definition=r"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
-            match_example=["0.0.0.0", "192"]
+            match_example=["0.0.0.0", "192"],
         )
+
 
 def test_standard_rules():
     """Test the standard rules defined in rules.py
@@ -104,3 +107,4 @@ def test_standard_rules():
     assert (email_rule.match_example is not None) and (email_rule.nomatch_example is not None)
     assert (ip_v4_rule.match_example is not None) and (ip_v4_rule.nomatch_example is not None)
     assert (ip_v6_rule.match_example is not None) and (ip_v6_rule.nomatch_example is not None)
+    assert (mac_rule.match_example is not None) and (mac_rule.nomatch_example is not None)
