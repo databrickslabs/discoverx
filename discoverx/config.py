@@ -1,16 +1,16 @@
 from dataclasses import dataclass
-
+from typing import Optional
 
 @dataclass
 class ColumnInfo:
     name: str
     data_type: str
-    is_partition: bool
+    partition_index: int
 
 
 @dataclass
 class TableInfo:
-    catalog: str
+    catalog: Optional[str]
     database: str
     table: str
     columns: list[ColumnInfo]

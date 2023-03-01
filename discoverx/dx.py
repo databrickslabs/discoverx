@@ -1,9 +1,12 @@
+import pandas as pd
 from pyspark.sql import SparkSession
 from typing import List, Optional
-
-from discoverx import logging, explorer
+from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.rules import Rules, Rule
+from discoverx.config import TableInfo
+from discoverx.data_model import DataModel
+from discoverx.sql_builder import SqlBuilder
 
 
 class DX:
@@ -28,20 +31,30 @@ class DX:
         self,
         custom_rules: Optional[List[Rule]] = None,
         column_type_classification_threshold: float = 0.95,
+        spark: Optional[SparkSession] = None,
     ):
+
+        if spark is None:
+            spark = SparkSession.getActiveSession()
+        self.spark = spark
+
+        self.sql_builder = SqlBuilder()
+        self.data_model = DataModel(spark=self.spark, sql_builder=self.sql_builder)
         self.logger = logging.Logging()
-        self.explorer = explorer.Explorer(self.logger)
-        self.spark = SparkSession.getActiveSession()
 
         self.rules = Rules(custom_rules=custom_rules)
         self.column_type_classification_threshold = self._validate_classification_threshold(
             column_type_classification_threshold
         )
         self.database: Optional[str] = None  # TODO: for later use
+        
+        self.uc_enabled = self.spark.conf.get('spark.databricks.unityCatalog.enabled', 'false')
+        
+        self.intro()
 
     def intro(self):
         # TODO: Decide on how to do the introduction
-        text = """
+        intro_text = """
         <h1>Hi there, I'm DiscoverX.</h1>
 
         <p>
@@ -54,7 +67,19 @@ class DX:
         </p>
         <pre><code>dx.help()</code></pre>
         """
-        self.logger.friendlyHTML(text)
+        
+        missing_uc_text = """
+        <h1 style="color: red">Uch! DiscoverX needs Unity Catalog to be enabled</h1>
+
+        <p>
+          Please make sure you have Unity Catalog enabled, and that you are running a Cluster that supports Unity Catalog.
+        </p>
+        """
+        
+        if (self.uc_enabled == 'true'):
+            self.logger.friendlyHTML(intro_text)
+        else:
+            self.logger.friendlyHTML(missing_uc_text)
 
     def help(self):
         snippet1 = strip_margin(
@@ -104,7 +129,9 @@ class DX:
 
     def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000):
 
-        table_list = self.explorer.get_table_list(catalogs, databases, tables)
+        self.logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
+        
+        table_list = self.data_model.get_table_list(catalogs, databases, tables)
         rule_list = self.rules.get_rules(rule_filter=rules)
 
         n_catalogs = len(set(map(lambda x: x.catalog, table_list)))
@@ -113,7 +140,6 @@ class DX:
         n_rules = len(rule_list)
 
         text = f"""
-        Ok, I'm going to scan your lakehouse for data that matches your rules.
         This is what you asked for:
         
             catalogs ({n_catalogs}) = {catalogs}
@@ -127,18 +153,94 @@ class DX:
         """
         self.logger.friendly(strip_margin(text))
 
-        self.explorer.scan(table_list, rule_list, sample_size)
+        self.scan_result = self._execute_scan(table_list, rule_list, sample_size)
 
         self.logger.friendlyHTML(
             f"""
         <h2>I've finished scanning your data lake.</h2>
-        <p>
-          Here is a summary of the results:
-            # TODO
-        </p>
+        
         
         """
         )
+
+        self._display_scan_summary()
+        
+    def _display_scan_summary(self):
+        df = self.scan_result
+        classified_cols = df[df['frequency'] > self.column_type_classification_threshold]
+
+        n_scanned = len(df[['catalog', 'database', 'table', 'column']].drop_duplicates())
+        n_classified = len(classified_cols[['catalog', 'database', 'table', 'column']].drop_duplicates())
+        
+        
+        rule_match_counts = []
+        df_summary = classified_cols.groupby(['rule_name']).agg({'frequency': 'count'})
+        df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
+        for _, row in df_summary.iterrows():
+            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']}</li>")
+        rule_match_str = "\n".join(rule_match_counts)
+        
+        # Summary
+        classified_cols.index = pd.MultiIndex.from_frame(classified_cols[["catalog", "database", "table", "column"]])
+        summart_html_table = classified_cols[["rule_name", "frequency"]].to_html()
+      
+        html = f"""
+        <p>
+          Here is a summary of the results
+        </p>
+        <p>
+          I've been able to classify {n_classified} out of {n_scanned} columns.
+        </p>
+        <p>
+          I've found:
+          <ul>
+            {rule_match_str}
+          </ul>
+        </p>
+        <p>
+          To be more precise:
+        </p>
+        {summart_html_table}
+        <p>
+          You can see the full classification output with 'dx.scan_result'.
+        </p>
+        
+        
+        """
+        
+        self.logger.friendlyHTML(html)
+        
+        
+
+    def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int) -> pd.DataFrame:
+
+        self.logger.debug("Launching lakehouse scanning task\n")
+        
+        n_tables = len(table_list)
+        
+        dfs = []
+
+        for i, table in enumerate(table_list):
+            self.logger.friendly(
+                f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
+            )
+            
+            try:
+                # Build rule matching SQL
+                sql = self.sql_builder.rule_matching_sql(table, rule_list, sample_size)
+
+                # Execute SQL and append result
+                dfs.append(self.spark.sql(sql).toPandas())
+            except Exception as e:
+                self.logger.error(f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}")
+                continue        
+
+        self.logger.debug("Finished lakehouse scanning task")
+        
+        if dfs:
+          return pd.concat(dfs)
+        else:
+          return pd.DataFrame()
 
     def results(self):
         self.logger.friendly("Here are the results:")
