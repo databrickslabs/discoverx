@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from fnmatch import fnmatch
 import re
-from typing import Optional, List
+from typing import Union, Optional, List
 from pydantic import BaseModel, validator
 
 
@@ -38,15 +38,31 @@ class Rule(BaseModel):
     type: RuleTypes
     description: str
     definition: str
-    example: Optional[str] = None
+    match_example: Optional[Union[str, List[str]]] = None
+    nomatch_example: Optional[Union[str, List[str]]] = None
     tag: Optional[str] = None
 
     # pylint: disable=no-self-argument
-    @validator("example")
-    def validate_rule(cls, example, values):
+    @validator("match_example")
+    def validate_match_example(cls, match_example, values):
+        return cls.validate_rule(match_example, values, False)
+
+    # pylint: disable=no-self-argument
+    @validator("nomatch_example")
+    def validate_nomatch_example(cls, nomatch_example, values):
+        return cls.validate_rule(nomatch_example, values, True)
+
+    @staticmethod
+    def validate_rule(example, values, fail_match: bool):
         """Validates that given example is matched by defined pattern"""
-        if (values["type"] == RuleTypes.REGEX) and not re.match(values["definition"], example):
-            raise ValueError(f"The definition of the rule {values['name']} does not match the provided example")
+        if not isinstance(example, list):
+            validation_example = [example]
+        else:
+            validation_example = example
+
+        for ex in validation_example:
+            if ((values["type"] == RuleTypes.REGEX) and not re.match(values["definition"], ex)) != fail_match:
+                raise ValueError(f"The definition of the rule {values['name']} does not match the provided example")
         return example
 
 
@@ -83,13 +99,25 @@ ip_v4_rule = Rule(
     name="ip_v4",
     type="regex",
     description="IP address v4",
-    definition=r"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
+    definition="(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
+    match_example=["192.1.1.1", "0.0.0.0"],
+    nomatch_example=["192"]
 )
 ip_v6_rule = Rule(
     name="ip_v6",
     type="regex",
     description="IP address v6",
-    definition=r"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))",
+    definition="(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))",
+    match_example=["2001:db8:3333:4444:5555:6666:7777:8888", "::1234:5678", "2001:db8::", "::"],
+    nomatch_example=["2001.0000"]
+)
+email_rule = Rule(
+    name="email",
+    type="regex",
+    description="Email address",
+    definition="^.+@[^\\.].*\\.[a-z]{2,}$",
+    match_example=["whatever@somewhere.museum", "foreignchars@myforeigncharsdomain.nu", "me+mysomething@mydomain.com"],
+    nomatch_example=["a@b.c", "me@.my.com", "a@b.comFOREIGNCHAR"]
 )
 
 
