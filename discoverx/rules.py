@@ -62,7 +62,7 @@ class Rule(BaseModel):
 
         for ex in validation_example:
             if ((values["type"] == RuleTypes.REGEX) and not re.match(values["definition"], ex)) != fail_match:
-                raise ValueError(f"The definition of the rule {values['name']} does not match the provided example")
+                raise ValueError(f"The definition of the rule {values['name']} does not match the provided example {ex}")
         return example
 
 
@@ -101,7 +101,7 @@ ip_v4_rule = Rule(
     description="IP address v4",
     definition="(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
     match_example=["192.1.1.1", "0.0.0.0"],
-    nomatch_example=["192"]
+    nomatch_example=["192"],
 )
 ip_v6_rule = Rule(
     name="ip_v6",
@@ -109,7 +109,7 @@ ip_v6_rule = Rule(
     description="IP address v6",
     definition="(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))",
     match_example=["2001:db8:3333:4444:5555:6666:7777:8888", "::1234:5678", "2001:db8::", "::"],
-    nomatch_example=["2001.0000"]
+    nomatch_example=["2001.0000"],
 )
 email_rule = Rule(
     name="email",
@@ -117,7 +117,15 @@ email_rule = Rule(
     description="Email address",
     definition="^.+@[^\\.].*\\.[a-z]{2,}$",
     match_example=["whatever@somewhere.museum", "foreignchars@myforeigncharsdomain.nu", "me+mysomething@mydomain.com"],
-    nomatch_example=["a@b.c", "me@.my.com", "a@b.comFOREIGNCHAR"]
+    nomatch_example=["a@b.c", "me@.my.com", "a@b.comFOREIGNCHAR"],
+)
+mac_rule = Rule(
+    name="mac",
+    type="regex",
+    description="MAC Addresses",
+    definition="^([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2})$",
+    match_example=["01:02:03:04:ab:cd", "01-02-03-04-ab-cd", "0102-0304-abcd", "01020304abcd"],
+    nomatch_example=["01:02:03:04:ab", "01.02.03.04.ab.cd"],
 )
 
 
