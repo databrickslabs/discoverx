@@ -1,5 +1,5 @@
 import pytest
-from discoverx.rules import Rule, Rules, RulesList, ip_v4_rule, ip_v6_rule, email_rule, mac_rule
+from discoverx.rules import Rule, Rules, RulesList, ip_v4_rule, ip_v6_rule, email_rule, mac_rule, url_rule, fqdn_rule
 
 
 def test_ruleslist():
@@ -108,3 +108,5 @@ def test_standard_rules():
     assert (ip_v4_rule.match_example is not None) and (ip_v4_rule.nomatch_example is not None)
     assert (ip_v6_rule.match_example is not None) and (ip_v6_rule.nomatch_example is not None)
     assert (mac_rule.match_example is not None) and (mac_rule.nomatch_example is not None)
+    assert (url_rule.match_example is not None) and (url_rule.nomatch_example is not None)
+    assert (fqdn_rule.match_example is not None) and (fqdn_rule.nomatch_example is not None)
