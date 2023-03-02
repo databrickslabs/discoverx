@@ -157,7 +157,7 @@ fqdn_rule = Rule(
     name="fqdn",
     type="regex",
     description="Fully Qualified Domain Names",
-    definition=r"^(?!:\/\/)(?=.{1,255}$)((.{1,63}\.){1,127}(?![0-9]*$)[a-z0-9-]+\.?)$",
+    definition=r"^([-a-zA-Z0-9:%._\+~#=]{1,63}\.){1,8}[a-zA-Z]{1,12}\.?$",
     match_example=[
         "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com",
         "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com.mx.gmail.com.",
@@ -168,6 +168,8 @@ fqdn_rule = Rule(
         "so-me.na-me.567",
         "label.name.321",
         "1234567890-1234567890-1234567890-1234567890-12345678901234567890.123.com",
+        "abc.cdf@mydoamain.com",
+        "Some text abc.cdf.com",
     ],
 )
 
