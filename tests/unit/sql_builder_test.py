@@ -23,7 +23,7 @@ def test_generate_sql():
     (sum(value) / count(value)) as frequency
 FROM
 (
-    SELECT column, stack(1, 'any_word', any_word) as (rule_name, value)
+    SELECT column, stack(1, 'any_word', `any_word`) as (rule_name, value)
     FROM
     (
         SELECT
@@ -31,7 +31,7 @@ FROM
         INT(regexp_like(value, '\\w')) AS any_word
         FROM (
             SELECT
-                stack(1, 'name', name) AS (column, value)
+                stack(1, 'name', `name`) AS (column, value)
             FROM meta.db.tb
             TABLESAMPLE (100 ROWS)
         )
@@ -63,7 +63,7 @@ def test_generate_sql_multiple_rules():
     (sum(value) / count(value)) as frequency
 FROM
 (
-    SELECT column, stack(2, 'any_word', any_word, 'any_number', any_number) as (rule_name, value)
+    SELECT column, stack(2, 'any_word', `any_word`, 'any_number', `any_number`) as (rule_name, value)
     FROM
     (
         SELECT
@@ -72,7 +72,7 @@ FROM
         INT(regexp_like(value, '\\d.')) AS any_number
         FROM (
             SELECT
-                stack(1, 'name', name) AS (column, value)
+                stack(1, 'name', `name`) AS (column, value)
             FROM meta.db.tb
             TABLESAMPLE (100 ROWS)
         )
