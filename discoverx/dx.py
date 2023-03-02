@@ -127,7 +127,7 @@ class DX:
         text = self.rules.get_rules_info()
         self.logger.friendlyHTML(text)
 
-    def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000):
+    def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000, what_if: bool = False):
 
         self.logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
         
@@ -153,7 +153,7 @@ class DX:
         """
         self.logger.friendly(strip_margin(text))
 
-        self.scan_result = self._execute_scan(table_list, rule_list, sample_size)
+        self.scan_result = self._execute_scan(table_list, rule_list, sample_size, what_if=what_if)
 
         self.logger.friendlyHTML(
             f"""
@@ -212,7 +212,7 @@ class DX:
         
         
 
-    def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int) -> pd.DataFrame:
+    def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
 
         self.logger.debug("Launching lakehouse scanning task\n")
         
@@ -221,16 +221,24 @@ class DX:
         dfs = []
 
         for i, table in enumerate(table_list):
-            self.logger.friendly(
-                f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
-            )
+            if (what_if):
+                self.logger.friendly(
+                    f"SQL that would be executed for '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
+                    )
+            else:
+                self.logger.friendly(
+                    f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
+                )
             
             try:
                 # Build rule matching SQL
                 sql = self.sql_builder.rule_matching_sql(table, rule_list, sample_size)
 
-                # Execute SQL and append result
-                dfs.append(self.spark.sql(sql).toPandas())
+                if(what_if):
+                    self.logger.friendly(sql)
+                else:
+                    # Execute SQL and append result
+                    dfs.append(self.spark.sql(sql).toPandas())
             except Exception as e:
                 self.logger.error(f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}")
                 continue        
