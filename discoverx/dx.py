@@ -65,7 +65,7 @@ class DX:
         <p>
           For more detailed instructions, use
         </p>
-        <pre><code>dx.help()</code></pre>
+        <pre><code>help(DX)</code></pre>
         """
         
         missing_uc_text = """

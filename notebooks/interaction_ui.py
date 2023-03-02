@@ -25,37 +25,6 @@ dx = DX()
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC   SELECT 
-# MAGIC   table_catalog, 
-# MAGIC   table_schema, 
-# MAGIC   sum(INT(less_than_1_day_ago)) AS less_than_1_day_ago,
-# MAGIC   sum(INT(less_than_1_week_ago)) AS less_than_1_week_ago,
-# MAGIC   sum(INT(less_than_30_days_ago)) AS less_than_30_days_ago,
-# MAGIC   sum(INT(less_than_1_year_ago)) AS less_than_1_year_ago,
-# MAGIC   sum(INT(more_than_1_year_ago)) AS more_than_1_year_ago
-# MAGIC FROM (
-# MAGIC   SELECT
-# MAGIC     *,
-# MAGIC     (last_altered_days_ago < 1) AS less_than_1_day_ago,
-# MAGIC     (last_altered_days_ago >= 1 AND last_altered_days_ago < 7) AS less_than_1_week_ago,
-# MAGIC     (last_altered_days_ago >= 7 AND last_altered_days_ago < 30) AS less_than_30_days_ago,
-# MAGIC     (last_altered_days_ago >= 30 AND last_altered_days_ago < 365) AS less_than_1_year_ago,
-# MAGIC     (last_altered_days_ago >= 365) AS more_than_1_year_ago
-# MAGIC   FROM (
-# MAGIC     SELECT 
-# MAGIC       date_diff(now(), last_altered) AS last_altered_days_ago,
-# MAGIC       table_catalog,
-# MAGIC       table_schema,
-# MAGIC       table_name
-# MAGIC     FROM system.information_schema.tables 
-# MAGIC     WHERE table_schema != "information_schema" AND table_catalog != "system"
-# MAGIC   )
-# MAGIC )
-# MAGIC GROUP BY 1, 2
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ### Scan
 
