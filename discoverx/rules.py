@@ -183,7 +183,7 @@ class Rules:
             custom_rules (List[Rule], optional): A list of
                 custom-defined rules. Defaults to None.
         """
-        self.builtin_rules: RulesList = RulesList([ip_v4_rule, ip_v6_rule])
+        self.builtin_rules: RulesList = RulesList([ip_v4_rule, ip_v6_rule, email_rule, mac_rule, url_rule, fqdn_rule])
         self.custom_rules = RulesList(custom_rules)
 
     def get_rules_info(self):
