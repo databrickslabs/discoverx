@@ -155,13 +155,7 @@ class DX:
 
         self.scan_result = self._execute_scan(table_list, rule_list, sample_size, what_if=what_if)
 
-        self.logger.friendlyHTML(
-            f"""
-        <h2>I've finished scanning your data lake.</h2>
-        
-        
-        """
-        )
+        self.logger.friendly(f"Done.")
 
         self._display_scan_summary()
         
@@ -177,7 +171,7 @@ class DX:
         df_summary = classified_cols.groupby(['rule_name']).agg({'frequency': 'count'})
         df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
         for _, row in df_summary.iterrows():
-            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']}</li>")
+            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']} columns</li>")
         rule_match_str = "\n".join(rule_match_counts)
         
         # Summary
@@ -185,9 +179,7 @@ class DX:
         summart_html_table = classified_cols[["rule_name", "frequency"]].to_html()
       
         html = f"""
-        <p>
-          Here is a summary of the results
-        </p>
+        <h2>Result summary</h2>
         <p>
           I've been able to classify {n_classified} out of {n_scanned} columns.
         </p>
