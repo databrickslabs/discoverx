@@ -51,8 +51,8 @@ class SqlBuilder:
         matching_columns = [f"INT(regexp_like(value, '{self.format_regex(r.definition)}')) AS {r.name}" for r in expressions]
         matching_string = ",\n                    ".join(matching_columns)
 
-        unpivot_expressions = ", ".join([f"'{r.name}', {r.name}" for r in expressions])
-        unpivot_columns = ", ".join([f"'{c.name}', {c.name}" for c in cols])
+        unpivot_expressions = ", ".join([f"'{r.name}', `{r.name}`" for r in expressions])
+        unpivot_columns = ", ".join([f"'{c.name}', `{c.name}`" for c in cols])
 
         sql = f"""
             SELECT 
