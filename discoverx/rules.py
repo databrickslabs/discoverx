@@ -125,9 +125,13 @@ mac_rule = Rule(
     name="mac",
     type="regex",
     description="MAC Addresses",
-    definition=r"^([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2})$",
+    definition=r"^(?=[-:\w]*[a-fA-F]+[-:\w]*)(([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2}))$",
     match_example=["01:02:03:04:ab:cd", "01-02-03-04-ab-cd", "0102-0304-abcd", "01020304abcd"],
-    nomatch_example=["01:02:03:04:ab", "01.02.03.04.ab.cd"],
+    nomatch_example=[
+        "01:02:03:04:ab", 
+        "01.02.03.04.ab.cd",
+        "01:02:03:04:05:06" # There must be at least one letter
+    ],
 )
 
 # Regular Expression from https://www.regexlib.com/REDetails.aspx?regexp_id=1374
