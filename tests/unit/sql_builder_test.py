@@ -88,25 +88,25 @@ GROUP BY catalog, database, table, column, rule_name"""
     assert actual == expected
 
 
-# def test_sql_runs(spark: SparkSession):
-#     columns = [
-#         ColumnInfo("id", "number", False),
-#         ColumnInfo("ip", "string", False),
-#         ColumnInfo("description", "string", False),
-#     ]
-#     table_info = TableInfo(None, "default", "tb_1", columns)
-#     rules = [
-#         Rule(name="any_word", type="regex", description="Any word", definition=r"\w+"),
-#         Rule(name="any_number", type="regex", description="Any number", definition=r"\d+"),
-#     ]
+def test_sql_runs(spark: SparkSession):
+    columns = [
+        ColumnInfo("id", "number", False),
+        ColumnInfo("ip", "string", False),
+        ColumnInfo("description", "string", False),
+    ]
+    table_info = TableInfo(None, "default", "tb_1", columns)
+    rules = [
+        Rule(name="any_word", type="regex", description="Any word", definition=r"\w+"),
+        Rule(name="any_number", type="regex", description="Any number", definition=r"\d+"),
+    ]
 
-#     actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
+    actual = SqlBuilder().rule_matching_sql(table_info, rules, 100)
 
-#     logging.info("Generated SQL is: \n%s", actual)
+    logging.info("Generated SQL is: \n%s", actual)
 
-#     expected = spark.sql(actual).collect()
+    expected = spark.sql(actual).collect()
 
-#     print(expected)
+    print(expected)
 
 columns = [
     ColumnInfo("id", "number", False, ["id"]),
@@ -116,23 +116,34 @@ columns = [
 table_info = TableInfo("catalog", "prod_db1", "tb1", columns)
 
 def test_msql_select_single_tag():
-    msql = "SELECT [dx_pii] FROM catalog.prod_db1.tb1"
+    msql = "SELECT [dx_pii] AS pii FROM catalog.prod_db1.tb1"
 
     expected = """
-    SELECT email_1 AS dx_pii FROM catalog.prod_db1.tb1
+    SELECT email_1 AS pii FROM catalog.prod_db1.tb1
     """
 
     actual = SqlBuilder().compile_msql(msql, table_info)
     assert actual == strip_margin(expected)
 
 def test_msql_select_multi_tag():
-    msql = "SELECT [dx_email] FROM catalog.prod_db1.tb1"
+    msql = "SELECT [dx_email] AS email FROM catalog.prod_db1.tb1"
 
     expected = """
-    SELECT email_1 AS dx_email FROM catalog.prod_db1.tb1
+    SELECT email_1 AS email FROM catalog.prod_db1.tb1
     UNION ALL
-    SELECT email_2 AS dx_email FROM catalog.prod_db1.tb1
+    SELECT email_2 AS email FROM catalog.prod_db1.tb1
     """
 
     actual = SqlBuilder().compile_msql(msql, table_info)
+    assert actual == strip_margin(expected)
+
+
+def test_msql_replace_tag():
+    msql = "SELECT [dx_pii] AS pii FROM x.y WHERE [dx_pii] = 'abc@def.co'"
+
+    expected = """
+    SELECT email_1 AS pii FROM x.y WHERE email_1 = 'abc@def.co'
+    """
+
+    actual = SqlBuilder()._replace_tag(msql, 'dx_pii', 'email_1')
     assert actual == strip_margin(expected)

@@ -137,8 +137,21 @@ class SqlBuilder:
         sql_statements = []
 
         for col_name in col_names:
-            temp_sql = msql.replace(f"[{tag}]", f"{col_name} AS {tag}")
+            temp_sql = self._replace_tag(msql, tag, col_name)
             sql_statements.append(temp_sql)
 
         final_sql = "\nUNION ALL\n".join(sql_statements)
         return strip_margin(final_sql)
+    
+    def _replace_tag(self, msql, tag, col_name):
+        """
+        Replaces a tag in an M-SQL expression with a column name
+        Args:
+            msql (str): The M-SQL expression
+            tag (str): The tag to be replaced
+            col_name (str): The column name to be used for replacement
+
+        Returns:
+            string: The M-SQL expression with the tag replaced
+        """
+        return msql.replace(f"[{tag}]", col_name)
