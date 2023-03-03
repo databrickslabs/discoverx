@@ -5,7 +5,7 @@ SQL expressions for specified tables and rules
 from discoverx.config import TableInfo
 from discoverx.common.helper import strip_margin
 from discoverx.rules import Rule, RuleTypes
-
+import re
 
 class SqlBuilder:
     """
@@ -116,3 +116,29 @@ class SqlBuilder:
         """
 
         return strip_margin(sql)
+
+    def compile_msql(self, msql, table_info: TableInfo):
+        """
+        Compiles the specified M-SQL (Multiplex-SQL) expression into regular SQL
+        Args:
+            msql (str): The M-SQL expression
+
+        Returns:
+            string: A SQL expression which multiplexes the MSQL expression
+        """
+        tag_regex = r"\[([\w_-]+)\]"
+        tags = set(re.findall(tag_regex, msql))
+
+        assert len(tags) <= 1, "M-SQL expressions can contain only one disctinct tag"
+        
+        tag = list(tags)[0]
+        col_names = table_info.get_columns_by_tag(tag)
+        
+        sql_statements = []
+
+        for col_name in col_names:
+            temp_sql = msql.replace(f"[{tag}]", f"{col_name} AS {tag}")
+            sql_statements.append(temp_sql)
+
+        final_sql = "\nUNION ALL\n".join(sql_statements)
+        return strip_margin(final_sql)

@@ -46,9 +46,9 @@ def test_execute_scan(spark: SparkSession):
     ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
     
     columns = [
-        ColumnInfo("id", "number", False),
-        ColumnInfo("ip", "string", False),
-        ColumnInfo("description", "string", False),
+        ColumnInfo("id", "number", False, []),
+        ColumnInfo("ip", "string", False, []),
+        ColumnInfo("description", "string", False, []),
     ]
     table_list = [
         TableInfo(None, "default", "tb_1", columns)
