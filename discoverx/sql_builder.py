@@ -128,24 +128,31 @@ class SqlBuilder:
         Returns:
             string: A SQL expression which multiplexes the MSQL expression
         """
+
+        # Find distinct tags in M-SQL expression
         tag_regex = r"\[([\w_-]+)\]"
         tags = list(set(re.findall(tag_regex, msql)))
 
-        x = []
+        # Get all columns matching the tags
+        columns_by_tag = []
         for tag in tags:
             tagged_cols = table_info.get_columns_by_tag(tag)
-            x.append(tagged_cols)
+            columns_by_tag.append(tagged_cols)
 
-        combinations = list(itertools.product(*x))
+        # Create all possible combinations of tagged columns to be queried
+        col_tag_combinations = list(itertools.product(*columns_by_tag))
+
+        # Replace tags in M-SQL expression with column names
         sql_statements = []
-
-        for c in combinations:
+        for tagged_cols in col_tag_combinations:
             temp_sql = msql
-            for tagged_col in c:
+            for tagged_col in tagged_cols:
                 temp_sql = self._replace_tag(temp_sql, tagged_col.tag, tagged_col.name)
             sql_statements.append(temp_sql)
 
+        # Concatenate all SQL statements
         final_sql = "\nUNION ALL\n".join(sql_statements)
+        
         return strip_margin(final_sql)
     
     def _replace_tag(self, msql, tag, col_name):
