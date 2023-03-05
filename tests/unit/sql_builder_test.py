@@ -117,6 +117,16 @@ columns = [
 ]
 table_info = TableInfo("catalog", "prod_db1", "tb1", columns)
 
+def test_msql_replace_from_clausole():
+    msql = "SELECT [dx_pii] AS pii FROM *.*.*"
+
+    expected = """
+    SELECT email_1 AS pii FROM catalog.prod_db1.tb1
+    """
+
+    actual = SqlBuilder().compile_msql(msql, table_info)
+    assert actual == strip_margin(expected)
+
 def test_msql_select_single_tag():
     msql = "SELECT [dx_pii] AS pii FROM catalog.prod_db1.tb1"
 
@@ -155,16 +165,6 @@ def test_msql_select_multi_tag():
     actual = SqlBuilder().compile_msql(msql, table_info)
     assert actual == strip_margin(expected)
 
-
-def test_msql_replace_tag():
-    msql = "SELECT [dx_pii] AS pii FROM x.y WHERE [dx_pii] = 'abc@def.co'"
-
-    expected = """
-    SELECT email_1 AS pii FROM x.y WHERE email_1 = 'abc@def.co'
-    """
-
-    actual = SqlBuilder()._replace_tag(msql, 'dx_pii', 'email_1')
-    assert actual == strip_margin(expected)
 
 # def test_msql_replace_tag_fails_for_missing_alias_in_select():
 #     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''" 

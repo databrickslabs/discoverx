@@ -17,7 +17,8 @@ class SqlBuilder:
     """
 
     columns_table_name = "system.information_schema.columns"
-
+    from_statement_expr = r"(FROM\s+)(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))"
+        
     def format_regex(self, expression):
         return expression.replace("\\", r"\\")
       
@@ -129,6 +130,15 @@ class SqlBuilder:
             string: A SQL expression which multiplexes the MSQL expression
         """
 
+        # Replace from clause with table name
+        msql = self._replace_from_statement(msql, table_info)
+
+        # TODO: Assert alias in SELECT statement
+        # non_aliased_tags = re.findall(r"", msql)
+        # if non_aliased_tags:
+        #     raise ValueError(f"""Tags {non_aliased_tags} are not aliased in M-SQL expression.
+        #     Please specify an alias for each tag. Eg. [tag] AS 'my_alias'.""")
+
         # Find distinct tags in M-SQL expression
         tag_regex = r"\[([\w_-]+)\]"
         tags = list(set(re.findall(tag_regex, msql)))
@@ -147,28 +157,24 @@ class SqlBuilder:
         for tagged_cols in col_tag_combinations:
             temp_sql = msql
             for tagged_col in tagged_cols:
-                temp_sql = self._replace_tag(temp_sql, tagged_col.tag, tagged_col.name)
+                temp_sql = temp_sql.replace(f"[{tagged_col.tag}]", tagged_col.name)
             sql_statements.append(temp_sql)
 
         # Concatenate all SQL statements
         final_sql = "\nUNION ALL\n".join(sql_statements)
-        
+
         return strip_margin(final_sql)
     
-    def _replace_tag(self, msql, tag, col_name):
-        """
-        Replaces a tag in an M-SQL expression with a column name
-        Args:
-            msql (str): The M-SQL expression
-            tag (str): The tag to be replaced
-            col_name (str): The column name to be used for replacement
-
-        Returns:
-            string: The M-SQL expression with the tag replaced
-        """
-        # TODO: Assert alias in SELECT statement
-        # non_aliased_tags = re.findall(r"SELECT +\[([\w_-]+)\] +", msql)
-        # if non_aliased_tags:
-        #     raise ValueError(f"""Tags {non_aliased_tags} are not aliased in M-SQL expression.
-        #     Please specify an alias for each tag. Eg. [tag] AS 'my_alias'.""")
-        return msql.replace(f"[{tag}]", col_name)
+    def _replace_from_statement(self, msql: str, table_info: TableInfo):
+        replace_with = f"FROM {table_info.catalog}.{table_info.database}.{table_info.table}"
+        
+        return re.sub(self.from_statement_expr, replace_with, msql)
+    
+    def _extract_from_components(self, msql: str):
+        matches = re.findall(self.from_statement_expr, msql)
+        if len(matches) > 1:
+            raise ValueError(f"Multiple FROM statements found in M-SQL expression: {msql}")
+        elif len(matches) == 1:
+            return matches[0]
+        else:
+            raise ValueError(f"Could not extract table name from M-SQL expression: {msql}")
