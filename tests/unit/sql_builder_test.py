@@ -2,6 +2,7 @@
 import logging
 
 from pyspark.sql import SparkSession
+import pytest
 from discoverx.common.helper import strip_margin
 
 from discoverx.config import ColumnInfo, TableInfo
@@ -90,9 +91,9 @@ GROUP BY catalog, database, table, column, rule_name"""
 
 def test_sql_runs(spark: SparkSession):
     columns = [
-        ColumnInfo("id", "number", False),
-        ColumnInfo("ip", "string", False),
-        ColumnInfo("description", "string", False),
+        ColumnInfo("id", "number", None, []),
+        ColumnInfo("ip", "string", None, []),
+        ColumnInfo("description", "string", None, []),
     ]
     table_info = TableInfo(None, "default", "tb_1", columns)
     rules = [
@@ -109,9 +110,10 @@ def test_sql_runs(spark: SparkSession):
     print(expected)
 
 columns = [
-    ColumnInfo("id", "number", False, ["id"]),
-    ColumnInfo("email_1", "string", False, ["dx_email", "dx_pii"]),
-    ColumnInfo("email_2", "string", False, ["dx_email"]),
+    ColumnInfo("id", "number", None, ["id"]),
+    ColumnInfo("email_1", "string", None, ["dx_email", "dx_pii"]),
+    ColumnInfo("email_2", "string", None, ["dx_email"]),
+    ColumnInfo("date", "string", 1, ["dx_date_partition"]),
 ]
 table_info = TableInfo("catalog", "prod_db1", "tb1", columns)
 
@@ -125,13 +127,29 @@ def test_msql_select_single_tag():
     actual = SqlBuilder().compile_msql(msql, table_info)
     assert actual == strip_margin(expected)
 
-def test_msql_select_multi_tag():
+def test_msql_select_repeated_tag():
     msql = "SELECT [dx_email] AS email FROM catalog.prod_db1.tb1"
 
     expected = """
     SELECT email_1 AS email FROM catalog.prod_db1.tb1
     UNION ALL
     SELECT email_2 AS email FROM catalog.prod_db1.tb1
+    """
+
+    actual = SqlBuilder().compile_msql(msql, table_info)
+    assert actual == strip_margin(expected)
+
+def test_msql_select_multi_tag():
+    msql = """
+    SELECT [dx_date_partition] AS dt, [dx_pii] AS pii, count([dx_pii]) AS cnt
+    FROM catalog.prod_db1.tb1
+    GROUP BY [dx_date_partition], [dx_pii]
+    """
+
+    expected = """
+    SELECT date AS dt, email_1 AS pii, count(email_1) AS cnt
+    FROM catalog.prod_db1.tb1
+    GROUP BY date, email_1
     """
 
     actual = SqlBuilder().compile_msql(msql, table_info)
@@ -147,3 +165,9 @@ def test_msql_replace_tag():
 
     actual = SqlBuilder()._replace_tag(msql, 'dx_pii', 'email_1')
     assert actual == strip_margin(expected)
+
+# def test_msql_replace_tag_fails_for_missing_alias_in_select():
+#     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''" 
+#     with pytest.raises(ValueError):
+#         SqlBuilder()._replace_tag(msql, 'dx_pii', 'email_1')
+        

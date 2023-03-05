@@ -6,6 +6,8 @@ from discoverx.config import TableInfo
 from discoverx.common.helper import strip_margin
 from discoverx.rules import Rule, RuleTypes
 import re
+import itertools
+
 
 class SqlBuilder:
     """
@@ -127,17 +129,20 @@ class SqlBuilder:
             string: A SQL expression which multiplexes the MSQL expression
         """
         tag_regex = r"\[([\w_-]+)\]"
-        tags = set(re.findall(tag_regex, msql))
+        tags = list(set(re.findall(tag_regex, msql)))
 
-        assert len(tags) <= 1, "M-SQL expressions can contain only one disctinct tag"
-        
-        tag = list(tags)[0]
-        col_names = table_info.get_columns_by_tag(tag)
-        
+        x = []
+        for tag in tags:
+            tagged_cols = table_info.get_columns_by_tag(tag)
+            x.append(tagged_cols)
+
+        combinations = list(itertools.product(*x))
         sql_statements = []
 
-        for col_name in col_names:
-            temp_sql = self._replace_tag(msql, tag, col_name)
+        for c in combinations:
+            temp_sql = msql
+            for tagged_col in c:
+                temp_sql = self._replace_tag(temp_sql, tagged_col.tag, tagged_col.name)
             sql_statements.append(temp_sql)
 
         final_sql = "\nUNION ALL\n".join(sql_statements)
@@ -154,4 +159,9 @@ class SqlBuilder:
         Returns:
             string: The M-SQL expression with the tag replaced
         """
+        # TODO: Assert alias in SELECT statement
+        # non_aliased_tags = re.findall(r"SELECT +\[([\w_-]+)\] +", msql)
+        # if non_aliased_tags:
+        #     raise ValueError(f"""Tags {non_aliased_tags} are not aliased in M-SQL expression.
+        #     Please specify an alias for each tag. Eg. [tag] AS 'my_alias'.""")
         return msql.replace(f"[{tag}]", col_name)

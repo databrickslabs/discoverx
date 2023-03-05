@@ -17,4 +17,9 @@ class TableInfo:
     columns: list[ColumnInfo]
 
     def get_columns_by_tag(self, tag: str):
-        return [col.name for col in self.columns if tag in col.tags]
+        return [TaggedColumn(col.name, tag) for col in self.columns if tag in col.tags]
+
+@dataclass
+class TaggedColumn:
+    name: str
+    tag: str
