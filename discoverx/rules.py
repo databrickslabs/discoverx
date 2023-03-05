@@ -133,9 +133,6 @@ mac_rule = Rule(
         "01:02:03:04:05:06" # There must be at least one letter
     ],
 )
-
-# Regular Expression from https://www.regexlib.com/REDetails.aspx?regexp_id=1374
-# TODO: http://www.domain-.com should not be matched according to above link but is currently
 url_rule = Rule(
     name="url",
     type="regex",
@@ -154,6 +151,7 @@ url_rule = Rule(
     nomatch_example=[
         "Some text http://domain.com",
         "http://domain.com some text",
+        "my@email.com"
     ],
 )
 
