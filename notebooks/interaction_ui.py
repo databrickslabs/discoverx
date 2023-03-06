@@ -30,7 +30,28 @@ dx = DX()
 
 # COMMAND ----------
 
-dx.scan(catalogs="*")
+dx.scan(catalogs="discoverx*")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## M-SQL (Multiplex SQL)
+# MAGIC M-SQL lets you run SQL statements across a wide number of table by leveraging the tags
+
+# COMMAND ----------
+
+dx.msql("""
+SELECT [ip_v4] AS ip, [ip_v6] AS another_ip 
+FROM discoverx*.*.*
+""").display()
+
+# COMMAND ----------
+
+dx.msql("""
+SELECT [ip_v4] AS ip, count([ip_v4]) AS count 
+FROM discoverx*.*.*
+GROUP BY [ip_v4]
+""").display()
 
 # COMMAND ----------
 

@@ -1,10 +1,11 @@
 import pandas as pd
+from fnmatch import fnmatch
 from pyspark.sql import SparkSession
 from typing import List, Optional
 from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.rules import Rules, Rule
-from discoverx.config import TableInfo
+from discoverx.config import TableInfo, ColumnInfo
 from discoverx.data_model import DataModel
 from discoverx.sql_builder import SqlBuilder
 
@@ -204,28 +205,46 @@ class DX:
         
     def msql(self, msql: str, what_if: bool = False):
 
-        if (not self.scan_result):
+        if (self.scan_result is None):
             self.logger.friendly("You need to run 'dx.scan()' before you can run 'dx.msql()'")
             return
         
         self.logger.debug(f"Executing msql: {msql}")
-
+        
         (_, _, catalogs, databases, tables) = self.sql_builder._extract_from_components(msql)
-        # table_list = self.data_model.get_table_list(catalogs, databases, tables)
+        
         df = self.scan_result
         classified_cols = df[df['frequency'] > self.column_type_classification_threshold]
-        
-        
-        # TODO: Filter tables with tags
+        classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['rule_name']].reset_index()
 
-        sqls = [self.sql_builder.compile_msql(msql, table) for table in table_list]
+        classified_cols['col_tags'] = classified_cols[['column', 'rule_name']].apply(tuple, axis=1)
+        df = classified_cols.groupby(['catalog', 'database', 'table']).aggregate(lambda x: list(x))[['col_tags']].reset_index()
+
+        # Filter tables by matching filter
+        filtered_tables = [
+            TableInfo(
+                row[0], 
+                row[1], 
+                row[2], 
+                [
+                    ColumnInfo(
+                        col[0], # col name
+                        "", # TODO
+                        None, # TODO
+                        col[1] # Tags
+                    ) for col in row[3]
+                ]
+            ) for _, row in df.iterrows() if fnmatch(row[0], catalogs) and fnmatch(row[1], databases) and fnmatch(row[2], tables)]
+        
+
+        sqls = [self.sql_builder.compile_msql(msql, table) for table in filtered_tables]
         sql = "\nUNION ALL\n".join(sqls)
 
         if (what_if):
             self.logger.friendly(f"SQL that would be executed:\n{sql}")
+            return None
         else:
             self.logger.debug(f"Executing SQL:\n{sql}")
-            
             return self.spark.sql(sql)
 
     def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
