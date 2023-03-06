@@ -202,7 +202,31 @@ class DX:
         
         self.logger.friendlyHTML(html)
         
+    def msql(self, msql: str, what_if: bool = False):
+
+        if (not self.scan_result):
+            self.logger.friendly("You need to run 'dx.scan()' before you can run 'dx.msql()'")
+            return
         
+        self.logger.debug(f"Executing msql: {msql}")
+
+        (_, _, catalogs, databases, tables) = self.sql_builder._extract_from_components(msql)
+        # table_list = self.data_model.get_table_list(catalogs, databases, tables)
+        df = self.scan_result
+        classified_cols = df[df['frequency'] > self.column_type_classification_threshold]
+        
+        
+        # TODO: Filter tables with tags
+
+        sqls = [self.sql_builder.compile_msql(msql, table) for table in table_list]
+        sql = "\nUNION ALL\n".join(sqls)
+
+        if (what_if):
+            self.logger.friendly(f"SQL that would be executed:\n{sql}")
+        else:
+            self.logger.debug(f"Executing SQL:\n{sql}")
+            
+            return self.spark.sql(sql)
 
     def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
 
