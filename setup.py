@@ -42,7 +42,7 @@ TEST_REQUIREMENTS = [
 setup(
     name="discoverx",
     packages=find_packages(exclude=["tests", "tests.*"]),
-    setup_requires=["setuptools", "wheel", "build", "twine"],
+    setup_requires=["setuptools", "wheel"],
     install_requires=PACKAGE_REQUIREMENTS,
     extras_require={"local": LOCAL_REQUIREMENTS, "test": TEST_REQUIREMENTS},
     entry_points={
