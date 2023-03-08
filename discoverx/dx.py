@@ -206,11 +206,12 @@ class DX:
     def msql(self, msql: str, what_if: bool = False):
 
         if (self.scan_result is None):
-            self.logger.friendly("You need to run 'dx.scan()' before you can run 'dx.msql()'")
-            return
+            message = "You need to run 'dx.scan()' before you can run 'dx.msql()'"
+            self.logger.friendly(message)
+            raise Exception(message)
         
         self.logger.debug(f"Executing msql: {msql}")
-        
+
         msql_builder = Msql(msql)
         sql = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
 
