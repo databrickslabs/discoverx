@@ -52,6 +52,7 @@ setup(
         ]
     },
     version=version_string,
-    description="",
-    author="",
+    description="DiscoverX allows you to map and search your lakehouse",
+    author="Erni Durdevic, David Tempelmann",
+    license_files=('LICENSE',),
 )
