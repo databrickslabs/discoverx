@@ -1,0 +1,31 @@
+name: Release pipeline
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release-pipeline:
+
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip' # caching pip dependencies
+          cache-dependency-path: setup.py
+
+      - name: Install pip
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Build distribution
+        run: |
+          python -m build
