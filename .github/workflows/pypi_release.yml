@@ -3,7 +3,7 @@ name: Release pipeline
 on:
   push:
     branches:
-      - master
+      - DX-14-Publish-a-v0.0.1-on-pypi
 
 jobs:
   release-pipeline:
