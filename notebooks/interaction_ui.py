@@ -30,16 +30,7 @@ dx = DX()
 
 # COMMAND ----------
 
-dx.scan(catalogs="discoverx*", databases="*")
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC SELECT * FROM discoverx_sample.sample_datasets.cyber_data
+dx.scan(catalogs="*")
 
 # COMMAND ----------
 
@@ -64,22 +55,30 @@ dx = DX(column_type_classification_threshold=0.95)
 
 # COMMAND ----------
 
+dx.display_rules()
+
+# COMMAND ----------
+
 from discoverx.rules import Rule
 
-device_rule_def = {
-    'name': 'custom_device_id',
-    'type': 'regex',
-    'description': 'Custom device ID XX-XXXX-XXXXXXXX',
-    'definition': '\d{2}[-]\d{4}[-]\d{8}',
-    'example': '00-1111-22222222',
-    'tag': 'device_id'
-  }
 
-device_rule = Rule(**device_rule_def)
+resource_request_id_rule = {
+  'name': 'resource_request_id',
+  'type': 'regex',
+  'description': 'Resource request ID',
+  'definition': r'^AR-\d{9}$',
+  'match_example': ['AR-123456789']
+}
 
-dx = DX(custom_rules=[device_rule])
-dx.display_rules()
-# dx.register_rules(custom_rules)
+resource_request_id_rule = Rule(**resource_request_id_rule)
+
+dx_custm_rules = DX(custom_rules=[resource_request_id_rule])
+dx_custm_rules.display_rules()
+# # dx.register_rules(custom_rules)
+
+# COMMAND ----------
+
+dx_custm_rules.scan(sample_size=1000)
 
 # COMMAND ----------
 

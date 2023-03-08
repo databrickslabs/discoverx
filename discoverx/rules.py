@@ -101,7 +101,7 @@ ip_v4_rule = Rule(
     name="ip_v4",
     type="regex",
     description="IP address v4",
-    definition="(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
+    definition=r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
     match_example=["192.1.1.1", "0.0.0.0"],
     nomatch_example=["192"],
 )
@@ -109,7 +109,7 @@ ip_v6_rule = Rule(
     name="ip_v6",
     type="regex",
     description="IP address v6",
-    definition="(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))",
+    definition=r"^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$",
     match_example=["2001:db8:3333:4444:5555:6666:7777:8888", "::1234:5678", "2001:db8::", "::"],
     nomatch_example=["2001.0000"],
 )
@@ -117,7 +117,7 @@ email_rule = Rule(
     name="email",
     type="regex",
     description="Email address",
-    definition="^.+@[^\\.].*\\.[a-z]{2,}$",
+    definition=r"^.+@[^\.].*\.[a-z]{2,}$",
     match_example=["whatever@somewhere.museum", "foreignchars@myforeigncharsdomain.nu", "me+mysomething@mydomain.com"],
     nomatch_example=["a@b.c", "me@.my.com", "a@b.comFOREIGNCHAR"],
 )
@@ -125,18 +125,19 @@ mac_rule = Rule(
     name="mac",
     type="regex",
     description="MAC Addresses",
-    definition="^([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2})$",
+    definition=r"^(?=[-:\w]*[a-fA-F]+[-:\w]*)(([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2}))$",
     match_example=["01:02:03:04:ab:cd", "01-02-03-04-ab-cd", "0102-0304-abcd", "01020304abcd"],
-    nomatch_example=["01:02:03:04:ab", "01.02.03.04.ab.cd"],
+    nomatch_example=[
+        "01:02:03:04:ab", 
+        "01.02.03.04.ab.cd",
+        "01:02:03:04:05:06" # There must be at least one letter
+    ],
 )
-
-# Regular Expression from https://www.regexlib.com/REDetails.aspx?regexp_id=1374
-# TODO: http://www.domain-.com should not be matched according to above link but is currently
 url_rule = Rule(
     name="url",
     type="regex",
     description="URL",
-    definition="(([\\w]+:)?//)?(([\\d\w]|%[a-fA-f\\d]{2,2})+(:([\\d\w]|%[a-fA-f\\d]{2,2})+)?@)?([\\d\\w][-\\d\\w]{0,253}[\\d\\w]\\.)+[\\w]{2,4}(:[\\d]+)?(/([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})*)*(\\?(&?([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})=?)*)?(#([-+_~.\\d\\w]|%[a-fA-f\\d]{2,2})*)?",
+    definition=r"^(https?|ftp|file|mailto):\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$",
     match_example=[
         "http://www.domain.com",
         "http://domain.com",
@@ -144,16 +145,21 @@ url_rule = Rule(
         "https://domain.com",
         "https://sub.domain-name.com:8080",
         "http://domain.com/dir%201/dir_2/program.ext?var1=x&var2=my%20value",
-        "domain.com/index.html#bookmark",
+        "ftp://domain.com/index.html#bookmark",
+        "file://domain.com/abc.txt",
     ],
-    nomatch_example=["Normal Text.", "http://a.com"],
+    nomatch_example=[
+        "Some text http://domain.com",
+        "http://domain.com some text",
+        "my@email.com"
+    ],
 )
 
 fqdn_rule = Rule(
     name="fqdn",
     type="regex",
     description="Fully Qualified Domain Names",
-    definition="^(?!:\\/\\/)(?=.{1,255}$)((.{1,63}\\.){1,127}(?![0-9]*$)[a-z0-9-]+\\.?)$",
+    definition=r"^([-a-zA-Z0-9:%._\+~#=]{1,63}\.){1,8}[a-zA-Z]{1,12}\.?$",
     match_example=[
         "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com",
         "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com.mx.gmail.com.",
@@ -164,6 +170,8 @@ fqdn_rule = Rule(
         "so-me.na-me.567",
         "label.name.321",
         "1234567890-1234567890-1234567890-1234567890-12345678901234567890.123.com",
+        "abc.cdf@mydoamain.com",
+        "Some text abc.cdf.com",
     ],
 )
 
@@ -183,7 +191,7 @@ class Rules:
             custom_rules (List[Rule], optional): A list of
                 custom-defined rules. Defaults to None.
         """
-        self.builtin_rules: RulesList = RulesList([ip_v4_rule, ip_v6_rule])
+        self.builtin_rules: RulesList = RulesList([ip_v4_rule, ip_v6_rule, email_rule, mac_rule, url_rule, fqdn_rule])
         self.custom_rules = RulesList(custom_rules)
 
     def get_rules_info(self):
