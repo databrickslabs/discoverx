@@ -63,7 +63,7 @@ class Msql:
         """Builds the M-SQL expression into a SQL expression"""
         
         classified_cols = df[df['frequency'] > column_type_classification_threshold]
-        classified_cols = df[df['rule_name'] in self.tags]
+        classified_cols = classified_cols[classified_cols['rule_name'].isin(self.tags)]
         classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['rule_name']].reset_index()
 
         classified_cols['col_tags'] = classified_cols[['column', 'rule_name']].apply(tuple, axis=1)
@@ -88,7 +88,7 @@ class Msql:
         if len(filtered_tables) == 0:
             raise ValueError(f"No tables found matching filter: {self.catalogs}.{self.databases}.{self.tables}")
 
-        sqls = [self.compile_msql(self.msql, table) for table in filtered_tables]
+        sqls = [self.compile_msql(table) for table in filtered_tables]
         sql = "\nUNION ALL\n".join(sqls)
         return sql
     

@@ -1,5 +1,6 @@
 # pylint: disable=missing-function-docstring, missing-module-docstring
 
+import pandas as pd
 from discoverx.common.helper import strip_margin
 from discoverx.config import ColumnInfo, TableInfo
 from discoverx.msql import Msql
@@ -73,6 +74,28 @@ def test_msql_select_multi_and_repeated_tag():
     actual = Msql(msql).compile_msql(table_info)
     assert actual == strip_margin(expected)
 
+def test_msql_build_select_multi_and_repeated_tag():
+    msql = "SELECT [dx_email] AS email, [dx_date_partition] AS d FROM c.d*.t* WHERE [dx_email] = 'a@b.c'"
+    df = pd.DataFrame([
+        ["c", "db", "tb1", "email_1", "dx_email", 0.99],
+        ["c", "db", "tb1", "email_2", "dx_email", 1.0],
+        ["c", "db", "tb1", "date", "dx_date_partition", 1],
+        # The next rows should be ignored
+        ["c", "db", "tb1", "some_col", "dx_email", 0.5], # Threshold too low
+        ["c", "db", "tb1", "description", "any_number", 0.99], # any_number not in the tag list
+        ["m_c", "db", "tb1", "email_3", "dx_email", 0.99], # catalog does not match
+        ["c", "m_db", "tb1", "email_4", "dx_email", 0.99], # database does not match
+        ["c", "db", "m_tb1", "email_5", "dx_email", 0.99], # table does not match
+    ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
+
+    expected = """
+    SELECT email_1 AS email, date AS d FROM c.db.tb1 WHERE email_1 = 'a@b.c'
+    UNION ALL
+    SELECT email_2 AS email, date AS d FROM c.db.tb1 WHERE email_2 = 'a@b.c'
+    """
+
+    actual = Msql(msql).build(df, 0.95)
+    assert actual == strip_margin(expected)
 # def test_msql_replace_tag_fails_for_missing_alias_in_select():
 #     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''" 
 #     with pytest.raises(ValueError):
