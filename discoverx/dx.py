@@ -65,7 +65,7 @@ class DX:
         <p>
           For more detailed instructions, use
         </p>
-        <pre><code>dx.help()</code></pre>
+        <pre><code>help(DX)</code></pre>
         """
         
         missing_uc_text = """
@@ -127,7 +127,7 @@ class DX:
         text = self.rules.get_rules_info()
         self.logger.friendlyHTML(text)
 
-    def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000):
+    def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000, what_if: bool = False):
 
         self.logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
         
@@ -153,15 +153,9 @@ class DX:
         """
         self.logger.friendly(strip_margin(text))
 
-        self.scan_result = self._execute_scan(table_list, rule_list, sample_size)
+        self.scan_result = self._execute_scan(table_list, rule_list, sample_size, what_if=what_if)
 
-        self.logger.friendlyHTML(
-            f"""
-        <h2>I've finished scanning your data lake.</h2>
-        
-        
-        """
-        )
+        self.logger.friendly(f"Done.")
 
         self._display_scan_summary()
         
@@ -177,7 +171,7 @@ class DX:
         df_summary = classified_cols.groupby(['rule_name']).agg({'frequency': 'count'})
         df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
         for _, row in df_summary.iterrows():
-            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']}</li>")
+            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']} columns</li>")
         rule_match_str = "\n".join(rule_match_counts)
         
         # Summary
@@ -185,9 +179,7 @@ class DX:
         summart_html_table = classified_cols[["rule_name", "frequency"]].to_html()
       
         html = f"""
-        <p>
-          Here is a summary of the results
-        </p>
+        <h2>Result summary</h2>
         <p>
           I've been able to classify {n_classified} out of {n_scanned} columns.
         </p>
@@ -212,7 +204,7 @@ class DX:
         
         
 
-    def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int) -> pd.DataFrame:
+    def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
 
         self.logger.debug("Launching lakehouse scanning task\n")
         
@@ -221,16 +213,24 @@ class DX:
         dfs = []
 
         for i, table in enumerate(table_list):
-            self.logger.friendly(
-                f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
-            )
+            if (what_if):
+                self.logger.friendly(
+                    f"SQL that would be executed for '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
+                    )
+            else:
+                self.logger.friendly(
+                    f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
+                )
             
             try:
                 # Build rule matching SQL
                 sql = self.sql_builder.rule_matching_sql(table, rule_list, sample_size)
 
-                # Execute SQL and append result
-                dfs.append(self.spark.sql(sql).toPandas())
+                if(what_if):
+                    self.logger.friendly(sql)
+                else:
+                    # Execute SQL and append result
+                    dfs.append(self.spark.sql(sql).toPandas())
             except Exception as e:
                 self.logger.error(f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}")
                 continue        

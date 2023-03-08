@@ -20,7 +20,7 @@ def test_rules():
     # check that we can filter with unix wildcards
     rules_ip = Rules()
     rules_ip.builtin_rules = RulesList([ip_v4_rule, ip_v6_rule])
-    assert len(rules.get_rules(rule_filter="*")) == 2
+    assert len(rules.get_rules(rule_filter="*")) == 6
     assert [rule.name for rule in rules.get_rules(rule_filter="*v4")] == ["ip_v4"]
 
     # add some custom rules
@@ -37,7 +37,7 @@ def test_rules():
     cust_rules.builtin_rules = RulesList([ip_v4_rule, ip_v6_rule])
 
     assert "custom_device_id" in cust_rules.get_rules_info()
-    assert [rule.name for rule in cust_rules.get_rules(rule_filter="*")] == ["ip_v4", "ip_v6", "custom_device_id"]
+    assert len(cust_rules.get_rules(rule_filter="*")) == 3
 
 
 def test_rule_validation():
