@@ -85,3 +85,19 @@ def test_scan(spark: SparkSession):
     dx.scan(tables="tb_1", rules="ip_*")
     
     assert dx.scan_result.equals(expected)
+
+
+def test_msql(spark: SparkSession):
+    
+    sql_builder = SqlBuilder()
+    sql_builder.columns_table_name = "default.columns_mock"
+    data_model = DataModel(sql_builder=sql_builder, spark=spark)
+
+    dx = DX(spark=spark)
+    dx.data_model = data_model
+    dx.sql_builder = sql_builder
+    
+    dx.scan(tables="tb_1", rules="ip_*")
+    result = dx.msql("SELECT [ip_v4] as ip FROM *.*.*").collect()
+    
+    assert len(result) > 0

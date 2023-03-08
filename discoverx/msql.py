@@ -94,7 +94,10 @@ class Msql:
     
     def _replace_from_statement(self, msql: str, table_info: TableInfo):
         """Replaces the FROM statement in the M-SQL expression with the specified table name"""
-        replace_with = f"FROM {table_info.catalog}.{table_info.database}.{table_info.table}"
+        if table_info.catalog and table_info.catalog != "None":
+            replace_with = f"FROM {table_info.catalog}.{table_info.database}.{table_info.table}"
+        else:
+            replace_with = f"FROM {table_info.database}.{table_info.table}"
         
         return re.sub(self.from_statement_expr, replace_with, msql)
     
