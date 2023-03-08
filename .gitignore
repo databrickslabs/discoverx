@@ -48,3 +48,4 @@ derby.log
 
 # Databricks typings
 typings/
+.databricks

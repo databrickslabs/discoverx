@@ -1,11 +1,11 @@
 import pandas as pd
-from fnmatch import fnmatch
 from pyspark.sql import SparkSession
 from typing import List, Optional
 from discoverx import logging
 from discoverx.common.helper import strip_margin
+from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
-from discoverx.config import TableInfo, ColumnInfo
+from discoverx.config import TableInfo
 from discoverx.data_model import DataModel
 from discoverx.sql_builder import SqlBuilder
 
@@ -211,34 +211,8 @@ class DX:
         
         self.logger.debug(f"Executing msql: {msql}")
         
-        (_, _, catalogs, databases, tables) = self.sql_builder._extract_from_components(msql)
-        
-        df = self.scan_result
-        classified_cols = df[df['frequency'] > self.column_type_classification_threshold]
-        classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['rule_name']].reset_index()
-
-        classified_cols['col_tags'] = classified_cols[['column', 'rule_name']].apply(tuple, axis=1)
-        df = classified_cols.groupby(['catalog', 'database', 'table']).aggregate(lambda x: list(x))[['col_tags']].reset_index()
-
-        # Filter tables by matching filter
-        filtered_tables = [
-            TableInfo(
-                row[0], 
-                row[1], 
-                row[2], 
-                [
-                    ColumnInfo(
-                        col[0], # col name
-                        "", # TODO
-                        None, # TODO
-                        col[1] # Tags
-                    ) for col in row[3]
-                ]
-            ) for _, row in df.iterrows() if fnmatch(row[0], catalogs) and fnmatch(row[1], databases) and fnmatch(row[2], tables)]
-        
-
-        sqls = [self.sql_builder.compile_msql(msql, table) for table in filtered_tables]
-        sql = "\nUNION ALL\n".join(sqls)
+        msql_builder = Msql(msql)
+        sql = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
 
         if (what_if):
             self.logger.friendly(f"SQL that would be executed:\n{sql}")
