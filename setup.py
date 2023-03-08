@@ -53,6 +53,8 @@ setup(
     },
     version=version_string,
     description="DiscoverX allows you to map and search your lakehouse",
+    long_description="DiscoverX allows you to map and search your lakehouse",
+    long_description_content_type='text/markdown',
     author="Erni Durdevic, David Tempelmann",
     license_files=('LICENSE',),
 )
