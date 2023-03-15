@@ -9,7 +9,9 @@ class Msql:
     """This class compiles M-SQL expressions into regular SQL"""
     
     from_statement_expr = r"(FROM\s+)(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))"
+    command_expr = r"^\s*(\w+)\s"
     tag_regex = r"\[([\w_-]+)\]"
+    valid_commands = ["SELECT", "DELETE"]
 
     def __init__(self, msql: str) -> None:
         self.msql = msql
@@ -19,6 +21,9 @@ class Msql:
 
         # Extract from clause components
         (self.catalogs, self.databases, self.tables) = self._extract_from_components()
+
+        # Extract command
+        self.command = self._extract_command()
 
 
     def compile_msql(self, table_info: TableInfo) -> str:
@@ -56,8 +61,13 @@ class Msql:
             sql_statements.append(temp_sql)
 
         # Concatenate all SQL statements
-        final_sql = "\nUNION ALL\n".join(sql_statements)
-
+        if self.command == "SELECT":
+            final_sql = "\nUNION ALL\n".join(sql_statements)
+        elif self.command == "DELETE":
+            final_sql = ";\n".join(sql_statements)
+        else:
+            raise ValueError(f"Invalid command {self.command}")
+        
         return strip_margin(final_sql)
     
     def build(self, df, column_type_classification_threshold) -> str:
@@ -118,3 +128,15 @@ class Msql:
                 .replace(r"{database_name}", f"'{table_info.database}' AS database_name")
                 .replace(r"{table_name}", f"'{table_info.table}' AS table_name")
         )
+    
+    def _extract_command(self):
+        """Extracts the command from the M-SQL expression"""
+        commands = re.findall(self.command_expr, self.msql)
+        if len(commands) != 1:
+            raise ValueError(f"Could not extract command from M-SQL expression: {self.msql}. Valid commands are SELECT and DELETE.")
+        
+        command = commands[0].upper()
+        if command not in self.valid_commands:
+            raise ValueError(f"Invalid command: {command}. Valid commands are SELECT and DELETE.")
+        
+        return command

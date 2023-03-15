@@ -1,6 +1,7 @@
 # pylint: disable=missing-function-docstring, missing-module-docstring
 
 import pandas as pd
+import pytest
 from discoverx.common.helper import strip_margin
 from discoverx.config import ColumnInfo, TableInfo
 from discoverx.msql import Msql
@@ -13,6 +14,28 @@ columns = [
     ColumnInfo("date", "string", 1, ["dx_date_partition"]),
 ]
 table_info = TableInfo("catalog", "prod_db1", "tb1", columns)
+
+def test_msql_extracts_command():
+    assert Msql("SELECT [dx_pii] AS pii FROM *.*.*").command == "SELECT"
+    assert Msql("select [dx_pii] AS pii FROM *.*.*").command == "SELECT"
+    assert Msql("   SELECT * FROM *.*.*").command == "SELECT"
+    assert Msql("DELETE FROM *.*.*").command == "DELETE"
+    assert Msql("delete FROM *.*.*").command == "DELETE"
+    assert Msql("  DELETE FROM *.*.*").command == "DELETE"
+
+def test_msql_validates_command():
+    with pytest.raises(ValueError):
+        Msql("INSERT INTO *.*.*")
+    with pytest.raises(ValueError):
+        Msql("DROP  ")
+    with pytest.raises(ValueError):
+        Msql("ALTER  ")
+    with pytest.raises(ValueError):
+        Msql("UPDATE  ")
+    with pytest.raises(ValueError):
+        Msql("CREATE  ")
+    with pytest.raises(ValueError):
+        Msql("anythingelse  ")
 
 def test_msql_replace_from_clausole():
     msql = "SELECT [dx_pii] AS pii FROM *.*.*"
@@ -105,6 +128,17 @@ def test_msql_build_select_multi_and_repeated_tag():
     """
 
     actual = Msql(msql).build(df, 0.95)
+    assert actual == strip_margin(expected)
+
+def test_msql_delete_command():
+    msql = "DELETE FROM *.*.* WHERE [dx_email] = 'a@b.c'"
+
+    expected = """
+    DELETE FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c';
+    DELETE FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'
+    """
+
+    actual = Msql(msql).compile_msql(table_info)
     assert actual == strip_margin(expected)
 
 # def test_msql_replace_tag_fails_for_missing_alias_in_select():
