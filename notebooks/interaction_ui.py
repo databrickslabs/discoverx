@@ -30,7 +30,53 @@ dx = DX()
 
 # COMMAND ----------
 
-dx.scan(catalogs="*")
+dx.scan(catalogs="discoverx*")
+
+# COMMAND ----------
+
+dx.scan_result[0:10]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## M-SQL (Multiplex SQL)
+# MAGIC M-SQL lets you run SQL statements across a wide number of table by leveraging the tags
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Search for a specific IP across all tables
+
+# COMMAND ----------
+
+dx.msql("""
+SELECT 
+  {catalog_name}, 
+  {database_name}, 
+  {table_name}, 
+  [ip_v4] AS ip, 
+  to_json(struct(*)) AS row_content
+FROM discoverx*.*.*
+WHERE [ip_v4] = '1.2.3.4'
+""").display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Distinct IP per table
+
+# COMMAND ----------
+
+dx.msql("""
+SELECT 
+  {catalog_name}, 
+  {database_name}, 
+  {table_name}, 
+  [ip_v4] AS ip, 
+  count([ip_v4]) AS count 
+FROM discoverx*.*.*
+GROUP BY [ip_v4]
+""").display()
 
 # COMMAND ----------
 

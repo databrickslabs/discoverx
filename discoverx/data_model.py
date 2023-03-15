@@ -30,7 +30,8 @@ class DataModel:
                     ColumnInfo(
                         col["column_name"], 
                         col["data_type"], 
-                        col["partition_index"]
+                        col["partition_index"],
+                        []
                     ) for col in row['table_columns']
                 ]
             ) for row in rows]

@@ -3,6 +3,7 @@ from pyspark.sql import SparkSession
 from typing import List, Optional
 from discoverx import logging
 from discoverx.common.helper import strip_margin
+from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.config import TableInfo
 from discoverx.data_model import DataModel
@@ -202,7 +203,24 @@ class DX:
         
         self.logger.friendlyHTML(html)
         
+    def msql(self, msql: str, what_if: bool = False):
+
+        if (self.scan_result is None):
+            message = "You need to run 'dx.scan()' before you can run 'dx.msql()'"
+            self.logger.friendly(message)
+            raise Exception(message)
         
+        self.logger.debug(f"Executing msql: {msql}")
+
+        msql_builder = Msql(msql)
+        sql = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
+
+        if (what_if):
+            self.logger.friendly(f"SQL that would be executed:\n{sql}")
+            return None
+        else:
+            self.logger.debug(f"Executing SQL:\n{sql}")
+            return self.spark.sql(sql)
 
     def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
 

@@ -2,6 +2,8 @@
 import logging
 
 from pyspark.sql import SparkSession
+import pytest
+from discoverx.common.helper import strip_margin
 
 from discoverx.config import ColumnInfo, TableInfo
 from discoverx.rules import Rule
@@ -9,7 +11,7 @@ from discoverx.sql_builder import SqlBuilder
 
 
 def test_generate_sql():
-    columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
+    columns = [ColumnInfo("id", "number", False, []), ColumnInfo("name", "string", False, [])]
     table_info = TableInfo("meta", "db", "tb", columns)
     rules = [Rule(name="any_word", type="regex", description="Any word", definition=r"\w")]
 
@@ -47,7 +49,7 @@ GROUP BY catalog, database, table, column, rule_name"""
 
 
 def test_generate_sql_multiple_rules():
-    columns = [ColumnInfo("id", "number", False), ColumnInfo("name", "string", False)]
+    columns = [ColumnInfo("id", "number", False, []), ColumnInfo("name", "string", False, [])]
     table_info = TableInfo("meta", "db", "tb", columns)
     rules = [
         Rule(name="any_word", type="regex", description="Any word", definition=r"\w."),
@@ -89,9 +91,9 @@ GROUP BY catalog, database, table, column, rule_name"""
 
 def test_sql_runs(spark: SparkSession):
     columns = [
-        ColumnInfo("id", "number", False),
-        ColumnInfo("ip", "string", False),
-        ColumnInfo("description", "string", False),
+        ColumnInfo("id", "number", None, []),
+        ColumnInfo("ip", "string", None, []),
+        ColumnInfo("description", "string", None, []),
     ]
     table_info = TableInfo(None, "default", "tb_1", columns)
     rules = [
@@ -106,3 +108,4 @@ def test_sql_runs(spark: SparkSession):
     expected = spark.sql(actual).collect()
 
     print(expected)
+

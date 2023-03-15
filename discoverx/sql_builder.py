@@ -7,6 +7,7 @@ from discoverx.common.helper import strip_margin
 from discoverx.rules import Rule, RuleTypes
 
 
+
 class SqlBuilder:
     """
     The SqlBuilder class automatically creates a SQL expression for
@@ -15,7 +16,7 @@ class SqlBuilder:
     """
 
     columns_table_name = "system.information_schema.columns"
-
+        
     def format_regex(self, expression):
         return expression.replace("\\", r"\\")
       
@@ -116,3 +117,5 @@ class SqlBuilder:
         """
 
         return strip_margin(sql)
+
+    
