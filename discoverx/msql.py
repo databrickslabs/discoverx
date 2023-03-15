@@ -100,7 +100,13 @@ class Msql:
             raise ValueError(f"No tables found matching filter: {self.catalogs}.{self.databases}.{self.tables}")
 
         sqls = [self.compile_msql(table) for table in filtered_tables]
-        sql = "\nUNION ALL\n".join(sqls)
+        
+        if self.command == "SELECT":
+            sql = "\nUNION ALL\n".join(sqls)
+        elif self.command == "DELETE":
+            sql = ";\n".join(sqls)
+        else:
+            raise ValueError(f"Invalid command {self.command}")
         return sql
     
     def _replace_from_statement(self, msql: str, table_info: TableInfo):
