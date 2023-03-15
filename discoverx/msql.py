@@ -33,6 +33,7 @@ class Msql:
 
         # Replace from clause with table name
         msql = self._replace_from_statement(self.msql, table_info)
+        msql = self._replace_litaral_keys(msql, table_info)
 
         # TODO: Assert alias in SELECT statement
         # non_aliased_tags = re.findall(r"", msql)
@@ -110,3 +111,10 @@ class Msql:
             return (matches[0][2], matches[0][3], matches[0][4])
         else:
             raise ValueError(f"Could not extract table name from M-SQL expression: {self.msql}")
+        
+    def _replace_litaral_keys(self, msql: str, table_info: TableInfo):
+        return (msql
+                .replace(r"{catalog_name}", f"'{table_info.catalog}' AS catalog_name")
+                .replace(r"{database_name}", f"'{table_info.database}' AS database_name")
+                .replace(r"{table_name}", f"'{table_info.table}' AS table_name")
+        )

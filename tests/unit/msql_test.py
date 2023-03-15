@@ -34,6 +34,16 @@ def test_msql_select_single_tag():
     actual = Msql(msql).compile_msql(table_info)
     assert actual == strip_margin(expected)
 
+def test_msql_select_literal_keys():
+    msql = "SELECT {catalog_name}, {database_name}, {table_name} FROM *.*.*"
+
+    expected = """
+    SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name FROM catalog.prod_db1.tb1
+    """
+
+    actual = Msql(msql).compile_msql(table_info)
+    assert actual == strip_margin(expected)
+
 def test_msql_select_repeated_tag():
     msql = "SELECT [dx_email] AS email FROM catalog.prod_db1.tb1"
 
@@ -96,6 +106,7 @@ def test_msql_build_select_multi_and_repeated_tag():
 
     actual = Msql(msql).build(df, 0.95)
     assert actual == strip_margin(expected)
+
 # def test_msql_replace_tag_fails_for_missing_alias_in_select():
 #     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''" 
 #     with pytest.raises(ValueError):
