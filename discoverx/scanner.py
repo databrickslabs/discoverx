@@ -1,11 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import pandas as pd
 from pyspark.sql import SparkSession
 from typing import Optional, List, Set
 
 from discoverx.common.helper import strip_margin, format_regex
 from discoverx import logging
-from discoverx.rules import Rules, Rule, RuleTypes
+from discoverx.rules import Rules, RuleTypes
 
 logger = logging.Logging()
 
@@ -54,6 +54,15 @@ class ScanContent:
         return len(self.table_list)
 
 
+@dataclass
+class ScanResult:
+    df: pd.DataFrame
+
+    @property
+    def n_scanned_columns(self) -> int:
+        return len(self.df[["catalog", "database", "table", "column"]].drop_duplicates())
+
+
 class Scanner:
 
     COLUMNS_TABLE_NAME = "system.information_schema.columns"
@@ -80,6 +89,7 @@ class Scanner:
 
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
+        self.scan_result: Optional[ScanResult] = None
 
     def _get_list_of_tables(self) -> List[TableInfo]:
         table_list_sql = self._get_table_list_sql()
@@ -91,14 +101,12 @@ class Scanner:
                 row["table_schema"],
                 row["table_name"],
                 [
-                    ColumnInfo(
-                        col["column_name"],
-                        col["data_type"],
-                        col["partition_index"],
-                        []
-                    ) for col in row['table_columns']
-                ]
-            ) for row in rows]
+                    ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
+                    for col in row["table_columns"]
+                ],
+            )
+            for row in rows
+        ]
         return filtered_tables
 
     def _get_table_list_sql(self):
@@ -138,7 +146,7 @@ class Scanner:
 
         return ScanContent(table_list, catalogs, databases)
 
-    def scan(self) -> pd.DataFrame:
+    def scan(self):
 
         logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
         text = f"""
@@ -186,9 +194,9 @@ class Scanner:
         logger.debug("Finished lakehouse scanning task")
 
         if dfs:
-            return pd.concat(dfs)
+            self.scan_result = ScanResult(df=pd.concat(dfs))
         else:
-            return pd.DataFrame()
+            self.scan_result = ScanResult(df=pd.DataFrame())
 
     def _rule_matching_sql(self, table_info: TableInfo):
         """
@@ -214,8 +222,7 @@ class Scanner:
             raise Exception(f"There are no rules to scan for.")
 
         catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
-        matching_columns = [f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS {r.name}" for r in
-                            expressions]
+        matching_columns = [f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS {r.name}" for r in expressions]
         matching_string = ",\n                    ".join(matching_columns)
 
         unpivot_expressions = ", ".join([f"'{r.name}', `{r.name}`" for r in expressions])
@@ -251,5 +258,55 @@ class Scanner:
         return strip_margin(sql)
 
 
+@dataclass
+class Classifier:
+    column_type_classification_threshold: float
+    scan_result: ScanResult
+    classified_result: pd.DataFrame = field(init=False)
+
+    def __post_init__(self):
+        self.classified_result = self.scan_result.df[
+            self.scan_result.df["frequency"] > self.column_type_classification_threshold
+        ]
+
+    @property
+    def n_classified_columns(self) -> int:
+        return len(self.classified_result[["catalog", "database", "table", "column"]].drop_duplicates())
+
+    @property
+    def rule_match_str(self) -> str:
+        rule_match_counts = []
+        df_summary = self.classified_result.groupby(["rule_name"]).agg({"frequency": "count"})
+        df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
+        for _, row in df_summary.iterrows():
+            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']} columns</li>")
+        return "\n".join(rule_match_counts)
+
+    @property
+    def summary_html(self) -> str:
+        # Summary
+        classified_cols = self.classified_result.copy()
+        classified_cols.index = pd.MultiIndex.from_frame(classified_cols[["catalog", "database", "table", "column"]])
+        summary_html_table = classified_cols[["rule_name", "frequency"]].to_html()
+
+        return f"""
+        <h2>Result summary</h2>
+        <p>
+          I've been able to classify {self.n_classified_columns} out of {self.scan_result.n_scanned_columns} columns.
+        </p>
+        <p>
+          I've found:
+          <ul>
+            {self.rule_match_str}
+          </ul>
+        </p>
+        <p>
+          To be more precise:
+        </p>
+        {summary_html_table}
+        <p>
+          You can see the full classification output with 'dx.scan_result'.
+        </p>
 
 
+        """

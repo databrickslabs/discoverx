@@ -1,11 +1,7 @@
 import pytest
-from pyspark.sql import SparkSession
 
 from discoverx.dx import DX
 from discoverx.dx import Scanner as Scannerdx
-
-from discoverx.scanner import Scanner
-from discoverx.rules import Rules
 
 
 def test_dx_instantiation(spark):

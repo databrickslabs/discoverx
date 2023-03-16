@@ -6,7 +6,7 @@ from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.config import TableInfo
-from discoverx.scanner import Scanner
+from discoverx.scanner import Scanner, Classifier
 
 
 class DX:
@@ -47,7 +47,8 @@ class DX:
 
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false")
 
-        self.scan_result: Optional[pd.DataFrame] = None
+        self.scanner: Optional[Scanner] = None
+        self.classifier: Optional[Classifier] = None
 
         self.intro()
 
@@ -127,7 +128,7 @@ class DX:
         self.logger.friendlyHTML(text)
 
     def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000, what_if: bool = False):
-        scanner = Scanner(
+        self.scanner = Scanner(
             self.spark,
             self.rules,
             catalogs=catalogs,
@@ -138,55 +139,22 @@ class DX:
             what_if=what_if,
         )
 
-        self.scan_result = scanner.scan()
+        self.scanner.scan()
+        self.classify(self.column_type_classification_threshold)
 
-        self._display_scan_summary()
+    def classify(self, column_type_classification_threshold: float):
+        if self.scanner is None:
+            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
+        if self.scanner.scan_result is None:
+            raise Exception("Your scan did not finish successfully. Please consider rerunning Scanner.scan()")
 
-    def _display_scan_summary(self):
-        df = self.scan_result
-        classified_cols = df[df["frequency"] > self.column_type_classification_threshold]
+        self.classifier = Classifier(column_type_classification_threshold, self.scanner.scan_result)
 
-        n_scanned = len(df[["catalog", "database", "table", "column"]].drop_duplicates())
-        n_classified = len(classified_cols[["catalog", "database", "table", "column"]].drop_duplicates())
-
-        rule_match_counts = []
-        df_summary = classified_cols.groupby(["rule_name"]).agg({"frequency": "count"})
-        df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
-        for _, row in df_summary.iterrows():
-            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']} columns</li>")
-        rule_match_str = "\n".join(rule_match_counts)
-
-        # Summary
-        classified_cols.index = pd.MultiIndex.from_frame(classified_cols[["catalog", "database", "table", "column"]])
-        summart_html_table = classified_cols[["rule_name", "frequency"]].to_html()
-
-        html = f"""
-        <h2>Result summary</h2>
-        <p>
-          I've been able to classify {n_classified} out of {n_scanned} columns.
-        </p>
-        <p>
-          I've found:
-          <ul>
-            {rule_match_str}
-          </ul>
-        </p>
-        <p>
-          To be more precise:
-        </p>
-        {summart_html_table}
-        <p>
-          You can see the full classification output with 'dx.scan_result'.
-        </p>
-        
-        
-        """
-
-        self.logger.friendlyHTML(html)
+        self.logger.friendlyHTML(self.classifier.summary_html)
 
     def msql(self, msql: str, what_if: bool = False):
 
-        if self.scan_result is None:
+        if self.scanner.scan_result is None:
             message = "You need to run 'dx.scan()' before you can run 'dx.msql()'"
             self.logger.friendly(message)
             raise Exception(message)
@@ -194,7 +162,7 @@ class DX:
         self.logger.debug(f"Executing msql: {msql}")
 
         msql_builder = Msql(msql)
-        sql = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
+        sql = msql_builder.build(self.classifier)
 
         if what_if:
             self.logger.friendly(f"SQL that would be executed:\n{sql}")

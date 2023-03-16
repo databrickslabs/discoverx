@@ -1,5 +1,5 @@
 """This module contains the M-SQL compiler"""
-from discoverx.scanner import ColumnInfo, TableInfo
+from discoverx.scanner import ColumnInfo, TableInfo, Classifier
 from discoverx.common.helper import strip_margin
 from fnmatch import fnmatch
 import re
@@ -60,10 +60,11 @@ class Msql:
 
         return strip_margin(final_sql)
     
-    def build(self, df, column_type_classification_threshold) -> str:
+    def build(self, classifier: Classifier) -> str:
         """Builds the M-SQL expression into a SQL expression"""
         
-        classified_cols = df[df['frequency'] > column_type_classification_threshold]
+        classified_cols = classifier.classified_result.copy()
+        # TODO: Shouldn't we use the tags from the rule definitions instead of rule_name?
         classified_cols = classified_cols[classified_cols['rule_name'].isin(self.tags)]
         classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['rule_name']].reset_index()
 
