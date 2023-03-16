@@ -14,6 +14,15 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Generate sample data
+
+# COMMAND ----------
+
+# MAGIC %run ./sample_data
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Plain functions flow
 # MAGIC 
 # MAGIC This is a demo interaction with pure functions
@@ -81,7 +90,29 @@ GROUP BY [ip_v4]
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Configuration
+# MAGIC ### Delete from all tables - WHAT_IF
+
+# COMMAND ----------
+
+dx.msql("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'", what_if=True)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Delete from all tables
+
+# COMMAND ----------
+
+dx.msql("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'").display()
+
+# COMMAND ----------
+
+result[0].unionAll(result[1]).display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Configuration
 # MAGIC 
 # MAGIC This section is optional, and can be used to customize the behaviour of DiscoverX
 
@@ -97,7 +128,7 @@ dx = DX(column_type_classification_threshold=0.95)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Rules
+# MAGIC ## Custom rules
 
 # COMMAND ----------
 
@@ -147,7 +178,7 @@ dx_custm_rules.scan(sample_size=1000)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Help
+# MAGIC ## Help
 
 # COMMAND ----------
 
@@ -156,7 +187,7 @@ help(DX)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Search
+# MAGIC ## Search
 # MAGIC 
 # MAGIC This command can be used to search inside the content of tables.
 # MAGIC 
@@ -172,7 +203,7 @@ help(DX)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Tagging
+# MAGIC ## Tagging
 
 # COMMAND ----------
 
