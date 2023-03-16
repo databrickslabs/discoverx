@@ -26,18 +26,19 @@ class Msql:
         self.command = self._extract_command()
 
 
-    def compile_msql(self, table_info: TableInfo) -> str:
+    def compile_msql(self, table_info: TableInfo) -> list[str]:
         """
         Compiles the M-SQL (Multiplex-SQL) expression into regular SQL
         Args:
             table_info (TableInfo): Table information
 
         Returns:
-            string: A SQL expression which multiplexes the MSQL expression
+            list[string]: A list of SQL expressions which multiplexes the MSQL expression
         """
 
         # Replace from clause with table name
-        msql = self._replace_from_statement(self.msql, table_info)
+        msql = strip_margin(self.msql)
+        msql = self._replace_from_statement(msql, table_info)
         msql = self._replace_litaral_keys(msql, table_info)
 
         # TODO: Assert alias in SELECT statement
@@ -59,18 +60,10 @@ class Msql:
             for tagged_col in tagged_cols:
                 temp_sql = temp_sql.replace(f"[{tagged_col.tag}]", tagged_col.name)
             sql_statements.append(temp_sql)
-
-        # Concatenate all SQL statements
-        if self.command == "SELECT":
-            final_sql = "\nUNION ALL\n".join(sql_statements)
-        elif self.command == "DELETE":
-            final_sql = ";\n".join(sql_statements)
-        else:
-            raise ValueError(f"Invalid command {self.command}")
         
-        return strip_margin(final_sql)
+        return sql_statements
     
-    def build(self, df, column_type_classification_threshold) -> str:
+    def build(self, df, column_type_classification_threshold) -> list[str]:
         """Builds the M-SQL expression into a SQL expression"""
         
         classified_cols = df[df['frequency'] > column_type_classification_threshold]
@@ -99,16 +92,15 @@ class Msql:
         if len(filtered_tables) == 0:
             raise ValueError(f"No tables found matching filter: {self.catalogs}.{self.databases}.{self.tables}")
 
-        sqls = [self.compile_msql(table) for table in filtered_tables]
-        
+        sqls = flat_map(self.compile_msql, filtered_tables)
+
         if self.command == "SELECT":
-            sql = "\nUNION ALL\n".join(sqls)
-        elif self.command == "DELETE":
-            sql = ";\n".join(sqls)
-        else:
-            raise ValueError(f"Invalid command {self.command}")
-        return sql
+            sqls = ["\nUNION ALL\n".join(sqls)]
+        
+        return sqls
     
+
+
     def _replace_from_statement(self, msql: str, table_info: TableInfo):
         """Replaces the FROM statement in the M-SQL expression with the specified table name"""
         if table_info.catalog and table_info.catalog != "None":
@@ -146,3 +138,9 @@ class Msql:
             raise ValueError(f"Invalid command: {command}. Valid commands are SELECT and DELETE.")
         
         return command
+    
+def flat_map(f, xs):
+    ys = []
+    for x in xs:
+        ys.extend(f(x))
+    return ys

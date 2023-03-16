@@ -213,14 +213,19 @@ class DX:
         self.logger.debug(f"Executing msql: {msql}")
 
         msql_builder = Msql(msql)
-        sql = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
+        sqls = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
 
         if (what_if):
-            self.logger.friendly(f"SQL that would be executed:\n{sql}")
+            self.logger.friendly(f"SQL that would be executed:")
+            for sql in sqls:
+                self.logger.friendly(sql)
             return None
         else:
-            self.logger.debug(f"Executing SQL:\n{sql}")
-            return self.spark.sql(sql)
+            self.logger.debug(f"Executing SQL:\n{sqls}")
+            if len(sqls) == 1:
+                return self.spark.sql(sqls[0])
+            else:
+                return [self.spark.sql(sql) for sql in sqls]
 
     def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
 
