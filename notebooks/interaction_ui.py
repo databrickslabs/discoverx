@@ -107,10 +107,6 @@ dx.msql("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'").display()
 
 # COMMAND ----------
 
-result[0].unionAll(result[1]).display()
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ## Configuration
 # MAGIC 
