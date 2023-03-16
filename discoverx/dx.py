@@ -8,6 +8,7 @@ from discoverx.rules import Rules, Rule
 from discoverx.config import TableInfo
 from discoverx.data_model import DataModel
 from discoverx.sql_builder import SqlBuilder
+from functools import reduce
 
 
 class DX:
@@ -225,7 +226,8 @@ class DX:
             if len(sqls) == 1:
                 return self.spark.sql(sqls[0])
             else:
-                return [self.spark.sql(sql) for sql in sqls]
+                reusults = [self.spark.sql(sql) for sql in sqls]
+                return reduce(lambda x, y: x.union(y), reusults)
 
     def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
 
