@@ -38,10 +38,10 @@ def test_msql_validates_command():
         Msql("anythingelse  ")
 
 def test_msql_replace_from_clausole():
-    msql = "SELECT [dx_pii] AS pii FROM *.*.*"
+    msql = "SELECT [dx_pii] AS dx_pii FROM *.*.*"
 
     expected = """
-    SELECT email_1 AS pii FROM catalog.prod_db1.tb1
+    SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name, email_1 AS dx_pii FROM catalog.prod_db1.tb1
     """
 
     actual = Msql(msql).compile_msql(table_info)
@@ -52,18 +52,7 @@ def test_msql_select_single_tag():
     msql = "SELECT [dx_pii] AS pii FROM catalog.prod_db1.tb1"
 
     expected = """
-    SELECT email_1 AS pii FROM catalog.prod_db1.tb1
-    """
-
-    actual = Msql(msql).compile_msql(table_info)
-    assert len(actual) == 1
-    assert actual[0] == strip_margin(expected)
-
-def test_msql_select_literal_keys():
-    msql = "SELECT {catalog_name}, {database_name}, {table_name} FROM *.*.*"
-
-    expected = """
-    SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name FROM catalog.prod_db1.tb1
+    SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name, email_1 AS pii FROM catalog.prod_db1.tb1
     """
 
     actual = Msql(msql).compile_msql(table_info)
@@ -75,8 +64,8 @@ def test_msql_select_repeated_tag():
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 2
-    assert actual[0] == "SELECT email_1 AS email FROM catalog.prod_db1.tb1"
-    assert actual[1] == "SELECT email_2 AS email FROM catalog.prod_db1.tb1"
+    assert actual[0] == "SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name, email_1 AS email FROM catalog.prod_db1.tb1"
+    assert actual[1] == "SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name, email_2 AS email FROM catalog.prod_db1.tb1"
 
 def test_msql_select_multi_tag():
     msql = """
@@ -86,7 +75,7 @@ def test_msql_select_multi_tag():
     """
 
     expected = """
-    SELECT date AS dt, email_1 AS pii, count(email_1) AS cnt
+    SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name, date AS dt, email_1 AS pii, count(email_1) AS cnt
     FROM catalog.prod_db1.tb1
     GROUP BY date, email_1
     """
@@ -100,8 +89,8 @@ def test_msql_select_multi_and_repeated_tag():
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 2
-    assert actual[0] == "SELECT email_1 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'"
-    assert actual[1] == "SELECT email_2 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'"
+    assert actual[0] == "SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name, email_1 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'"
+    assert actual[1] == "SELECT 'catalog' AS catalog_name, 'prod_db1' AS database_name, 'tb1' AS table_name, email_2 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'"
 
 def test_msql_build_select_multi_and_repeated_tag():
     msql = "SELECT [dx_email] AS email, [dx_date_partition] AS d FROM c.d*.t* WHERE [dx_email] = 'a@b.c'"
@@ -120,11 +109,11 @@ def test_msql_build_select_multi_and_repeated_tag():
     ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
 
     expected = """
-    SELECT email_1 AS email, date AS d FROM c.db.tb1 WHERE email_1 = 'a@b.c'
+    SELECT 'c' AS catalog_name, 'db' AS database_name, 'tb1' AS table_name, email_1 AS email, date AS d FROM c.db.tb1 WHERE email_1 = 'a@b.c'
     UNION ALL
-    SELECT email_2 AS email, date AS d FROM c.db.tb1 WHERE email_2 = 'a@b.c'
+    SELECT 'c' AS catalog_name, 'db' AS database_name, 'tb1' AS table_name, email_2 AS email, date AS d FROM c.db.tb1 WHERE email_2 = 'a@b.c'
     UNION ALL
-    SELECT email_3 AS email, date AS d FROM c.db.tb2 WHERE email_3 = 'a@b.c'
+    SELECT 'c' AS catalog_name, 'db' AS database_name, 'tb2' AS table_name, email_3 AS email, date AS d FROM c.db.tb2 WHERE email_3 = 'a@b.c'
     """
 
     actual = Msql(msql).build(df, 0.95)
