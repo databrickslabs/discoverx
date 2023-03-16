@@ -1,5 +1,6 @@
 import pandas as pd
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit
 from typing import List, Optional
 from discoverx import logging
 from discoverx.common.helper import strip_margin
@@ -8,6 +9,7 @@ from discoverx.rules import Rules, Rule
 from discoverx.config import TableInfo
 from discoverx.data_model import DataModel
 from discoverx.sql_builder import SqlBuilder
+from functools import reduce
 
 
 class DX:
@@ -213,14 +215,20 @@ class DX:
         self.logger.debug(f"Executing msql: {msql}")
 
         msql_builder = Msql(msql)
-        sql = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
+        sqls = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
 
         if (what_if):
-            self.logger.friendly(f"SQL that would be executed:\n{sql}")
+            self.logger.friendly(f"SQL that would be executed:")
+            for sql in sqls:
+                self.logger.friendly(sql)
             return None
         else:
-            self.logger.debug(f"Executing SQL:\n{sql}")
-            return self.spark.sql(sql)
+            self.logger.debug(f"Executing SQL:\n{sqls}")
+            if len(sqls) == 1:
+                return self.spark.sql(sqls[0])
+            else:
+                reusults = [self.spark.sql(sql).withColumn("sql", lit(sql)) for sql in sqls]
+                return reduce(lambda x, y: x.union(y), reusults)
 
     def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
 
