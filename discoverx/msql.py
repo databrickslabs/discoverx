@@ -1,5 +1,5 @@
 """This module contains the M-SQL compiler"""
-from discoverx.config import ColumnInfo, TableInfo
+from discoverx.scanner import ColumnInfo, TableInfo
 from discoverx.common.helper import strip_margin
 from fnmatch import fnmatch
 import re

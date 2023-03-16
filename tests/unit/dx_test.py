@@ -1,15 +1,12 @@
 import pytest
-from discoverx.data_model import DataModel
+from pyspark.sql import SparkSession
 
 from discoverx.dx import DX
-from discoverx.config import ColumnInfo, TableInfo
-from discoverx.rules import Rule
-from pyspark.sql import SparkSession
-from pathlib import Path
-import logging
-import pandas as pd
+from discoverx.dx import Scanner as Scannerdx
 
-from discoverx.sql_builder import SqlBuilder
+from discoverx.scanner import Scanner
+from discoverx.rules import Rules
+
 
 def test_dx_instantiation(spark):
 
@@ -36,68 +33,16 @@ def test_dx_instantiation(spark):
     except Exception as display_rules_error:
         pytest.fail(f"Displaying rules failed with {display_rules_error}")
 
-def test_execute_scan(spark: SparkSession):
-    
-    expected = pd.DataFrame([
-        ["None", "default", "tb_1", "ip", "any_word", 0.0],
-        ["None", "default", "tb_1", "ip", "any_number", 0.0],
-        ["None", "default", "tb_1", "description", "any_word", 0.5],
-        ["None", "default", "tb_1", "description", "any_number", 0.0]
-    ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
-    
-    columns = [
-        ColumnInfo("id", "number", False, []),
-        ColumnInfo("ip", "string", False, []),
-        ColumnInfo("description", "string", False, []),
-    ]
-    table_list = [
-        TableInfo(None, "default", "tb_1", columns)
-    ]
-    rules = [
-        Rule(name="any_word", type="regex", description="Any word", definition=r"^\w*$"),
-        Rule(name="any_number", type="regex", description="Any number", definition=r"^\d*$"),
-    ]
-    dx = DX(spark=spark)
-    actual = dx._execute_scan(table_list, rules, 100)
 
-    logging.info("Scan result is: \n%s", actual)
-    
-    assert actual.equals(expected)
+def test_msql(spark, monkeypatch):
 
-
-def test_scan(spark: SparkSession):
-    
-    expected = pd.DataFrame([
-        ["None", "default", "tb_1", "ip", "ip_v4", 1.0],
-        ["None", "default", "tb_1", "ip", "ip_v6", 0.0],
-        ["None", "default", "tb_1", "description", "ip_v4", 0.0],
-        ["None", "default", "tb_1", "description", "ip_v6", 0.0]
-    ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
-
-    sql_builder = SqlBuilder()
-    sql_builder.columns_table_name = "default.columns_mock"
-    data_model = DataModel(sql_builder=sql_builder, spark=spark)
+    # apply the monkeypatch for the columns_table_name
+    monkeypatch.setattr(Scannerdx, "COLUMNS_TABLE_NAME", "default.columns_mock")
 
     dx = DX(spark=spark)
-    dx.data_model = data_model
-    dx.sql_builder = sql_builder
-    
-    dx.scan(tables="tb_1", rules="ip_*")
-    
-    assert dx.scan_result.equals(expected)
-
-
-def test_msql(spark: SparkSession):
-    
-    sql_builder = SqlBuilder()
-    sql_builder.columns_table_name = "default.columns_mock"
-    data_model = DataModel(sql_builder=sql_builder, spark=spark)
-
-    dx = DX(spark=spark)
-    dx.data_model = data_model
-    dx.sql_builder = sql_builder
-    
     dx.scan(tables="tb_1", rules="ip_*")
     result = dx.msql("SELECT [ip_v4] as ip FROM *.*.*").collect()
-    
-    assert len(result) > 0
+    ips = [row.ip for row in result]
+    ips.sort()
+
+    assert ips == ["1.2.3.4", "3.4.5.60"]

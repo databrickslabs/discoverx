@@ -38,3 +38,6 @@ def strip_margin(text):
     # Return a single string:
     return "\n".join(trimmed)
 
+def format_regex(expression):
+    return expression.replace("\\", r"\\")
+

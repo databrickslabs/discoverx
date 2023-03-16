@@ -6,8 +6,7 @@ from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.config import TableInfo
-from discoverx.data_model import DataModel
-from discoverx.sql_builder import SqlBuilder
+from discoverx.scanner import Scanner
 
 
 class DX:
@@ -38,9 +37,6 @@ class DX:
         if spark is None:
             spark = SparkSession.getActiveSession()
         self.spark = spark
-
-        self.sql_builder = SqlBuilder()
-        self.data_model = DataModel(spark=self.spark, sql_builder=self.sql_builder)
         self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules)
@@ -48,9 +44,11 @@ class DX:
             column_type_classification_threshold
         )
         self.database: Optional[str] = None  # TODO: for later use
-        
-        self.uc_enabled = self.spark.conf.get('spark.databricks.unityCatalog.enabled', 'false')
-        
+
+        self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false")
+
+        self.scan_result: Optional[pd.DataFrame] = None
+
         self.intro()
 
     def intro(self):
@@ -68,7 +66,7 @@ class DX:
         </p>
         <pre><code>help(DX)</code></pre>
         """
-        
+
         missing_uc_text = """
         <h1 style="color: red">Uch! DiscoverX needs Unity Catalog to be enabled</h1>
 
@@ -76,8 +74,8 @@ class DX:
           Please make sure you have Unity Catalog enabled, and that you are running a Cluster that supports Unity Catalog.
         </p>
         """
-        
-        if (self.uc_enabled == 'true'):
+
+        if self.uc_enabled == "true":
             self.logger.friendlyHTML(intro_text)
         else:
             self.logger.friendlyHTML(missing_uc_text)
@@ -129,56 +127,39 @@ class DX:
         self.logger.friendlyHTML(text)
 
     def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000, what_if: bool = False):
+        scanner = Scanner(
+            self.spark,
+            self.rules,
+            catalogs=catalogs,
+            databases=databases,
+            tables=tables,
+            rule_filter=rules,
+            sample_size=sample_size,
+            what_if=what_if,
+        )
 
-        self.logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
-        
-        table_list = self.data_model.get_table_list(catalogs, databases, tables)
-        rule_list = self.rules.get_rules(rule_filter=rules)
-
-        n_catalogs = len(set(map(lambda x: x.catalog, table_list)))
-        n_databases = len(set(map(lambda x: x.database, table_list)))
-        n_tables = len(table_list)
-        n_rules = len(rule_list)
-
-        text = f"""
-        This is what you asked for:
-        
-            catalogs ({n_catalogs}) = {catalogs}
-            databases ({n_databases}) = {databases}
-            tables ({n_tables}) = {tables}
-            rules ({n_rules}) = {rules}
-            sample_size = {sample_size}
-        
-        This may take a while, so please be patient. I'll let you know when I'm done.
-        ...
-        """
-        self.logger.friendly(strip_margin(text))
-
-        self.scan_result = self._execute_scan(table_list, rule_list, sample_size, what_if=what_if)
-
-        self.logger.friendly(f"Done.")
+        self.scan_result = scanner.scan()
 
         self._display_scan_summary()
-        
+
     def _display_scan_summary(self):
         df = self.scan_result
-        classified_cols = df[df['frequency'] > self.column_type_classification_threshold]
+        classified_cols = df[df["frequency"] > self.column_type_classification_threshold]
 
-        n_scanned = len(df[['catalog', 'database', 'table', 'column']].drop_duplicates())
-        n_classified = len(classified_cols[['catalog', 'database', 'table', 'column']].drop_duplicates())
-        
-        
+        n_scanned = len(df[["catalog", "database", "table", "column"]].drop_duplicates())
+        n_classified = len(classified_cols[["catalog", "database", "table", "column"]].drop_duplicates())
+
         rule_match_counts = []
-        df_summary = classified_cols.groupby(['rule_name']).agg({'frequency': 'count'})
+        df_summary = classified_cols.groupby(["rule_name"]).agg({"frequency": "count"})
         df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
         for _, row in df_summary.iterrows():
             rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']} columns</li>")
         rule_match_str = "\n".join(rule_match_counts)
-        
+
         # Summary
         classified_cols.index = pd.MultiIndex.from_frame(classified_cols[["catalog", "database", "table", "column"]])
         summart_html_table = classified_cols[["rule_name", "frequency"]].to_html()
-      
+
         html = f"""
         <h2>Result summary</h2>
         <p>
@@ -200,65 +181,27 @@ class DX:
         
         
         """
-        
+
         self.logger.friendlyHTML(html)
-        
+
     def msql(self, msql: str, what_if: bool = False):
 
-        if (self.scan_result is None):
+        if self.scan_result is None:
             message = "You need to run 'dx.scan()' before you can run 'dx.msql()'"
             self.logger.friendly(message)
             raise Exception(message)
-        
+
         self.logger.debug(f"Executing msql: {msql}")
 
         msql_builder = Msql(msql)
         sql = msql_builder.build(self.scan_result, self.column_type_classification_threshold)
 
-        if (what_if):
+        if what_if:
             self.logger.friendly(f"SQL that would be executed:\n{sql}")
             return None
         else:
             self.logger.debug(f"Executing SQL:\n{sql}")
             return self.spark.sql(sql)
-
-    def _execute_scan(self, table_list: list[TableInfo], rule_list: list[Rule], sample_size: int, what_if: bool = False) -> pd.DataFrame:
-
-        self.logger.debug("Launching lakehouse scanning task\n")
-        
-        n_tables = len(table_list)
-        
-        dfs = []
-
-        for i, table in enumerate(table_list):
-            if (what_if):
-                self.logger.friendly(
-                    f"SQL that would be executed for '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
-                    )
-            else:
-                self.logger.friendly(
-                    f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{n_tables})"
-                )
-            
-            try:
-                # Build rule matching SQL
-                sql = self.sql_builder.rule_matching_sql(table, rule_list, sample_size)
-
-                if(what_if):
-                    self.logger.friendly(sql)
-                else:
-                    # Execute SQL and append result
-                    dfs.append(self.spark.sql(sql).toPandas())
-            except Exception as e:
-                self.logger.error(f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}")
-                continue        
-
-        self.logger.debug("Finished lakehouse scanning task")
-        
-        if dfs:
-          return pd.concat(dfs)
-        else:
-          return pd.DataFrame()
 
     def results(self):
         self.logger.friendly("Here are the results:")
@@ -279,8 +222,7 @@ class DX:
         return threshold
 
     def _validate_database(self):
-        """Validate that output table exists, otherwise raise error
-        """
+        """Validate that output table exists, otherwise raise error"""
         if not self.spark.catalog.databaseExists(self.database):
             db_error = f"The given database {self.database} does not exist."
             self.logger.error(db_error)
