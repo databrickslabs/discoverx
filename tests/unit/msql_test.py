@@ -4,6 +4,7 @@ import pandas as pd
 from discoverx.common.helper import strip_margin
 from discoverx.config import ColumnInfo, TableInfo
 from discoverx.msql import Msql
+from discoverx.scanner import Classifier, ScanResult
 
 
 columns = [
@@ -104,11 +105,11 @@ def test_msql_build_select_multi_and_repeated_tag():
     SELECT email_2 AS email, date AS d FROM c.db.tb1 WHERE email_2 = 'a@b.c'
     """
 
-    actual = Msql(msql).build(df, 0.95)
+    classifier = Classifier(column_type_classification_threshold=0.95, scan_result=ScanResult(df=df))
+    actual = Msql(msql).build(classifier)
     assert actual == strip_margin(expected)
 
 # def test_msql_replace_tag_fails_for_missing_alias_in_select():
-#     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''" 
+#     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''"
 #     with pytest.raises(ValueError):
 #         SqlBuilder()._replace_tag(msql, 'dx_pii', 'email_1')
-        

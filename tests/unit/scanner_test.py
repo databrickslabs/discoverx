@@ -182,11 +182,11 @@ def test_scan_custom_rules(spark: SparkSession):
     MockedScanner = Scanner
     MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
     scanner = MockedScanner(spark, rules=rules, tables="tb_1", rule_filter="any_*", sample_size=100)
-    actual = scanner.scan()
+    scanner.scan()
 
-    logging.info("Scan result is: \n%s", actual)
+    logging.info("Scan result is: \n%s", scanner.scan_result.df)
 
-    assert actual.equals(expected)
+    assert scanner.scan_result.df.equals(expected)
 
 
 def test_scan(spark: SparkSession):
@@ -204,6 +204,6 @@ def test_scan(spark: SparkSession):
     MockedScanner = Scanner
     MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
     scanner = MockedScanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*")
-    scan_result = scanner.scan()
+    scanner.scan()
 
-    assert scan_result.equals(expected)
+    assert scanner.scan_result.df.equals(expected)

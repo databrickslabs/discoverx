@@ -1,7 +1,7 @@
 import pytest
 
 from discoverx.dx import DX
-from discoverx.dx import Scanner as Scannerdx
+from discoverx.dx import Scanner
 
 
 def test_dx_instantiation(spark):
@@ -33,7 +33,7 @@ def test_dx_instantiation(spark):
 def test_msql(spark, monkeypatch):
 
     # apply the monkeypatch for the columns_table_name
-    monkeypatch.setattr(Scannerdx, "COLUMNS_TABLE_NAME", "default.columns_mock")
+    monkeypatch.setattr(Scanner, "COLUMNS_TABLE_NAME", "default.columns_mock")
 
     dx = DX(spark=spark)
     dx.scan(tables="tb_1", rules="ip_*")
