@@ -5,6 +5,7 @@ import pytest
 from discoverx.common.helper import strip_margin
 from discoverx.config import ColumnInfo, TableInfo
 from discoverx.msql import Msql
+from discoverx.scanner import Classifier, ScanResult
 
 
 columns = [
@@ -127,7 +128,9 @@ def test_msql_build_select_multi_and_repeated_tag():
     SELECT email_3 AS email, date AS d FROM c.db.tb2 WHERE email_3 = 'a@b.c'
     """
 
-    actual = Msql(msql).build(df, 0.95)
+
+    classifier = Classifier(column_type_classification_threshold=0.95, scan_result=ScanResult(df=df))
+    actual = Msql(msql).build(classifier)
     assert len(actual) == 1
     assert actual[0] == strip_margin(expected)
 
@@ -147,7 +150,8 @@ def test_msql_build_delete_multi_and_repeated_tag():
         ["c", "db", "m_tb1", "email_5", "dx_email", 0.99], # table does not match
     ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
 
-    actual = Msql(msql).build(df, 0.95)
+    classifier = Classifier(column_type_classification_threshold=0.95, scan_result=ScanResult(df=df))
+    actual = Msql(msql).build(classifier)
 
     assert len(actual) == 4
     assert actual[0] == "DELETE FROM c.db.tb1 WHERE email_1 = 'a@b.c'"
@@ -163,8 +167,8 @@ def test_msql_delete_command():
     assert actual[0] == "DELETE FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'"
     assert actual[1] == "DELETE FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'"
 
+
 # def test_msql_replace_tag_fails_for_missing_alias_in_select():
-#     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''" 
+#     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''"
 #     with pytest.raises(ValueError):
 #         SqlBuilder()._replace_tag(msql, 'dx_pii', 'email_1')
-        
