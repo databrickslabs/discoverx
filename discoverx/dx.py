@@ -1,5 +1,6 @@
 import pandas as pd
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit
 from typing import List, Optional
 from discoverx import logging
 from discoverx.common.helper import strip_margin
@@ -7,6 +8,7 @@ from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.config import TableInfo
 from discoverx.scanner import Scanner, Classifier
+from functools import reduce
 
 
 class DX:
@@ -162,14 +164,23 @@ class DX:
         self.logger.debug(f"Executing msql: {msql}")
 
         msql_builder = Msql(msql)
-        sql = msql_builder.build(self.classifier)
+
+        sqls = msql_builder.build(self.classifier)
 
         if what_if:
             self.logger.friendly(f"SQL that would be executed:\n{sql}")
+
+            for sql in sqls:
+                self.logger.friendly(sql)
+
             return None
         else:
-            self.logger.debug(f"Executing SQL:\n{sql}")
-            return self.spark.sql(sql)
+            self.logger.debug(f"Executing SQL:\n{sqls}")
+            if len(sqls) == 1:
+                return self.spark.sql(sqls[0])
+            else:
+                reusults = [self.spark.sql(sql).withColumn("sql", lit(sql)) for sql in sqls]
+                return reduce(lambda x, y: x.union(y), reusults)
 
     def results(self):
         self.logger.friendly("Here are the results:")
