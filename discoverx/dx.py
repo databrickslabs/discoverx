@@ -1,13 +1,10 @@
-import pandas as pd
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import lit
 from typing import List, Optional
 from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner, Classifier
-from functools import reduce
 
 
 class DX:
@@ -153,7 +150,7 @@ class DX:
 
         self.logger.friendlyHTML(self.classifier.summary_html)
 
-    def msql(self, msql: str, what_if: bool = False):
+    def msql_experimental(self, msql: str, what_if: bool = False):
 
         if self.scanner.scan_result is None:
             message = "You need to run 'dx.scan()' before you can run 'dx.msql()'"
@@ -164,22 +161,18 @@ class DX:
 
         msql_builder = Msql(msql)
 
-        sqls = msql_builder.build(self.classifier)
+        sql_rows = msql_builder.build(self.classifier)
 
         if what_if:
             self.logger.friendly(f"SQL that would be executed:")
 
-            for sql in sqls:
-                self.logger.friendly(sql)
+            for sql_row in sql_rows:
+                self.logger.friendly(sql_row.sql)
 
             return None
         else:
-            self.logger.debug(f"Executing SQL:\n{sqls}")
-            if len(sqls) == 1:
-                return self.spark.sql(sqls[0])
-            else:
-                results = [self.spark.sql(sql).withColumn("sql", lit(sql)) for sql in sqls]
-                return reduce(lambda x, y: x.union(y), results)
+            self.logger.debug(f"Executing SQL:\n{sql_rows}")
+            return msql_builder.execute_sql_rows(sql_rows, self.spark)
 
     def results(self):
         self.logger.friendly("Here are the results:")
