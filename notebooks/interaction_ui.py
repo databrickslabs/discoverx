@@ -60,10 +60,8 @@ dx.scan_result[0:10]
 
 dx.msql("""
 SELECT 
-  {catalog_name}, 
-  {database_name}, 
-  {table_name}, 
-  [ip_v4] AS ip, 
+  '[ip_v4]' AS ip_v4_column,
+  [ip_v4] AS ip_v4, 
   to_json(struct(*)) AS row_content
 FROM discoverx*.*.*
 WHERE [ip_v4] = '1.2.3.4'
@@ -78,10 +76,8 @@ WHERE [ip_v4] = '1.2.3.4'
 
 dx.msql("""
 SELECT 
-  {catalog_name}, 
-  {database_name}, 
-  {table_name}, 
-  [ip_v4] AS ip, 
+  '[ip_v4]' AS ip_v4_column, 
+  [ip_v4] AS ip_v4, 
   count([ip_v4]) AS count 
 FROM discoverx*.*.*
 GROUP BY [ip_v4]

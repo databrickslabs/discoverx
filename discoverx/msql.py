@@ -39,13 +39,9 @@ class Msql:
         # Replace from clause with table name
         msql = strip_margin(self.msql)
         msql = self._replace_from_statement(msql, table_info)
-        msql = self._replace_litaral_keys(msql, table_info)
+        msql = self._append_litaral_keys(msql, table_info)
 
-        # TODO: Assert alias in SELECT statement
-        # non_aliased_tags = re.findall(r"", msql)
-        # if non_aliased_tags:
-        #     raise ValueError(f"""Tags {non_aliased_tags} are not aliased in M-SQL expression.
-        #     Please specify an alias for each tag. Eg. [tag] AS 'my_alias'.""")
+        # TODO: There is only one SELECT/DELETE statement
 
         # Get all columns matching the tags
         columns_by_tag = [table_info.get_columns_by_tag(tag) for tag in self.tags]
@@ -123,12 +119,11 @@ class Msql:
         else:
             raise ValueError(f"Could not extract table name from M-SQL expression: {self.msql}")
         
-    def _replace_litaral_keys(self, msql: str, table_info: TableInfo):
-        return (msql
-                .replace(r"{catalog_name}", f"'{table_info.catalog}' AS catalog_name")
-                .replace(r"{database_name}", f"'{table_info.database}' AS database_name")
-                .replace(r"{table_name}", f"'{table_info.table}' AS table_name")
-        )
+    def _append_litaral_keys(self, msql: str, table_info: TableInfo):
+        if self.command == "SELECT":
+            return re.sub(self.command_expr, f"\\1 '{table_info.catalog}' AS catalog_name, '{table_info.database}' AS database_name, '{table_info.table}' AS table_name, ", msql)
+        else:
+            return msql
     
     def _extract_command(self):
         """Extracts the command from the M-SQL expression"""
