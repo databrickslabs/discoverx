@@ -18,7 +18,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ./sample_data
+dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample"} )
 
 # COMMAND ----------
 
@@ -43,7 +43,7 @@ dx.scan(catalogs="discoverx*")
 
 # COMMAND ----------
 
-dx.scan_result[0:10]
+dx.scanner.scan_result.df[0:10]
 
 # COMMAND ----------
 
@@ -147,7 +147,7 @@ dx_custm_rules.display_rules()
 
 # COMMAND ----------
 
-dx_custm_rules.scan(sample_size=1000)
+dx_custm_rules.scan(catalogs="discoverx*", sample_size=1000)
 
 # COMMAND ----------
 

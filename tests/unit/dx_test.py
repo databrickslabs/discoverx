@@ -42,3 +42,16 @@ def test_msql(spark, monkeypatch):
     ips.sort()
 
     assert ips == ["1.2.3.4", "3.4.5.60"]
+
+
+def test_msql_what_if(spark, monkeypatch):
+
+    # apply the monkeypatch for the columns_table_name
+    monkeypatch.setattr(Scanner, "COLUMNS_TABLE_NAME", "default.columns_mock")
+
+    dx = DX(spark=spark)
+    dx.scan(tables="tb_1", rules="ip_*")
+    try:
+        result = dx.msql("SELECT [ip_v4] as ip FROM *.*.*", what_if=True)
+    except Exception as e:
+        pytest.fail(f"Test failed with exception {e}")
