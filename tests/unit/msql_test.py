@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 from discoverx.common.helper import strip_margin
-from discoverx.config import ColumnInfo, TableInfo
+from discoverx.scanner import ColumnInfo, TableInfo
 from discoverx.msql import Msql
 from discoverx.scanner import Classifier, ScanResult
 
