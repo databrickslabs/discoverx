@@ -69,3 +69,15 @@ def test_search(spark, monkeypatch):
     with pytest.raises(ValueError) as single_bool:
         dx.search(search_tags=True)
     assert single_bool.value.args[0] == "The provided search_tags True have the wrong type. Please provide either a str or List[str]."
+
+def test_msql_what_if(spark, monkeypatch):
+
+    # apply the monkeypatch for the columns_table_name
+    monkeypatch.setattr(Scanner, "COLUMNS_TABLE_NAME", "default.columns_mock")
+
+    dx = DX(spark=spark)
+    dx.scan(tables="tb_1", rules="ip_*")
+    try:
+        result = dx.msql("SELECT [ip_v4] as ip FROM *.*.*", what_if=True)
+    except Exception as e:
+        pytest.fail(f"Test failed with exception {e}")

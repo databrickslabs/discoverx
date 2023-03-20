@@ -6,7 +6,6 @@ from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
-from discoverx.config import TableInfo
 from discoverx.scanner import Scanner, Classifier
 from functools import reduce
 
@@ -204,7 +203,7 @@ class DX:
         sqls = msql_builder.build(self.classifier)
 
         if what_if:
-            self.logger.friendly(f"SQL that would be executed:\n{sql}")
+            self.logger.friendly(f"SQL that would be executed:")
 
             for sql in sqls:
                 self.logger.friendly(sql)
@@ -215,8 +214,8 @@ class DX:
             if len(sqls) == 1:
                 return self.spark.sql(sqls[0])
             else:
-                reusults = [self.spark.sql(sql).withColumn("sql", lit(sql)) for sql in sqls]
-                return reduce(lambda x, y: x.union(y), reusults)
+                results = [self.spark.sql(sql).withColumn("sql", lit(sql)) for sql in sqls]
+                return reduce(lambda x, y: x.union(y), results)
 
     def results(self):
         # TODO: We have to return some results here
