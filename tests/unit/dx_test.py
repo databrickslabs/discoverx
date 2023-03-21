@@ -70,6 +70,7 @@ def test_search(spark, monkeypatch):
         dx.search(search_tags=True)
     assert single_bool.value.args[0] == "The provided search_tags True have the wrong type. Please provide either a str or List[str]."
 
+
 def test_msql_what_if(spark, monkeypatch):
 
     # apply the monkeypatch for the columns_table_name
