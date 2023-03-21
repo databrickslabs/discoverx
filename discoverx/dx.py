@@ -1,6 +1,6 @@
 import pandas as pd
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import lit
+from pyspark.sql.functions import lit, concat
 from typing import List, Optional, Union
 from discoverx import logging
 from discoverx.common.helper import strip_margin
@@ -180,14 +180,14 @@ class DX:
                              f" either a str or List[str].")
 
         sql_filter = [f"[{rule_name}] = '{search_term}'" for rule_name in search_matching_rules]
-        from_statement = ', '.join([f'[{rule}] AS {rule}' for rule in search_matching_rules])
+        from_statement = "named_struct(" + ', '.join([f"'{rule_name}', named_struct('column', '[{rule_name}]', 'value', [{rule_name}])" for rule_name in search_matching_rules]) + ") AS search_result"
         namespace_statement = ".".join([catalog, database, table])
         if search_term is None:
             where_statement = ""
         else:
             where_statement = f"WHERE {' OR '.join(sql_filter)}"
 
-        return self.msql(f"SELECT {from_statement} FROM {namespace_statement} {where_statement}")
+        return self.msql(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {namespace_statement} {where_statement}")
 
     def msql(self, msql: str, what_if: bool = False):
 

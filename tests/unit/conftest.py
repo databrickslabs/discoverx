@@ -120,7 +120,7 @@ def sample_datasets(spark: SparkSession, request):
     (spark
         .read
         .option("header", True)
-        .schema("id integer,ip string,description string")
+        .schema("id integer,ip string,mac string,description string")
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("view_tb_1")
     spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 AS SELECT * FROM view_tb_1")

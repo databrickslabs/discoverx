@@ -44,19 +44,20 @@ def test_search(spark, monkeypatch):
     # search a specific term and auto-detect matching tags/rules
     result = dx.search("1.2.3.4")
     assert result.collect()[0].table_name == 'tb_1'
+    assert result.collect()[0].search_result.ip_v4.column == 'ip'
 
     # search all records for specific tag
     result_tags_only = dx.search(search_tags='ip_v4')
-    assert {row.ip_v4 for row in result_tags_only.collect()} == {"1.2.3.4", "3.4.5.60"}
+    assert {row.search_result.ip_v4.value for row in result_tags_only.collect()} == {"1.2.3.4", "3.4.5.60"}
 
     # specify catalog, database and table
     result_tags_namespace = dx.search(search_tags='ip_v4', catalog="*", database="default", table="tb_*")
-    assert {row.ip_v4 for row in result_tags_namespace.collect()} == {"1.2.3.4", "3.4.5.60"}
+    assert {row.search_result.ip_v4.value for row in result_tags_namespace.collect()} == {"1.2.3.4", "3.4.5.60"}
 
     # search specific term for list of specified tags
     result_term_tag = dx.search(search_term="3.4.5.60", search_tags=['ip_v4'])
     assert result_term_tag.collect()[0].table_name == 'tb_1'
-    assert result_term_tag.collect()[0].ip_v4 == "3.4.5.60"
+    assert result_term_tag.collect()[0].search_result.ip_v4.value == "3.4.5.60"
 
     with pytest.raises(ValueError) as no_tags_no_terms_error:
         dx.search()
@@ -69,6 +70,20 @@ def test_search(spark, monkeypatch):
     with pytest.raises(ValueError) as single_bool:
         dx.search(search_tags=True)
     assert single_bool.value.args[0] == "The provided search_tags True have the wrong type. Please provide either a str or List[str]."
+
+
+# test multiple tags
+def test_search_multiple(spark, monkeypatch):
+    # apply the monkeypatch for the columns_table_name
+    monkeypatch.setattr(Scanner, "COLUMNS_TABLE_NAME", "default.columns_mock")
+    dx = DX(spark=spark)
+    dx.scan(tables="tb_1", rules="*")
+
+    # search a specific term and auto-detect matching tags/rules
+    result = dx.search(search_tags=["ip_v4", "mac"])
+    assert result.collect()[0].table_name == 'tb_1'
+    assert result.collect()[0].search_result.ip_v4.column == 'ip'
+    assert result.collect()[0].search_result.mac.column == 'mac'
 
 
 def test_msql_what_if(spark, monkeypatch):
