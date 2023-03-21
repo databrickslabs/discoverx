@@ -43,12 +43,39 @@ dx.scan(catalogs="discoverx*")
 
 # COMMAND ----------
 
-dx.scanner.scan_result.df[0:10]
+dx.scanner.scan_result.df
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## M-SQL (Multiplex SQL)
+# MAGIC ## Search your lakehouse with dx.search
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Search for a specific IP across all tables
+
+# COMMAND ----------
+
+dx.search(search_term="1.2.3.4", catalog="discoverx*").display()
+
+# COMMAND ----------
+
+# reclassify to include mac address
+dx.classify(column_type_classification_threshold=0.25)
+
+# COMMAND ----------
+
+dx.search(search_tags=["ip_v4", "mac"], catalog="discoverx*").display()
+
+# COMMAND ----------
+
+dx.search(search_term="1.2.3.4", search_tags=["ip_v4", "mac"], catalog="discoverx*").display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## M-SQL (Multiplex SQL - EXPERIMENTAL)
 # MAGIC M-SQL lets you run SQL statements across a wide number of table by leveraging the tags
 
 # COMMAND ----------
@@ -62,6 +89,43 @@ dx.msql("""
 SELECT 
   '[ip_v4]' AS ip_v4_column,
   [ip_v4] AS ip_v4, 
+  to_json(struct(*)) AS row_content
+FROM discoverx*.*.*
+WHERE [ip_v4] = '1.2.3.4'
+""", what_if=True)
+
+# COMMAND ----------
+
+dx.msql("""
+SELECT 
+  '[ip_v4]' AS ip_v4_column,
+  [ip_v4] AS ip_v4, 
+  to_json(struct(*)) AS row_content
+FROM discoverx*.*.*
+WHERE [ip_v4] = '1.2.3.4'
+""").display()
+
+# COMMAND ----------
+
+dx.msql("""
+SELECT 
+  '[ip_v4]' AS ip_v4_column,
+  [ip_v4] AS ip_v4, 
+  '[mac]' AS mac_column,
+  [mac] AS mac,
+  to_json(struct(*)) AS row_content
+FROM discoverx*.*.*
+WHERE [ip_v4] = '1.2.3.4'
+""").display()
+
+# COMMAND ----------
+
+dx.msql("""
+SELECT 
+  '[ip_v4]' AS ip_v4_column,
+  [ip_v4] AS ip_v4, 
+  '[fqdn]' AS fqdn_column,
+  [fqdn] AS fqdn,
   to_json(struct(*)) AS row_content
 FROM discoverx*.*.*
 WHERE [ip_v4] = '1.2.3.4'
