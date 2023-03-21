@@ -95,6 +95,12 @@ class RulesList:
             return len(self.rules)
         return 0
 
+    def test_match(self, input_string: str):
+        if self.rules is not None:
+            return [rule.name for rule in self.rules if re.match(rule.definition, input_string)]
+        else:
+            return []
+
 
 # define builtin rules
 ip_v4_rule = Rule(
@@ -253,3 +259,6 @@ class Rules:
             wildcard.
         """
         return [rule for rule in (rule_set if rule_set is not None else []) if fnmatch(rule.name, rule_filter)]
+
+    def match_search_term(self, search_term: str):
+        return self.builtin_rules.test_match(search_term) + self.custom_rules.test_match(search_term)

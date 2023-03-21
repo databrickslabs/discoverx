@@ -1,7 +1,7 @@
 import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit
-from typing import List, Optional
+from typing import List, Optional, Union
 from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
@@ -45,7 +45,6 @@ class DX:
         self.column_type_classification_threshold = self._validate_classification_threshold(
             column_type_classification_threshold
         )
-        self.database: Optional[str] = None  # TODO: for later use
 
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false")
 
@@ -154,6 +153,43 @@ class DX:
 
         self.logger.friendlyHTML(self.classifier.summary_html)
 
+    def search(self,
+               search_term: Optional[str] = None,
+               search_tags: Optional[Union[List[str], str]] = None,
+               catalog: str = "*",
+               database: str = "*",
+               table: str = "*",
+               ):
+
+        if (search_term is None) and (search_tags is None):
+            raise ValueError("Neither search_term nor search_tags have been provided. At least one of them need to be specified.")
+
+        if (search_term is not None) and (not isinstance(search_term, str)):
+            raise ValueError(f"The search_term type {type(search_term)} is not valid. Either None or a string have to be provided.")
+
+        if search_tags is None:
+            self.logger.friendly("You did not provide any tags to be searched. "
+                                 "We will try to auto-detect matching rules for the given search term")
+            search_matching_rules = self.rules.match_search_term(search_term)
+            self.logger.friendly(f"Discoverx will search your lakehouse using the tags {search_matching_rules}")
+        elif isinstance(search_tags, str):
+            search_matching_rules = [search_tags]
+        elif isinstance(search_tags, list) and all(isinstance(elem, str) for elem in search_tags):
+            search_matching_rules = search_tags
+        else:
+            raise ValueError(f"The provided search_tags {search_tags} have the wrong type. Please provide"
+                             f" either a str or List[str].")
+
+        sql_filter = [f"[{rule_name}] = '{search_term}'" for rule_name in search_matching_rules]
+        from_statement = ', '.join([f'[{rule}] AS {rule}' for rule in search_matching_rules])
+        namespace_statement = ".".join([catalog, database, table])
+        if search_term is None:
+            where_statement = ""
+        else:
+            where_statement = f"WHERE {' OR '.join(sql_filter)}"
+
+        return self.msql(f"SELECT {from_statement} FROM {namespace_statement} {where_statement}")
+
     def msql(self, msql: str, what_if: bool = False):
 
         if self.scanner.scan_result is None:
@@ -183,6 +219,7 @@ class DX:
                 return reduce(lambda x, y: x.union(y), reusults)
 
     def results(self):
+        # TODO: We have to return some results here
         self.logger.friendly("Here are the results:")
         # self.explorer.scan_summary()
         # self.explorer.scan_details()
@@ -199,10 +236,3 @@ class DX:
             self.logger.error(error_msg)
             raise ValueError(error_msg)
         return threshold
-
-    def _validate_database(self):
-        """Validate that output table exists, otherwise raise error"""
-        if not self.spark.catalog.databaseExists(self.database):
-            db_error = f"The given database {self.database} does not exist."
-            self.logger.error(db_error)
-            raise ValueError(db_error)
