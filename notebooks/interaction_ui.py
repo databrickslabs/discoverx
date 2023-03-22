@@ -58,7 +58,7 @@ dx.scanner.scan_result.df[0:10]
 
 # COMMAND ----------
 
-dx.msql("""
+dx.msql_experimental("""
 SELECT 
   '[ip_v4]' AS ip_v4_column,
   [ip_v4] AS ip_v4, 
@@ -74,7 +74,7 @@ WHERE [ip_v4] = '1.2.3.4'
 
 # COMMAND ----------
 
-dx.msql("""
+dx.msql_experimental("""
 SELECT 
   '[ip_v4]' AS ip_v4_column, 
   [ip_v4] AS ip_v4, 
@@ -90,7 +90,7 @@ GROUP BY [ip_v4]
 
 # COMMAND ----------
 
-dx.msql("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'", what_if=True)
+dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'", what_if=True)
 
 # COMMAND ----------
 
@@ -99,7 +99,7 @@ dx.msql("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'", what_if=True)
 
 # COMMAND ----------
 
-dx.msql("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'").display()
+dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'").display()
 
 # COMMAND ----------
 

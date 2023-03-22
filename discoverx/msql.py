@@ -1,9 +1,21 @@
 """This module contains the M-SQL compiler"""
+from dataclasses import dataclass
+from functools import reduce
+from discoverx import logging
 from discoverx.scanner import ColumnInfo, TableInfo, Classifier
 from discoverx.common.helper import strip_margin
 from fnmatch import fnmatch
+from pyspark.sql.functions import lit
+from pyspark.sql import DataFrame, SparkSession
 import re
 import itertools
+
+@dataclass
+class SQLRow:
+    catalog: str
+    database: str
+    table: str
+    sql: str
 
 class Msql:
     """This class compiles M-SQL expressions into regular SQL"""
@@ -25,8 +37,10 @@ class Msql:
         # Extract command
         self.command = self._extract_command()
 
+        self.logger = logging.Logging()
 
-    def compile_msql(self, table_info: TableInfo) -> list[str]:
+
+    def compile_msql(self, table_info: TableInfo) -> list[SQLRow]:
         """
         Compiles the M-SQL (Multiplex-SQL) expression into regular SQL
         Args:
@@ -39,9 +53,6 @@ class Msql:
         # Replace from clause with table name
         msql = strip_margin(self.msql)
         msql = self._replace_from_statement(msql, table_info)
-        msql = self._append_litaral_keys(msql, table_info)
-
-        # TODO: There is only one SELECT/DELETE statement
 
         # Get all columns matching the tags
         columns_by_tag = [table_info.get_columns_by_tag(tag) for tag in self.tags]
@@ -55,12 +66,12 @@ class Msql:
             temp_sql = msql
             for tagged_col in tagged_cols:
                 temp_sql = temp_sql.replace(f"[{tagged_col.tag}]", tagged_col.name)
-            sql_statements.append(temp_sql)
+            sql_statements.append(SQLRow(table_info.catalog, table_info.database, table_info.table, temp_sql))
         
         return sql_statements
     
 
-    def build(self, classifier: Classifier) -> list[str]:
+    def build(self, classifier: Classifier) -> list[SQLRow]:
 
         """Builds the M-SQL expression into a SQL expression"""
         
@@ -92,13 +103,34 @@ class Msql:
             raise ValueError(f"No tables found matching filter: {self.catalogs}.{self.databases}.{self.tables}")
 
         sqls = flat_map(self.compile_msql, filtered_tables)
-
-        if self.command == "SELECT":
-            sqls = ["\nUNION ALL\n".join(sqls)]
         
         return sqls
     
+    def execute_sql_row(self, sql_row: SQLRow, spark: SparkSession) -> DataFrame:
+        """Executes the SQL statement"""
+        try:
+            result = (spark
+                .sql(sql_row.sql)
+                .withColumn('catalog', lit(sql_row.catalog))
+                .withColumn('database', lit(sql_row.database))
+                .withColumn('table', lit(sql_row.table)))
+            if self.command == "DELETE":
+                result = result.withColumn('sql', lit(sql_row.sql))
+        except Exception as e:
+            self.logger.info(f"Unable to execute SQL for {sql_row.catalog}.{sql_row.database}.{sql_row.table}: {e}")
+            result = None
 
+        return result
+
+    def execute_sql_rows(self, sqls: list[SQLRow], spark: SparkSession):
+        """Executes the SQL statements"""
+        results = [self.execute_sql_row(sql_row, spark) for sql_row in sqls]
+        success_results = [result for result in results if result is not None]
+        
+        if len(success_results) == 0:
+            raise ValueError(f"No SQL statements were successfully executed.")
+        
+        return reduce(lambda x, y: x.union(y), success_results)
 
     def _replace_from_statement(self, msql: str, table_info: TableInfo):
         """Replaces the FROM statement in the M-SQL expression with the specified table name"""
@@ -118,12 +150,6 @@ class Msql:
             return (matches[0][2], matches[0][3], matches[0][4])
         else:
             raise ValueError(f"Could not extract table name from M-SQL expression: {self.msql}")
-        
-    def _append_litaral_keys(self, msql: str, table_info: TableInfo):
-        if self.command == "SELECT":
-            return re.sub(self.command_expr, f"\\1 '{table_info.catalog}' AS catalog_name, '{table_info.database}' AS database_name, '{table_info.table}' AS table_name, ", msql)
-        else:
-            return msql
     
     def _extract_command(self):
         """Extracts the command from the M-SQL expression"""
@@ -142,3 +168,4 @@ def flat_map(f, xs):
     for x in xs:
         ys.extend(f(x))
     return ys
+
