@@ -30,7 +30,7 @@ def test_msql(spark, monkeypatch):
 
     dx = DX(spark=spark)
     dx.scan(tables="tb_1", rules="ip_*")
-    result = dx.msql("SELECT [ip_v4] as ip FROM *.*.*")
+    result = dx.msql_experimental("SELECT [ip_v4] as ip FROM *.*.*")
 
     assert {row.ip for row in result.collect()} == {"1.2.3.4", "3.4.5.60"}
 
@@ -94,6 +94,6 @@ def test_msql_what_if(spark, monkeypatch):
     dx = DX(spark=spark)
     dx.scan(tables="tb_1", rules="ip_*")
     try:
-        result = dx.msql("SELECT [ip_v4] as ip FROM *.*.*", what_if=True)
+        result = dx.msql_experimental("SELECT [ip_v4] as ip FROM *.*.*", what_if=True)
     except Exception as e:
         pytest.fail(f"Test failed with exception {e}")
