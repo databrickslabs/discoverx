@@ -43,7 +43,7 @@ def test_search(spark, monkeypatch):
 
     # search a specific term and auto-detect matching tags/rules
     result = dx.search("1.2.3.4")
-    assert result.collect()[0].table_name == 'tb_1'
+    assert result.collect()[0].table == 'tb_1'
     assert result.collect()[0].search_result.ip_v4.column == 'ip'
 
     # search all records for specific tag
@@ -56,7 +56,7 @@ def test_search(spark, monkeypatch):
 
     # search specific term for list of specified tags
     result_term_tag = dx.search(search_term="3.4.5.60", search_tags=['ip_v4'])
-    assert result_term_tag.collect()[0].table_name == 'tb_1'
+    assert result_term_tag.collect()[0].table == 'tb_1'
     assert result_term_tag.collect()[0].search_result.ip_v4.value == "3.4.5.60"
 
     with pytest.raises(ValueError) as no_tags_no_terms_error:
@@ -81,7 +81,7 @@ def test_search_multiple(spark, monkeypatch):
 
     # search a specific term and auto-detect matching tags/rules
     result = dx.search(search_tags=["ip_v4", "mac"])
-    assert result.collect()[0].table_name == 'tb_1'
+    assert result.collect()[0].table == 'tb_1'
     assert result.collect()[0].search_result.ip_v4.column == 'ip'
     assert result.collect()[0].search_result.mac.column == 'mac'
 
