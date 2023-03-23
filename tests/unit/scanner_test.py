@@ -161,6 +161,8 @@ def test_scan_custom_rules(spark: SparkSession):
         [
             ["None", "default", "tb_1", "ip", "any_word", 0.0],
             ["None", "default", "tb_1", "ip", "any_number", 0.0],
+            ["None", "default", "tb_1", "mac", "any_word", 0.0],
+            ["None", "default", "tb_1", "mac", "any_number", 0.0],
             ["None", "default", "tb_1", "description", "any_word", 0.5],
             ["None", "default", "tb_1", "description", "any_number", 0.0],
         ],
@@ -194,6 +196,8 @@ def test_scan(spark: SparkSession):
         [
             ["None", "default", "tb_1", "ip", "ip_v4", 1.0],
             ["None", "default", "tb_1", "ip", "ip_v6", 0.0],
+            ["None", "default", "tb_1", "mac", "ip_v4", 0.0],
+            ["None", "default", "tb_1", "mac", "ip_v6", 0.0],
             ["None", "default", "tb_1", "description", "ip_v4", 0.0],
             ["None", "default", "tb_1", "description", "ip_v6", 0.0],
         ],

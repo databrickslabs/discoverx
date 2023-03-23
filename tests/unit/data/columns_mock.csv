@@ -21,4 +21,5 @@ hive_metastore,default,tb_all_types,interval_col,INTERVAL,
 hive_metastore,default,tb_all_types,str_part_col,STRING,1
 ,default,tb_1,id,INT,
 ,default,tb_1,ip,STRING,
+,default,tb_1,mac,STRING,
 ,default,tb_1,description,STRING,

@@ -127,7 +127,7 @@ def test_msql_build_select_multi_and_repeated_tag():
         strip_margin("""
             SELECT email_1 AS email, date AS d FROM c.db.tb1 WHERE email_1 = 'a@b.c'
         """))
-    
+
     expected_2 = SQLRow(
         "c",
         "db",
@@ -135,7 +135,7 @@ def test_msql_build_select_multi_and_repeated_tag():
         strip_margin("""
             SELECT email_2 AS email, date AS d FROM c.db.tb1 WHERE email_2 = 'a@b.c'
         """))
-    
+
     expected_3 = SQLRow(
         "c",
         "db",
@@ -191,7 +191,7 @@ def test_execute_sql_rows(spark):
     ]
     df = msql.execute_sql_rows(sqls=sql_rows, spark=spark)
     assert df.count() == 2
-        
+
 def test_execute_sql_rows_should_not_fail(spark):
     msql = Msql("SELECT description FROM *.*.* ")
     sql_rows = [
