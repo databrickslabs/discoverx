@@ -1,0 +1,69 @@
+# Custom section is used to store configurations that might be repetative.
+# Please read YAML documentation for details on how to use substitutions and anchors.
+custom:
+  basic-cluster-props: &basic-cluster-props
+    spark_version: "11.3.x-scala2.12"
+
+  basic-static-cluster: &basic-static-cluster
+    new_cluster:
+      <<: *basic-cluster-props
+      num_workers: 0
+      node_type_id: "Standard_DS3_v2"
+      spark_conf:
+        spark.master: "local[*, 4]"
+        spark.databricks.cluster.profile: "singleNode"
+
+environments:
+  default:
+    workflows:
+      #######################################################################################
+      #   Example workflow for integration tests                                            #
+      #######################################################################################
+      - name: "discoverx-sample-tests"
+        tasks:
+          - task_key: "main"
+            <<: *basic-static-cluster
+            spark_python_task:
+                python_file: "file://tests/entrypoint.py"
+                # this call supports all standard pytest arguments
+                parameters: ["file:fuse://tests/integration", "--cov=discoverx"]
+      #######################################################################################
+      # this is an example job with single ETL task based on 2.1 API and wheel_task format #
+      ######################################################################################
+      - name: "discoverx-sample-etl"
+        tasks:
+          - task_key: "main"
+            <<: *basic-static-cluster
+            spark_python_task:
+              python_file: "file://notebooks/interaction_ui.py"
+            # deployment_config:
+            #   no_package: true
+            # notebook_task:
+            #   notebook_path: "/Repos/Staging/discoverx/notebooks/interaction_ui"
+            #   parameters: ["--conf-file", "file:fuse://conf/tasks/sample_etl_config.yml"]
+      #############################################################
+      # this is an example multitask job with notebook task       #
+      #############################################################
+      - name: "discoverx-sample-multitask"
+        job_clusters:
+          - job_cluster_key: "default"
+            <<: *basic-static-cluster
+        tasks:
+          - task_key: "etl"
+            job_cluster_key: "default"
+            spark_python_task:
+              python_file: "file://discoverx/tasks/sample_etl_task.py"
+              parameters: [ "--conf-file", "file:fuse://conf/tasks/sample_etl_config.yml" ]
+          ###############################################################################
+          # this is an example task based on the notebook                               #
+          # Please note that first you'll need to add a Repo and commit notebook to it. #
+          ###############################################################################
+          - task_key: "notebook"
+            deployment_config:
+              no_package: true # we omit using package since code will be shipped directly from the Repo
+            depends_on:
+              - task_key: "etl"
+            job_cluster_key: "default"
+            notebook_task:
+              notebook_path: "/Repos/Staging/discoverx/notebooks/sample_notebook"
+

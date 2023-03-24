@@ -20,4 +20,3 @@ Instructions for how to deploy the project, or install it
 Instructions for how to release a version of the project
 
 ## Using the Project
-Simple examples on how to use the project

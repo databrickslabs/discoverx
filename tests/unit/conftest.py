@@ -1,0 +1,188 @@
+"""
+This conftest.py contains handy components that prepare SparkSession and other relevant objects.
+"""
+
+import logging
+import os
+import shutil
+import tempfile
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterator
+from unittest.mock import patch
+
+import mlflow
+import pytest
+from delta import configure_spark_with_delta_pip
+from pyspark.sql import SparkSession
+
+
+@dataclass
+class FileInfoFixture:
+    """
+    This class mocks the DBUtils FileInfo object
+    """
+
+    path: str
+    name: str
+    size: int
+    modificationTime: int
+
+
+class DBUtilsFixture:
+    """
+    This class is used for mocking the behaviour of DBUtils inside tests.
+    """
+
+    def __init__(self):
+        self.fs = self
+
+    def cp(self, src: str, dest: str, recurse: bool = False):
+        copy_func = shutil.copytree if recurse else shutil.copy
+        copy_func(src, dest)
+
+    def ls(self, path: str):
+        _paths = Path(path).glob("*")
+        _objects = [
+            FileInfoFixture(str(p.absolute()), p.name, p.stat().st_size, int(p.stat().st_mtime)) for p in _paths
+        ]
+        return _objects
+
+    def mkdirs(self, path: str):
+        Path(path).mkdir(parents=True, exist_ok=True)
+
+    def mv(self, src: str, dest: str, recurse: bool = False):
+        copy_func = shutil.copytree if recurse else shutil.copy
+        shutil.move(src, dest, copy_function=copy_func)
+
+    def put(self, path: str, content: str, overwrite: bool = False):
+        _f = Path(path)
+
+        if _f.exists() and not overwrite:
+            raise FileExistsError("File already exists")
+
+        _f.write_text(content, encoding="utf-8")
+
+    def rm(self, path: str, recurse: bool = False):
+        deletion_func = shutil.rmtree if recurse else os.remove
+        deletion_func(path)
+
+
+@pytest.fixture(scope="session")
+def spark() -> SparkSession:
+    """
+    This fixture provides preconfigured SparkSession with Hive and Delta support.
+    After the test session, temporary warehouse directory is deleted.
+    :return: SparkSession
+    """
+    logging.info("Configuring Spark session for testing environment")
+    warehouse_dir = tempfile.TemporaryDirectory().name
+    _builder = (
+        SparkSession.builder.master("local[1]")
+        .config("spark.hive.metastore.warehouse.dir", Path(warehouse_dir).as_uri())
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        )
+        .enableHiveSupport()
+    )
+    spark: SparkSession = configure_spark_with_delta_pip(_builder).getOrCreate()
+    logging.info("Spark session configured")
+    yield spark
+    logging.info("Shutting down Spark session")
+    spark.stop()
+    if Path(warehouse_dir).exists():
+        shutil.rmtree(warehouse_dir)
+
+
+@pytest.fixture(autouse=True, scope="module")
+def sample_datasets(spark: SparkSession, request):
+    """
+    This fixture loads a sample dataset defined in a csv and
+    creates a table registered in the metastore to be used for
+    tests.
+
+    Args:
+        spark: Spark session
+        request: the pytest request fixture contains information about
+            the current test. Used here to get current path.
+
+    Returns:
+
+    """
+    logging.info("Creating sample datasets")
+
+    module_path = Path(request.module.__file__)
+
+    # tb_1
+    test_file_path = module_path.parent / "data/tb_1.csv"
+    (spark
+        .read
+        .option("header", True)
+        .schema("id integer,ip string,mac string,description string")
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("view_tb_1")
+    spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 AS SELECT * FROM view_tb_1")
+
+    # columns_mock
+    test_file_path = module_path.parent / "data/columns_mock.csv"
+    (spark
+        .read
+        .option("header", True)
+        .schema("table_catalog string,table_schema string,table_name string,column_name string,data_type string,partition_index int")
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("view_columns_mock")
+    spark.sql("CREATE TABLE IF NOT EXISTS default.columns_mock AS SELECT * FROM view_columns_mock")
+    
+
+    logging.info("Sample datasets created")
+
+    yield None
+
+    logging.info("Test session finished, removing sample datasets")
+
+    spark.sql("DROP TABLE IF EXISTS default.tb_1")
+    spark.sql("DROP TABLE IF EXISTS default.columns_mock")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mlflow_local():
+    """
+    This fixture provides local instance of mlflow with support for tracking and registry functions.
+    After the test session:
+    * temporary storage for tracking and registry is deleted.
+    * Active run will be automatically stopped to avoid verbose errors.
+    :return: None
+    """
+    logging.info("Configuring local MLflow instance")
+    tracking_uri = tempfile.TemporaryDirectory().name
+    registry_uri = f"sqlite:///{tempfile.TemporaryDirectory().name}"
+
+    mlflow.set_tracking_uri(Path(tracking_uri).as_uri())
+    mlflow.set_registry_uri(registry_uri)
+    logging.info("MLflow instance configured")
+    yield None
+
+    mlflow.end_run()
+
+    if Path(tracking_uri).exists():
+        shutil.rmtree(tracking_uri)
+
+    if Path(registry_uri).exists():
+        Path(registry_uri).unlink()
+    logging.info("Test session finished, unrolling the MLflow instance")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def dbutils_fixture() -> Iterator[None]:
+    """
+    This fixture patches the `get_dbutils` function.
+    Please note that patch is applied on a string name of the function.
+    If you change the name or location of it, patching won't work.
+    :return:
+    """
+    logging.info("Patching the DBUtils object")
+    with patch("discoverx.common.databricks.get_dbutils", lambda _: DBUtilsFixture()):
+        yield
+    logging.info("Test session finished, patching completed")
