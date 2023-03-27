@@ -260,13 +260,13 @@ class Scanner:
 
 @dataclass
 class Classifier:
-    column_type_classification_threshold: float
+    classification_threshold: float
     scan_result: ScanResult
     classified_result: pd.DataFrame = field(init=False)
 
     def __post_init__(self):
         self.classified_result = self.scan_result.df[
-            self.scan_result.df["frequency"] > self.column_type_classification_threshold
+            self.scan_result.df["frequency"] > self.classification_threshold
         ]
 
     @property

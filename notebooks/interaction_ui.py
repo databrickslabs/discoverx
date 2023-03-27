@@ -111,11 +111,11 @@ dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'").dis
 # COMMAND ----------
 
 conf = {
-  'column_type_classification_threshold': 0.95,
+  'classification_threshold': 0.95,
 }
 dx = DX(**conf)
 
-dx = DX(column_type_classification_threshold=0.95)
+dx = DX(classification_threshold=0.95)
 
 # COMMAND ----------
 
@@ -199,7 +199,7 @@ help(DX)
 
 # COMMAND ----------
 
-# dx.tag_columns(rule_match_frequency_table=None, column_type_classification_threshold=0.95) # This will show the SQL commands to apply tags from the temp view discoverx_temp_rule_match_frequency_table
+# dx.tag_columns(rule_match_frequency_table=None, classification_threshold=0.95) # This will show the SQL commands to apply tags from the temp view discoverx_temp_rule_match_frequency_table
 
 # dx.tag_columns(rule_match_frequency_table="", yes_i_am_sure=True) # This will apply the tags 
 

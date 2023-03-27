@@ -144,7 +144,7 @@ def test_msql_build_select_multi_and_repeated_tag():
             SELECT email_3 AS email, date AS d FROM c.db.tb2 WHERE email_3 = 'a@b.c'
         """))
 
-    classifier = Classifier(column_type_classification_threshold=0.95, scan_result=ScanResult(df=df))
+    classifier = Classifier(classification_threshold=0.95, scan_result=ScanResult(df=df))
     actual = Msql(msql).build(classifier)
     assert len(actual) == 3
     assert actual[0] == expected_1
@@ -167,7 +167,7 @@ def test_msql_build_delete_multi_and_repeated_tag():
         ["c", "db", "m_tb1", "email_5", "dx_email", 0.99], # table does not match
     ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
 
-    classifier = Classifier(column_type_classification_threshold=0.95, scan_result=ScanResult(df=df))
+    classifier = Classifier(classification_threshold=0.95, scan_result=ScanResult(df=df))
     actual = Msql(msql).build(classifier)
 
     assert len(actual) == 4

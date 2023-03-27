@@ -16,7 +16,7 @@ class DX:
         custom_rules (List[Rule], Optional): Custom rules which will be
             used to detect columns with corresponding patterns in your
             data
-        column_type_classification_threshold (float, optional):
+        classification_threshold (float, optional):
             The threshold which will associate a column with a specific
             rule and classify accordingly. The minimum and maximum
             threshold values which can be specified are 0 and 1
@@ -28,7 +28,7 @@ class DX:
     def __init__(
         self,
         custom_rules: Optional[List[Rule]] = None,
-        column_type_classification_threshold: float = 0.95,
+        classification_threshold: float = 0.95,
         spark: Optional[SparkSession] = None,
     ):
 
@@ -38,8 +38,8 @@ class DX:
         self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules)
-        self.column_type_classification_threshold = self._validate_classification_threshold(
-            column_type_classification_threshold
+        self.classification_threshold = self._validate_classification_threshold(
+            classification_threshold
         )
 
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false")
@@ -137,15 +137,15 @@ class DX:
         )
 
         self.scanner.scan()
-        self.classify(self.column_type_classification_threshold)
+        self.classify(self.classification_threshold)
 
-    def classify(self, column_type_classification_threshold: float):
+    def classify(self, classification_threshold: float):
         if self.scanner is None:
             raise Exception("You first need to scan your lakehouse using Scanner.scan()")
         if self.scanner.scan_result is None:
             raise Exception("Your scan did not finish successfully. Please consider rerunning Scanner.scan()")
 
-        self.classifier = Classifier(column_type_classification_threshold, self.scanner.scan_result)
+        self.classifier = Classifier(classification_threshold, self.scanner.scan_result)
 
         self.logger.friendlyHTML(self.classifier.summary_html)
 
@@ -224,7 +224,7 @@ class DX:
             float: The validated threshold value
         """
         if (threshold < 0) or (threshold > 1):
-            error_msg = f"column_type_classification_threshold has to be in interval [0,1]. Given value is {threshold}"
+            error_msg = f"classification_threshold has to be in interval [0,1]. Given value is {threshold}"
             self.logger.error(error_msg)
             raise ValueError(error_msg)
         return threshold
