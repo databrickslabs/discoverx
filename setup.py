@@ -27,6 +27,9 @@ LOCAL_REQUIREMENTS = [
     "scikit-learn",
     "pandas",
     "mlflow",
+    "ipydatagrid",
+    "ipykernel",
+    "ipywidgets",
 ]
 
 TEST_REQUIREMENTS = [

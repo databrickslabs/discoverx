@@ -5,6 +5,7 @@
 # COMMAND ----------
 
 # MAGIC %pip install pydantic
+# MAGIC %pip install ipydatagrid
 
 # COMMAND ----------
 
@@ -13,12 +14,23 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Clean Up Old Demos
+# MAGIC %sql
+# MAGIC DROP TABLE IF EXISTS _discoverx.classification.tags;
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN source_address UNSET TAGS ('dx_ip_v4');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN destination_address UNSET TAGS ('dx_ip_v4');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN content UNSET TAGS ('dx_ip_v6');
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Generate sample data
 
 # COMMAND ----------
 
-dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample"} )
+dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample_dt"} )
 
 # COMMAND ----------
 
@@ -43,7 +55,47 @@ dx.scan(catalogs="discoverx*")
 
 # COMMAND ----------
 
-dx.scanner.scan_result.df[0:10]
+dx.inspect()
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM `_discoverx`.classification.tags
+
+# COMMAND ----------
+
+dx.classifier.staged_updates_pdf
+
+# COMMAND ----------
+
+# after saving you can see the tags in the data explorer under table details -> properties
+dx.classifier.save_tags()
+
+# COMMAND ----------
+
+# DBTITLE 1,Simulate some manual added tags and previously classified columns
+# MAGIC %sql
+# MAGIC DELETE FROM _discoverx.classification.tags WHERE table_name = "cyber_data";
+# MAGIC INSERT INTO _discoverx.classification.tags VALUES
+# MAGIC ("discoverx_sample_dt",	"sample_datasets", "cyber_data_2", "content", "ip_v6", "inactive", current_timestamp(), "true", null),
+# MAGIC ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v6_address", "ip_v6", "inactive", current_timestamp(), "true", null);
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4')
+
+# COMMAND ----------
+
+# DBTITLE 1,Now rerun scan and inspection and manually change some tag-statuses ...
+dx.scan(catalogs="discoverx*")
+dx.inspect()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC After saving the tags in the next cell, only those chosen to be 'active' should be seen in Unity Catalog. All changes are captured in the classification table `_dicoverx.classification.tags`.
+
+# COMMAND ----------
+
+dx.save_tags()
 
 # COMMAND ----------
 
@@ -82,6 +134,34 @@ SELECT
 FROM discoverx*.*.*
 GROUP BY [ip_v4]
 """).display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Search your lakehouse using saved tags
+# MAGIC If you've run a scan previously and saved the classification results as tags you can search your lakehouse in a different session. DiscoverX will automatically try to load tags from each of the table's properties and perform the search using the retrieved classification.
+
+# COMMAND ----------
+
+# instantiate a new discoverx object
+dx_noscan = DX()
+
+# COMMAND ----------
+
+# search without scan - discoverx will try to load tags
+dx_noscan.msql("""
+SELECT 
+  '[ip_v4]' AS ip_v4_column,
+  [ip_v4] AS ip_v4, 
+  to_json(struct(*)) AS row_content
+FROM discoverx*.*.*
+WHERE [ip_v4] = '1.2.3.4'
+""").display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Deletes - Right To Be Forgotten Use Cases
 
 # COMMAND ----------
 

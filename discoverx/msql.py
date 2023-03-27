@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from functools import reduce
 from discoverx import logging
-from discoverx.scanner import ColumnInfo, TableInfo, Classifier
+from discoverx.scanner import ColumnInfo, TableInfo
 from discoverx.common.helper import strip_margin
 from fnmatch import fnmatch
 from pyspark.sql.functions import lit
@@ -39,7 +39,6 @@ class Msql:
 
         self.logger = logging.Logging()
 
-
     def compile_msql(self, table_info: TableInfo) -> list[SQLRow]:
         """
         Compiles the M-SQL (Multiplex-SQL) expression into regular SQL
@@ -71,11 +70,11 @@ class Msql:
         return sql_statements
     
 
-    def build(self, classifier: Classifier) -> list[SQLRow]:
+    def build(self, classified_result_pdf) -> list[SQLRow]:
 
         """Builds the M-SQL expression into a SQL expression"""
         
-        classified_cols = classifier.classified_result.copy()
+        classified_cols = classified_result_pdf.copy()
         # TODO: Shouldn't we use the tags from the rule definitions instead of rule_name?
         classified_cols = classified_cols[classified_cols['rule_name'].isin(self.tags)]
         classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['rule_name']].reset_index()
@@ -126,10 +125,10 @@ class Msql:
         """Executes the SQL statements"""
         results = [self.execute_sql_row(sql_row, spark) for sql_row in sqls]
         success_results = [result for result in results if result is not None]
-        
+
         if len(success_results) == 0:
             raise ValueError(f"No SQL statements were successfully executed.")
-        
+
         return reduce(lambda x, y: x.union(y), success_results)
 
     def _replace_from_statement(self, msql: str, table_info: TableInfo):
@@ -168,4 +167,3 @@ def flat_map(f, xs):
     for x in xs:
         ys.extend(f(x))
     return ys
-
