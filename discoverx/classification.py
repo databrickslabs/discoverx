@@ -1,6 +1,6 @@
 from delta.tables import DeltaTable
 import pandas as pd
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as func
 from typing import Optional
 
@@ -9,6 +9,7 @@ from discoverx.scanner import Scanner
 from discoverx.inspection import InspectionTool
 
 logger = logging.Logging()
+
 
 class Classifier:
     def __init__(
@@ -29,8 +30,7 @@ class Classifier:
         # classify scan result based on threshold
         if self.scanner.scan_result is not None:
             self.classified_result = self.scanner.scan_result.df[
-                self.scanner.scan_result.df["frequency"]
-                > self.column_type_classification_threshold
+                self.scanner.scan_result.df["frequency"] > self.column_type_classification_threshold
             ].rename(
                 columns={
                     "catalog": "table_catalog",
@@ -56,24 +56,16 @@ class Classifier:
     @property
     def n_classified_columns(self) -> int:
         return len(
-            self.classified_result[
-                ["table_catalog", "table_schema", "table_name", "column_name"]
-            ].drop_duplicates()
+            self.classified_result[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates()
         )
 
     @property
     def rule_match_str(self) -> str:
         rule_match_counts = []
-        df_summary = self.classified_result.groupby(["rule_name"]).agg(
-            {"frequency": "count"}
-        )
-        df_summary = (
-            df_summary.reset_index()
-        )  # make sure indexes pair with number of rows
+        df_summary = self.classified_result.groupby(["rule_name"]).agg({"frequency": "count"})
+        df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
         for _, row in df_summary.iterrows():
-            rule_match_counts.append(
-                f"            <li>{row['frequency']} {row['rule_name']} columns</li>"
-            )
+            rule_match_counts.append(f"            <li>{row['frequency']} {row['rule_name']} columns</li>")
         return "\n".join(rule_match_counts)
 
     @property
@@ -81,9 +73,7 @@ class Classifier:
         # Summary
         classified_cols = self.classified_result.copy()
         classified_cols.index = pd.MultiIndex.from_frame(
-            classified_cols[
-                ["table_catalog", "table_schema", "table_name", "column_name"]
-            ]
+            classified_cols[["table_catalog", "table_schema", "table_name", "column_name"]]
         )
         summary_html_table = classified_cols[["rule_name", "frequency"]].to_html()
 
@@ -117,40 +107,46 @@ class Classifier:
             .drop("current", "end_timestamp", "effective_timestamp")
         )
 
-        classified_df = self.spark.createDataFrame(self.classified_result).select(
-            "table_catalog", "table_schema", "table_name", "column_name", "rule_name"
-        )
+        classified_df = self.spark.createDataFrame(
+            self.classified_result,
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, rule_name: string, frequency: double",
+        ).select("table_catalog", "table_schema", "table_name", "column_name", "rule_name")
+
+        #We need the eqNullSafe operator for testing purposes where
+        #we don't have Unity Catalog and a 3-level namespace
+        join_condition = (
+                func.col("left_df.table_catalog").eqNullSafe(func.col("right_df.table_catalog"))
+                & (func.col("left_df.table_schema") == func.col("right_df.table_schema"))
+                & (func.col("left_df.table_name") == func.col("right_df.table_name"))
+                & (func.col("left_df.column_name") == func.col("right_df.column_name"))
+                & (func.col("left_df.rule_name") == func.col("right_df.rule_name"))
+            )
 
         # dx tags which were previously set for a column which has not been classified in the
         # current scan or which has been added to the ignore-list should be unset
-        to_be_unset_df = current_tags_df.join(
-            classified_df,
-            ["table_catalog", "table_schema", "table_name", "column_name", "rule_name"],
+        to_be_unset_df = current_tags_df.alias("left_df").join(
+            classified_df.alias("right_df"),
+            join_condition,
             how="left_anti",
-        ).withColumn("action", func.lit("unset"))
+        ).select("left_df.*").withColumn("action", func.lit("unset"))
 
         # Set tag for columns which have been classified in current scan and which are not yet
         # tagged
         to_be_set_df = (
-            classified_df.join(
-                current_tags_df,
-                [
-                    "table_catalog",
-                    "table_schema",
-                    "table_name",
-                    "column_name",
-                    "rule_name",
-                ],
+            classified_df.alias("left_df").join(
+                current_tags_df.alias("right_df"),
+                join_condition,
                 how="left_anti",
             )
+            .select("left_df.*")
             .withColumn("action", func.lit("set"))
             .withColumn("tag_status", func.lit("active"))
         )
 
-        to_be_kept_df = current_tags_df.join(
-            classified_df,
-            ["table_catalog", "table_schema", "table_name", "column_name", "rule_name"],
-        ).withColumn("action", func.lit("keep"))
+        to_be_kept_df = current_tags_df.alias("left_df").join(
+            classified_df.alias("right_df"),
+            join_condition,
+        ).select("left_df.*").withColumn("action", func.lit("keep"))
 
         # TODO: set current_timestamp first when merging
         staged_updates_df = to_be_set_df.alias("set").unionByName(
@@ -170,8 +166,12 @@ class Classifier:
         else:
             self._get_staged_updates()
 
-        staged_updates_df = self.spark.createDataFrame(self.staged_updates_pdf)
+        staged_updates_df = self.spark.createDataFrame(
+            self.staged_updates_pdf,
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, rule_name: string, action: string, tag_status: string",
+        )
 
+        # TODO: Check if we can optimize performance by reusing some parts from _get_staged_updates
         current_tags_df = (
             self.classification_table.toDF()
             .filter(func.col("current"))
@@ -179,29 +179,28 @@ class Classifier:
         )
         staged_updates_df = staged_updates_df.filter(func.col("action") != "keep")
 
+        # We need the eqNullSafe operator for testing purposes where
+        # we don't have Unity Catalog and a 3-level namespace
+        join_condition = (
+                func.col("source.table_catalog").eqNullSafe(func.col("target.table_catalog"))
+                & (func.col("source.table_schema") == func.col("target.table_schema"))
+                & (func.col("source.table_name") == func.col("target.table_name"))
+                & (func.col("source.column_name") == func.col("target.column_name"))
+                & (func.col("source.rule_name") == func.col("target.rule_name"))
+        )
         to_be_inserted_df = (
             staged_updates_df.alias("source")
             .filter(func.col("action") == "set")
             .join(
                 current_tags_df.alias("target"),
-                [
-                    "table_catalog",
-                    "table_schema",
-                    "table_name",
-                    "column_name",
-                    "rule_name",
-                ],
+                join_condition,
             )
             .filter("source.tag_status != target.tag_status")
-        )
+        ).select("source.*")
 
         staged_updates_df = (
             staged_updates_df.withColumn("mergeKeyTable", func.col("table_name"))
-            .unionByName(
-                to_be_inserted_df.select("source.*").withColumn(
-                    "mergeKeyTable", func.lit(None)
-                )
-            )
+            .unionByName(to_be_inserted_df.select("source.*").withColumn("mergeKeyTable", func.lit(None)))
             .withColumn("effective_timestamp", func.current_timestamp())
         )
 
@@ -210,7 +209,7 @@ class Classifier:
 
         self.classification_table.alias("target").merge(
             staged_updates_df.alias("source"),
-            "target.table_catalog = source.table_catalog AND target.table_schema = source.table_schema AND target.table_name = source.mergeKeyTable AND target.column_name = source.column_name AND target.rule_name = source.rule_name AND target.current = true",
+            "target.table_catalog <=> source.table_catalog AND target.table_schema = source.table_schema AND target.table_name = source.mergeKeyTable AND target.column_name = source.column_name AND target.rule_name = source.rule_name AND target.current = true",
         ).whenMatchedUpdate(
             set={"current": "false", "end_timestamp": "source.effective_timestamp"}
         ).whenNotMatchedInsert(
