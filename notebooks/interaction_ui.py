@@ -48,6 +48,11 @@ dx = DX()
 
 # MAGIC %md
 # MAGIC ### Scan
+# MAGIC This section demonstrates a typical DiscoverX workflow which consists of the following steps:
+# MAGIC - `dx.scan()`: Scan the lakehouse including catalogs with names starting with `discoverx`
+# MAGIC - `dx.inspect()`: Inspect and manually adjust the scan result using the DiscoverX inspection tool
+# MAGIC - `dx.publish()`: Publish the classification result which save/merge the result to a system table maintained by DiscoverX
+# MAGIC - `dx.search()`: Search your across your previously classified lakehouse for specific records or general classifications/tags
 
 # COMMAND ----------
 
@@ -59,28 +64,29 @@ dx.inspect()
 
 # COMMAND ----------
 
+# after saving you can see the tags in the data explorer under table details -> properties
+dx.publish(publish_uc_tags=True)
+
+# COMMAND ----------
+
 # MAGIC %sql
 # MAGIC SELECT * FROM `_discoverx`.classification.tags
 
 # COMMAND ----------
 
-dx.classifier.staged_updates_pdf
-
-# COMMAND ----------
-
-# after saving you can see the tags in the data explorer under table details -> properties
-dx.classifier.publish(False)
-
-# COMMAND ----------
-
-# DBTITLE 1,Simulate some manual added tags and previously classified columns
+# DBTITLE 1,Simulate some manually added tags and previously classified columns
 # MAGIC %sql
-# MAGIC DELETE FROM _discoverx.classification.tags WHERE table_name = "cyber_data";
-# MAGIC INSERT INTO _discoverx.classification.tags VALUES
-# MAGIC ("discoverx_sample_dt",	"sample_datasets", "cyber_data_2", "content", "ip_v6", "inactive", current_timestamp(), "true", null),
-# MAGIC ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v6_address", "ip_v6", "inactive", current_timestamp(), "true", null);
+# MAGIC UPDATE _discoverx.classification.tags SET current = false, end_timestamp = current_timestamp() WHERE table_name = "cyber_data";
+# MAGIC INSERT INTO _discoverx.classification.tags VALUES 
+# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data_2", "content", "ip_v6", "inactive", current_timestamp(), "true", null),
+# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v6_address", "ip_v6", "inactive", current_timestamp(), "true", null);
 # MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
 # MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM `_discoverx`.classification.tags
 
 # COMMAND ----------
 
@@ -95,7 +101,39 @@ dx.inspect()
 
 # COMMAND ----------
 
-dx.publish()
+dx.publish(publish_uc_tags=True)
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM `_discoverx`.classification.tags WHERE current = True AND tag_status = "active"
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Search
+# MAGIC 
+# MAGIC This command can be used to search inside the content of tables.
+# MAGIC 
+# MAGIC If the tables have ben scanned before, the search will restrict the scope to only the columns that could contain the search term based on the avaialble rules.
+
+# COMMAND ----------
+
+# instantiate a new discoverx object
+dx_search = DX()
+
+# COMMAND ----------
+
+# DBTITLE 1,Search for all records representing the IP 1.2.3.4. Inference of matching rule type is automatic.
+dx.search(search_term='1.2.3.4').display()
+
+# COMMAND ----------
+
+import pyspark.sql.functions as func
+
+dx_search.search(search_tags="ip_v4").groupby(
+    ["catalog", "database", "table", "search_result.ip_v4"]
+).agg(func.count("search_result.ip_v4").alias("count")).display()
 
 # COMMAND ----------
 
@@ -133,29 +171,6 @@ SELECT
   count([ip_v4]) AS count 
 FROM discoverx*.*.*
 GROUP BY [ip_v4]
-""").display()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Search your lakehouse using saved tags
-# MAGIC If you've run a scan previously and saved the classification results as tags you can search your lakehouse in a different session. DiscoverX will automatically try to load tags from each of the table's properties and perform the search using the retrieved classification.
-
-# COMMAND ----------
-
-# instantiate a new discoverx object
-dx_noscan = DX()
-
-# COMMAND ----------
-
-# search without scan - discoverx will try to load tags
-dx_noscan.msql("""
-SELECT 
-  '[ip_v4]' AS ip_v4_column,
-  [ip_v4] AS ip_v4, 
-  to_json(struct(*)) AS row_content
-FROM discoverx*.*.*
-WHERE [ip_v4] = '1.2.3.4'
 """).display()
 
 # COMMAND ----------
@@ -231,57 +246,12 @@ dx_custm_rules.scan(catalogs="discoverx*", sample_size=1000)
 
 # COMMAND ----------
 
-#  IDEA:
-# pipeline = [
-#   { 'task_type': 'scan',
-#     'task_id': 'pii_dev',
-#     'configuration': {
-#       'catalogs': '*',
-#       'databases': 'dev_*',
-#       'tables': '*',
-#       'sample_size': 10000,
-#       'rules': ['custom_device_id', 'dx_ip_address']
-#     }
-#   }
-# ]
-
-# dx.run(pipeline)
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ## Help
 
 # COMMAND ----------
 
 help(DX)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Search
-# MAGIC 
-# MAGIC This command can be used to search inside the content of tables.
-# MAGIC 
-# MAGIC If the tables have ben scanned before, the search will restrict the scope to only the columns that could contain the search term based on the avaialble rules.
-
-# COMMAND ----------
-
-# dx.search("erni@databricks.com", databases="prod_*") # This will only search inside columns tagged with dx_email.
-# dx.search("127.0.0.1", databases="prod_*") # This will only search inside columns tagged as dx_ip_address.
-# dx.search("127.0.0.1", restrict_to_matched_rules=False) # This not use tags to restrict the columns to search 
-
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Tagging
-
-# COMMAND ----------
-
-# dx.tag_columns(rule_match_frequency_table=None, column_type_classification_threshold=0.95) # This will show the SQL commands to apply tags from the temp view discoverx_temp_rule_match_frequency_table
-
-# dx.tag_columns(rule_match_frequency_table="", yes_i_am_sure=True) # This will apply the tags 
 
 # COMMAND ----------
 
