@@ -159,7 +159,7 @@ class Classifier:
         self._get_staged_updates()
         self.inspection_tool = InspectionTool(self.staged_updates_pdf)
 
-    def save_tags(self):
+    def publish(self, publish_uc_tags: bool):
         if self.inspection_tool is not None:
             # TODO: Can we make this smoother and with less data copies?
             self.staged_updates_pdf = self.inspection_tool.staged_updates_pdf
@@ -230,9 +230,10 @@ class Classifier:
         logger.debug("Vacuum classification table")
         self.classification_table.vacuum()
 
-        # set unity catalog tags (private preview feature)
-        logger.friendly("Set/Unset Unity Catalog Column Tags")
-        self.staged_updates_pdf.apply(self._set_tag_uc, axis=1)
+        if publish_uc_tags:
+            # set unity catalog tags (private preview feature)
+            logger.friendly("Set/Unset Unity Catalog Column Tags")
+            self.staged_updates_pdf.apply(self._set_tag_uc, axis=1)
 
     def _set_tag_uc(self, series: pd.Series):
         if (series.action == "set") & (series.tag_status == "active"):

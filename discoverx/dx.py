@@ -178,9 +178,9 @@ class DX:
         self.classifier.inspect()
         self.classifier.inspection_tool.display()
 
-    def save_tags(self):
+    def publish(self, publish_uc_tags=False):
         # save tags
-        self.classifier.save_tags()
+        self.classifier.publish(publish_uc_tags=publish_uc_tags)
 
     def search(self,
                search_term: Optional[str] = None,

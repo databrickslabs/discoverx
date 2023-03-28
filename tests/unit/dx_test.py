@@ -59,7 +59,7 @@ def mock_uc_functionality(spark, monkeymodule):
 def scan_ip_in_tb1(spark, mock_uc_functionality):
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx.scan(tables="tb_1", rules="ip_*")
-    dx.save_tags()
+    dx.publish()
     yield dx
 
     spark.sql("DROP TABLE IF EXISTS _discoverx.tags")
@@ -136,7 +136,7 @@ def test_search(spark, dx_ip):
 def test_search_multiple(spark, mock_uc_functionality):
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx.scan(tables="tb_1", rules="*")
-    dx.save_tags()
+    dx.publish()
 
     # search a specific term and auto-detect matching tags/rules
     result = dx.search(search_tags=["ip_v4", "mac"])

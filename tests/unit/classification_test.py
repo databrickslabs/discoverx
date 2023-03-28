@@ -139,7 +139,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx.scanner = dummy_scanner
     dx.classify(column_type_classification_threshold=0.95)
-    dx.save_tags()
+    dx.publish()
 
     expected_df = pd.DataFrame(
         {
@@ -162,7 +162,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx2 = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx2.scanner = dummy_scanner
     dx2.classify(column_type_classification_threshold=0.95)
-    dx2.save_tags()
+    dx2.publish()
 
     expected_df = pd.DataFrame(
         {
@@ -197,7 +197,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner.scan_result = ScanResult(df_scan_result3)
     dx3.scanner = dummy_scanner
     dx3.classify(column_type_classification_threshold=0.95)
-    dx3.save_tags()
+    dx3.publish()
 
     current_time = pd.Timestamp(2023, 1, 1, 0)
     expected3_df = pd.DataFrame(
@@ -230,7 +230,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx4 = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx4.scanner = dummy_scanner
     dx4.classify(column_type_classification_threshold=0.95)
-    dx4.save_tags()
+    dx4.publish()
 
     expected4_df = pd.DataFrame(
         {
@@ -270,7 +270,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner.scan_result = ScanResult(df_scan_result5)
     dx5.scanner = dummy_scanner
     dx5.classify(column_type_classification_threshold=0.95)
-    dx5.save_tags()
+    dx5.publish()
 
     expected5_df = pd.DataFrame(
         {
@@ -294,7 +294,8 @@ def test_merging_scan_results(spark, mock_current_time):
         expected5_df.reset_index(drop=True),
     )
 
-    # re-detect ip, re-activate ip6 and new mac
+    # re-detect ip, re-activate ip6 and new mac and test publishing
+    # uc tags (mocked)
     df_scan_result6 = pd.DataFrame(
         {
             "catalog": [None, None, None, None, None, None, None, None, None, None, None, None],
@@ -354,7 +355,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx6.classifier.inspection_tool = InspectionTool(dx6.classifier.staged_updates_pdf)
     dx6.classifier.inspection_tool.staged_updates_pdf.iloc[2, 6] = "active"
     dx6.classifier.inspection_tool.staged_updates_pdf.iloc[2, 5] = "set"
-    dx6.save_tags()
+    dx6.publish(publish_uc_tags=True)
 
     expected6_df = pd.DataFrame(
         {

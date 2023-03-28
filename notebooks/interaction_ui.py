@@ -69,7 +69,7 @@ dx.classifier.staged_updates_pdf
 # COMMAND ----------
 
 # after saving you can see the tags in the data explorer under table details -> properties
-dx.classifier.save_tags()
+dx.classifier.publish(False)
 
 # COMMAND ----------
 
@@ -95,7 +95,7 @@ dx.inspect()
 
 # COMMAND ----------
 
-dx.save_tags()
+dx.publish()
 
 # COMMAND ----------
 
