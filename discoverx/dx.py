@@ -1,11 +1,13 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import lit, concat
+import pyspark.sql.functions as func
 from typing import List, Optional, Union
 from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
-from discoverx.scanner import Scanner, Classifier
+from discoverx.scanner import Scanner
+from discoverx.classification import Classifier
+
 
 class DX:
     """DiscoverX scans and searches your lakehouse
@@ -30,6 +32,7 @@ class DX:
         custom_rules: Optional[List[Rule]] = None,
         column_type_classification_threshold: float = 0.95,
         spark: Optional[SparkSession] = None,
+        classification_table_name: str = "_discoverx.classification.tags",
     ):
 
         if spark is None:
@@ -38,11 +41,16 @@ class DX:
         self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules)
-        self.column_type_classification_threshold = self._validate_classification_threshold(
-            column_type_classification_threshold
+        self.column_type_classification_threshold = (
+            self._validate_classification_threshold(
+                column_type_classification_threshold
+            )
         )
+        self.classification_table_name = classification_table_name
 
-        self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false")
+        self.uc_enabled = self.spark.conf.get(
+            "spark.databricks.unityCatalog.enabled", "false"
+        )
 
         self.scanner: Optional[Scanner] = None
         self.classifier: Optional[Classifier] = None
@@ -124,7 +132,15 @@ class DX:
         text = self.rules.get_rules_info()
         self.logger.friendlyHTML(text)
 
-    def scan(self, catalogs="*", databases="*", tables="*", rules="*", sample_size=10000, what_if: bool = False):
+    def scan(
+        self,
+        catalogs="*",
+        databases="*",
+        tables="*",
+        rules="*",
+        sample_size=10000,
+        what_if: bool = False,
+    ):
         self.scanner = Scanner(
             self.spark,
             self.rules,
@@ -141,13 +157,30 @@ class DX:
 
     def classify(self, column_type_classification_threshold: float):
         if self.scanner is None:
-            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
+            raise Exception(
+                "You first need to scan your lakehouse using Scanner.scan()"
+            )
         if self.scanner.scan_result is None:
-            raise Exception("Your scan did not finish successfully. Please consider rerunning Scanner.scan()")
+            raise Exception(
+                "Your scan did not finish successfully. Please consider rerunning Scanner.scan()"
+            )
 
-        self.classifier = Classifier(column_type_classification_threshold, self.scanner.scan_result)
+        self.classifier = Classifier(
+            column_type_classification_threshold,
+            self.scanner,
+            self.spark,
+            self.classification_table_name,
+        )
 
         self.logger.friendlyHTML(self.classifier.summary_html)
+
+    def inspect(self):
+        self.classifier.inspect()
+        self.classifier.inspection_tool.display()
+
+    def publish(self, publish_uc_tags=False):
+        # save tags
+        self.classifier.publish(publish_uc_tags=publish_uc_tags)
 
     def search(self,
                search_term: Optional[str] = None,
@@ -188,16 +221,29 @@ class DX:
 
     def msql_experimental(self, msql: str, what_if: bool = False):
 
-        if self.scanner.scan_result is None:
-            message = "You need to run 'dx.scan()' before you can run 'dx.msql()'"
-            self.logger.friendly(message)
-            raise Exception(message)
-
         self.logger.debug(f"Executing msql: {msql}")
 
         msql_builder = Msql(msql)
 
-        sql_rows = msql_builder.build(self.classifier)
+        # check if classification is available
+        # Check for more specific exception
+        try:
+            classification_result_pdf = (
+                self.spark.sql(f"SELECT * FROM {self.classification_table_name}")
+                .filter(func.col("current") == True)
+                .filter(func.col("tag_status") == "active")
+                .select(
+                    func.col("table_catalog").alias("catalog"),
+                    func.col("table_schema").alias("database"),
+                    func.col("table_name").alias("table"),
+                    func.col("column_name").alias("column"),
+                    "rule_name",
+                ).toPandas()
+            )
+        except Exception:
+            raise Exception("Classification is not available")
+
+        sql_rows = msql_builder.build(classification_result_pdf)
 
         if what_if:
             self.logger.friendly(f"SQL that would be executed:")
@@ -211,7 +257,6 @@ class DX:
             return msql_builder.execute_sql_rows(sql_rows, self.spark)
 
     def results(self):
-        # TODO: We have to return some results here
         self.logger.friendly("Here are the results:")
         # self.explorer.scan_summary()
         # self.explorer.scan_details()
