@@ -190,18 +190,18 @@ class DX:
             raise ValueError(f"The provided search_tags {by_tags} have the wrong type. Please provide"
                              f" either a str or List[str].")
 
-        from_statement = "named_struct(" + ', '.join([f"'{tag}', named_struct('column', '[{tag}]', 'value', [{tag}])" for tag in by_tags]) + ") AS columns"
+        from_statement = "named_struct(" + ', '.join([f"'{tag}', named_struct('column', '[{tag}]', 'value', [{tag}])" for tag in by_tags]) + ") AS tagged_columns"
         
         return self._msql_experimental(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}")
 
     def delete_by_tag(self,
                from_tables = "*.*.*",
-               tag: str = None,
+               by_tag: str = None,
                values: Optional[Union[List[str], str]] = None,
                yes_i_am_sure: bool = False
                ):
 
-        if (tag is None) or (not isinstance(tag, str)):
+        if (by_tag is None) or (not isinstance(by_tag, str)):
             raise ValueError(f"Please provide a tag to identify the columns to be matched on the provided values.")
 
         if values is None:
@@ -215,10 +215,10 @@ class DX:
                              f" either a str or List[str].")
         
         if not yes_i_am_sure:
-            self.logger.friendly(f"Please confirm that you want to delete the following values from the table {from_tables} using the tag {tag}: {values}")
+            self.logger.friendly(f"Please confirm that you want to delete the following values from the table {from_tables} using the tag {by_tag}: {values}")
             self.logger.friendly(f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True.")
 
-        return self._msql_experimental(f"DELETE FROM {from_tables} WHERE [{tag}] IN ({value_string})", what_if=(not yes_i_am_sure))
+        return self._msql_experimental(f"DELETE FROM {from_tables} WHERE [{by_tag}] IN ({value_string})", what_if=(not yes_i_am_sure))
 
     def _msql_experimental(self, msql: str, what_if: bool = False):
 
