@@ -207,9 +207,9 @@ class DX:
         if values is None:
             raise ValueError(f"Please specify the values to be deleted. You can either provide a list of values or a single value.")
         elif isinstance(values, str):
-            values = [values]
+            value_string = f"'{values}'"
         elif isinstance(values, list) and all(isinstance(elem, str) for elem in values):
-            values = values
+            value_string = "'" + "', '".join(values) + "'"
         else:
             raise ValueError(f"The provided values {values} have the wrong type. Please provide"
                              f" either a str or List[str].")
@@ -218,7 +218,7 @@ class DX:
             self.logger.friendly(f"Please confirm that you want to delete the following values from the table {from_tables} using the tag {tag}: {values}")
             self.logger.friendly(f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True.")
 
-        return self._msql_experimental(f"DELETE FROM {from_tables} WHERE [{tag}] IN {values}", what_if=(not yes_i_am_sure))
+        return self._msql_experimental(f"DELETE FROM {from_tables} WHERE [{tag}] IN ({value_string})", what_if=(not yes_i_am_sure))
 
     def _msql_experimental(self, msql: str, what_if: bool = False):
 
