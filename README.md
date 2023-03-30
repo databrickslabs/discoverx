@@ -4,15 +4,15 @@ Scan, Classify, and Discover the content of your Lakehouse
 
 ## Requirements
 
-* A Databricks workspace 
-* Unity Catalog
+* A [Databricks workspace](https://www.databricks.com/try-databricks#account)
+* [Unity Catalog](https://www.databricks.com/product/unity-catalog)
 
 ## Getting started
 
 Install DiscoverX, in Databricks notebook type
 
 ```
-%pip install discoverx 
+%pip install discoverx
 ```
 
 Get started
@@ -31,7 +31,7 @@ You can now scan the content of any set of tables for
 - Fully qualified domain names (FQDN)
 - MAC address
 
-You can also provide your [custom rules](#custom-rules).
+You can also provide your [custom matching rules](#custom-rules).
 
 The scan will also classify the columns where the records match a rule for more than a [classification threshold](#classification-threshold) (95% by default).
 
@@ -46,11 +46,24 @@ dx.scan(catalogs="*", databases="*", tables="*")
 
 Check out the [scan parameters](#scan-parameters).
 
-The result is a dataset with a `frequency` column, which defines the fraction of matched records agains the total records scanned for each rule.
+The result is a dataset with a `frequency` column, which defines the fraction of matched records against the total records scanned for each rule.
+
+## Inspect
+
+You can inspect and fine-tune the classification results with 
+
+```
+dx.inspect()
+```
+
+
+## Publish the classificaiton
+
+After a `scan` you can publish the classificaiton results in a delta table (by default `_discoverx.classification.tags`)
 
 ## Cross-table queries
 
-After a `scan` you can search for a specific value within the classified columns.
+After a `publish` you can leverage the classified column tags to run cross-table `search` and `delete` actions.
 
 ### Search
 
@@ -88,7 +101,8 @@ custom_rules = [
         'type': 'regex',
         'description': 'Resource request ID',
         'definition': r'^AR-\d{9}$',
-        'match_example': ['AR-123456789']
+        'match_example': ['AR-123456789'],
+        'nomatch_example': ['CD-123456789']
     }
 ]
 dx = DX(custom_rules=custom_rules)
