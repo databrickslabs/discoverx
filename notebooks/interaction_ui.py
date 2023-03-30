@@ -17,11 +17,6 @@
 # DBTITLE 1,Clean Up Old Demos
 # MAGIC %sql
 # MAGIC DROP TABLE IF EXISTS _discoverx.classification.tags;
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN source_address UNSET TAGS ('dx_ip_v4');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN destination_address UNSET TAGS ('dx_ip_v4');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN content UNSET TAGS ('dx_ip_v6');
 
 # COMMAND ----------
 
@@ -56,50 +51,15 @@ dx = DX()
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE TABLE IF NOT EXISTS _discoverx.classification.tags (table_catalog string, table_schema string, table_name string, column_name string, tag_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp);
-# MAGIC INSERT INTO _discoverx.classification.tags VALUES 
-# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data_2", "content", "ip_v6", current_timestamp(), "true", null),
-# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v6_address", "ip_v6", current_timestamp(), "true", null),
-# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v4_address", "pii", current_timestamp(), "true", null);
-
-# COMMAND ----------
-
 dx.scan(catalogs="discoverx*")
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select * from `_discoverx`.classification.tags
+dx.inspect()
 
 # COMMAND ----------
 
-dx.classifier.classification_result
-
-# COMMAND ----------
-
-# simulate some manual changes in the UI
-dx.classifier.classification_result.at[0, "Tags to be published"] = ["ip_v4"]
-dx.classifier.classification_result.at[0, "Tags changed"] = True
-dx.classifier.classification_result.at[1, "Tags to be published"] = ["ip_v6", "pii"]
-dx.classifier.classification_result.at[1, "Tags changed"] = True
-dx.classifier.classification_result.at[2, "Tags to be published"] = []
-dx.classifier.classification_result.at[2, "Tags changed"] = True
-dx.classifier.classification_result
-
-# COMMAND ----------
-
-dx.classifier._stage_updates(dx.classifier.classification_result)
-dx.classifier.staged_updates
-
-# COMMAND ----------
-
-dx.classifier.publish(publish_uc_tags=True)
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select * from `_discoverx`.classification.tags
+dx.publish(publish_uc_tags=True)
 
 # COMMAND ----------
 
@@ -119,75 +79,6 @@ dx_search = DX()
 
 # DBTITLE 1,Search for all records representing the IP 1.2.3.4. Inference of matching rule type is automatic.
 dx.search(search_term='1.2.3.4').display()
-
-# COMMAND ----------
-
-import pyspark.sql.functions as func
-
-dx_search.search(search_tags="ip_v4").groupby(
-    ["catalog", "database", "table", "search_result.ip_v4"]
-).agg(func.count("search_result.ip_v4").alias("count")).display()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## M-SQL (Multiplex SQL)
-# MAGIC M-SQL lets you run SQL statements across a wide number of table by leveraging the tags
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Search for a specific IP across all tables
-
-# COMMAND ----------
-
-dx.msql_experimental("""
-SELECT 
-  '[ip_v4]' AS ip_v4_column,
-  [ip_v4] AS ip_v4, 
-  to_json(struct(*)) AS row_content
-FROM discoverx*.*.*
-WHERE [ip_v4] = '1.2.3.4'
-""").display()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Distinct IP per table
-
-# COMMAND ----------
-
-dx.msql_experimental("""
-SELECT 
-  '[ip_v4]' AS ip_v4_column, 
-  [ip_v4] AS ip_v4, 
-  count([ip_v4]) AS count 
-FROM discoverx*.*.*
-GROUP BY [ip_v4]
-""").display()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Deletes - Right To Be Forgotten Use Cases
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Delete from all tables - WHAT_IF
-
-# COMMAND ----------
-
-dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'", what_if=True)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Delete from all tables
-
-# COMMAND ----------
-
-dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'").display()
 
 # COMMAND ----------
 

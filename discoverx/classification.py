@@ -157,7 +157,7 @@ class Classifier:
 
     def publish(self, publish_uc_tags: bool):
         if self.inspection_tool is not None:
-            self._stage_updates(self.inspection_tool.staged_updates_pdf)
+            self._stage_updates(self.inspection_tool.inspected_table)
         else:
             self._stage_updates(self.classification_result)
 
@@ -202,13 +202,15 @@ class Classifier:
             logger.debug(
                 f"Set tag {series.tag_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
             )
-            self.spark.sql(
-                f"ALTER TABLE {series.table_catalog}.{series.table_schema}.{series.table_name} ALTER COLUMN {series.column_name} SET TAGS ('dx_{series.tag_name}')"
-            )
+            if series.tag_name != '':
+              self.spark.sql(
+                  f"ALTER TABLE {series.table_catalog}.{series.table_schema}.{series.table_name} ALTER COLUMN {series.column_name} SET TAGS ('dx_{series.tag_name}')"
+              )
         if (series.action == "to_be_unset"):
             logger.debug(
                 f"Unset tag {series.tag_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
             )
-            self.spark.sql(
-                f"ALTER TABLE {series.table_catalog}.{series.table_schema}.{series.table_name} ALTER COLUMN {series.column_name} UNSET TAGS ('dx_{series.tag_name}')"
-            )
+            if series.tag_name != '':
+              self.spark.sql(
+                  f"ALTER TABLE {series.table_catalog}.{series.table_schema}.{series.table_name} ALTER COLUMN {series.column_name} UNSET TAGS ('dx_{series.tag_name}')"
+              )
