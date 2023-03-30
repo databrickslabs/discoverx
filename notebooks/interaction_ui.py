@@ -56,57 +56,50 @@ dx = DX()
 
 # COMMAND ----------
 
-dx.scan(catalogs="discoverx*")
-
-# COMMAND ----------
-
-dx.inspect()
-
-# COMMAND ----------
-
-# after saving you can see the tags in the data explorer under table details -> properties
-dx.publish(publish_uc_tags=True)
-
-# COMMAND ----------
-
 # MAGIC %sql
-# MAGIC SELECT * FROM `_discoverx`.classification.tags
-
-# COMMAND ----------
-
-# DBTITLE 1,Simulate some manually added tags and previously classified columns
-# MAGIC %sql
-# MAGIC UPDATE _discoverx.classification.tags SET current = false, end_timestamp = current_timestamp() WHERE table_name = "cyber_data";
+# MAGIC CREATE TABLE IF NOT EXISTS _discoverx.classification.tags (table_catalog string, table_schema string, table_name string, column_name string, tag_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp);
 # MAGIC INSERT INTO _discoverx.classification.tags VALUES 
-# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data_2", "content", "ip_v6", "inactive", current_timestamp(), "true", null),
-# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v6_address", "ip_v6", "inactive", current_timestamp(), "true", null);
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4')
+# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data_2", "content", "ip_v6", current_timestamp(), "true", null),
+# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v6_address", "ip_v6", current_timestamp(), "true", null),
+# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v4_address", "pii", current_timestamp(), "true", null);
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC SELECT * FROM `_discoverx`.classification.tags
-
-# COMMAND ----------
-
-# DBTITLE 1,Now rerun scan and inspection and manually change some tag-statuses ...
 dx.scan(catalogs="discoverx*")
-dx.inspect()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC After saving the tags in the next cell, only those chosen to be 'active' should be seen in Unity Catalog. All changes are captured in the classification table `_dicoverx.classification.tags`.
-
-# COMMAND ----------
-
-dx.publish(publish_uc_tags=True)
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM `_discoverx`.classification.tags WHERE current = True AND tag_status = "active"
+# MAGIC select * from `_discoverx`.classification.tags
+
+# COMMAND ----------
+
+dx.classifier.classification_result
+
+# COMMAND ----------
+
+# simulate some manual changes in the UI
+dx.classifier.classification_result.at[0, "Tags to be published"] = ["ip_v4"]
+dx.classifier.classification_result.at[0, "Tags changed"] = True
+dx.classifier.classification_result.at[1, "Tags to be published"] = ["ip_v6", "pii"]
+dx.classifier.classification_result.at[1, "Tags changed"] = True
+dx.classifier.classification_result.at[2, "Tags to be published"] = []
+dx.classifier.classification_result.at[2, "Tags changed"] = True
+dx.classifier.classification_result
+
+# COMMAND ----------
+
+dx.classifier._stage_updates(dx.classifier.classification_result)
+dx.classifier.staged_updates
+
+# COMMAND ----------
+
+dx.classifier.publish(publish_uc_tags=True)
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from `_discoverx`.classification.tags
 
 # COMMAND ----------
 

@@ -231,13 +231,12 @@ class DX:
             classification_result_pdf = (
                 self.spark.sql(f"SELECT * FROM {self.classification_table_name}")
                 .filter(func.col("current") == True)
-                .filter(func.col("tag_status") == "active")
                 .select(
                     func.col("table_catalog").alias("catalog"),
                     func.col("table_schema").alias("database"),
                     func.col("table_name").alias("table"),
                     func.col("column_name").alias("column"),
-                    "rule_name",
+                    "tag_name",
                 ).toPandas()
             )
         except Exception:
