@@ -173,16 +173,3 @@ def mlflow_local():
         Path(registry_uri).unlink()
     logging.info("Test session finished, unrolling the MLflow instance")
 
-
-@pytest.fixture(scope="session", autouse=True)
-def dbutils_fixture() -> Iterator[None]:
-    """
-    This fixture patches the `get_dbutils` function.
-    Please note that patch is applied on a string name of the function.
-    If you change the name or location of it, patching won't work.
-    :return:
-    """
-    logging.info("Patching the DBUtils object")
-    with patch("discoverx.common.databricks.get_dbutils", lambda _: DBUtilsFixture()):
-        yield
-    logging.info("Test session finished, patching completed")
