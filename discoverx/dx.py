@@ -86,47 +86,6 @@ class DX:
         else:
             self.logger.friendlyHTML(missing_uc_text)
 
-    def help(self):
-        snippet1 = strip_margin(
-            """
-          dx.help()  # This will show you this help message
-
-          dx.intro() # This will show you a short introduction to me
-
-          dx.display_rules() # This will show you the rules that are available to you
-
-          dx.scan()  # This will scan your lakehouse for data that matches a set of rules
-        """
-        )
-
-        snippet2 = strip_margin(
-            """
-          dx.scan(output_table="default.discoverx_results")     # Saves the results in 'discoverx_results' table
-
-          dx.scan(catalogs="*", databases="prod_*", tables="*") # Only scans in databases that start with `prod_`
-
-          dx.scan(databases='prod_*', rules=['phone_number'])   # Only scans for phone numbers in databases that start with `prod_`
-
-          dx.scan(sample_size=100)                              # Samples only 100 rows per table
-
-          dx.scan(sample_size=None)                             # Scan each table for the entire content
-        """
-        )
-
-        text = f"""
-        <h2>I'm glad you asked for help.</h2> 
-        <p>
-          Here are some things you can do with me:
-        </p>
-        <pre><code>{snippet1}</code></pre>
-
-        <p>
-          Examples of dx.scan() usage: 
-        </p>
-            
-        <pre><code>{snippet2}</code></pre>
-        """
-        self.logger.friendlyHTML(text)
 
     def display_rules(self):
         text = self.rules.get_rules_info()
@@ -217,11 +176,53 @@ class DX:
         else:
             where_statement = f"WHERE {' OR '.join(sql_filter)}"
 
-        return self.msql_experimental(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {namespace_statement} {where_statement}")
+        return self._msql_experimental(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {namespace_statement} {where_statement}")
 
-    def msql_experimental(self, msql: str, what_if: bool = False):
+    def select_by_tags(self,
+            from_tables: str = "*.*.*",
+            by_tags: Optional[Union[List[str], str]] = None):
 
-        self.logger.debug(f"Executing msql: {msql}")
+        if isinstance(by_tags, str):
+            by_tags = [by_tags]
+        elif isinstance(by_tags, list) and all(isinstance(elem, str) for elem in by_tags):
+            by_tags = by_tags
+        else:
+            raise ValueError(f"The provided search_tags {by_tags} have the wrong type. Please provide"
+                             f" either a str or List[str].")
+
+        from_statement = "named_struct(" + ', '.join([f"'{tag}', named_struct('column', '[{tag}]', 'value', [{tag}])" for tag in by_tags]) + ") AS columns"
+        
+        return self._msql_experimental(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}")
+
+    def delete_by_tag(self,
+               from_tables = "*.*.*",
+               tag: str = None,
+               values: Optional[Union[List[str], str]] = None,
+               yes_i_am_sure: bool = False
+               ):
+
+        if (tag is None) or (not isinstance(tag, str)):
+            raise ValueError(f"Please provide a tag to identify the columns to be matched on the provided values.")
+
+        if values is None:
+            raise ValueError(f"Please specify the values to be deleted. You can either provide a list of values or a single value.")
+        elif isinstance(values, str):
+            values = [values]
+        elif isinstance(values, list) and all(isinstance(elem, str) for elem in values):
+            values = values
+        else:
+            raise ValueError(f"The provided values {values} have the wrong type. Please provide"
+                             f" either a str or List[str].")
+        
+        if not yes_i_am_sure:
+            self.logger.friendly(f"Please confirm that you want to delete the following values from the table {from_tables} using the tag {tag}: {values}")
+            self.logger.friendly(f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True.")
+
+        return self._msql_experimental(f"DELETE FROM {from_tables} WHERE [{tag}] IN {values}", what_if=(not yes_i_am_sure))
+
+    def _msql_experimental(self, msql: str, what_if: bool = False):
+
+        self.logger.debug(f"Executing sql template: {msql}")
 
         msql_builder = Msql(msql)
 
@@ -256,10 +257,6 @@ class DX:
             self.logger.debug(f"Executing SQL:\n{sql_rows}")
             return msql_builder.execute_sql_rows(sql_rows, self.spark)
 
-    def results(self):
-        self.logger.friendly("Here are the results:")
-        # self.explorer.scan_summary()
-        # self.explorer.scan_details()
 
     def _validate_classification_threshold(self, threshold) -> float:
         """Validate that threshold is in interval [0,1]

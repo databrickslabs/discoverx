@@ -138,44 +138,6 @@ dx_search.search(search_tags="ip_v4").groupby(
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## M-SQL (Multiplex SQL)
-# MAGIC M-SQL lets you run SQL statements across a wide number of table by leveraging the tags
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Search for a specific IP across all tables
-
-# COMMAND ----------
-
-dx.msql_experimental("""
-SELECT 
-  '[ip_v4]' AS ip_v4_column,
-  [ip_v4] AS ip_v4, 
-  to_json(struct(*)) AS row_content
-FROM discoverx*.*.*
-WHERE [ip_v4] = '1.2.3.4'
-""").display()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Distinct IP per table
-
-# COMMAND ----------
-
-dx.msql_experimental("""
-SELECT 
-  '[ip_v4]' AS ip_v4_column, 
-  [ip_v4] AS ip_v4, 
-  count([ip_v4]) AS count 
-FROM discoverx*.*.*
-GROUP BY [ip_v4]
-""").display()
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC ## Deletes - Right To Be Forgotten Use Cases
 
 # COMMAND ----------
@@ -185,7 +147,7 @@ GROUP BY [ip_v4]
 
 # COMMAND ----------
 
-dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'", what_if=True)
+dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0'], yes_i_am_sure=False)
 
 # COMMAND ----------
 
@@ -194,7 +156,7 @@ dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'", wha
 
 # COMMAND ----------
 
-dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'").display()
+dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0'], yes_i_am_sure=True)
 
 # COMMAND ----------
 
