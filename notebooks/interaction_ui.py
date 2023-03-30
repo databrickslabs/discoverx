@@ -30,7 +30,7 @@
 
 # COMMAND ----------
 
-dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample_dt"} )
+dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample"} )
 
 # COMMAND ----------
 
@@ -42,7 +42,7 @@ dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_s
 # COMMAND ----------
 
 from discoverx import DX
-dx = DX()
+dx = DX(classification_table_name="_discoverx_erni.classification.tags")
 
 # COMMAND ----------
 
@@ -70,43 +70,7 @@ dx.publish(publish_uc_tags=True)
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM `_discoverx`.classification.tags
-
-# COMMAND ----------
-
-# DBTITLE 1,Simulate some manually added tags and previously classified columns
-# MAGIC %sql
-# MAGIC UPDATE _discoverx.classification.tags SET current = false, end_timestamp = current_timestamp() WHERE table_name = "cyber_data";
-# MAGIC INSERT INTO _discoverx.classification.tags VALUES 
-# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data_2", "content", "ip_v6", "inactive", current_timestamp(), "true", null),
-# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v6_address", "ip_v6", "inactive", current_timestamp(), "true", null);
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4')
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC SELECT * FROM `_discoverx`.classification.tags
-
-# COMMAND ----------
-
-# DBTITLE 1,Now rerun scan and inspection and manually change some tag-statuses ...
-dx.scan(catalogs="discoverx*")
-dx.inspect()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC After saving the tags in the next cell, only those chosen to be 'active' should be seen in Unity Catalog. All changes are captured in the classification table `_dicoverx.classification.tags`.
-
-# COMMAND ----------
-
-dx.publish(publish_uc_tags=True)
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC SELECT * FROM `_discoverx`.classification.tags WHERE current = True AND tag_status = "active"
+# MAGIC SELECT * FROM `_discoverx_erni`.classification.tags
 
 # COMMAND ----------
 
@@ -119,11 +83,6 @@ dx.publish(publish_uc_tags=True)
 
 # COMMAND ----------
 
-# instantiate a new discoverx object
-dx_search = DX()
-
-# COMMAND ----------
-
 # DBTITLE 1,Search for all records representing the IP 1.2.3.4. Inference of matching rule type is automatic.
 dx.search(search_term='1.2.3.4').display()
 
@@ -131,14 +90,23 @@ dx.search(search_term='1.2.3.4').display()
 
 import pyspark.sql.functions as func
 
-dx_search.search(search_tags="ip_v4").groupby(
+dx.search(search_tags="ip_v4").groupby(
     ["catalog", "database", "table", "search_result.ip_v4"]
 ).agg(func.count("search_result.ip_v4").alias("count")).display()
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Deletes - Right To Be Forgotten Use Cases
+# MAGIC ## Select by tag
+
+# COMMAND ----------
+
+dx.select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"]).display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Deletes - GDPR - Right To Be Forgotten
 
 # COMMAND ----------
 
@@ -147,7 +115,7 @@ dx_search.search(search_tags="ip_v4").groupby(
 
 # COMMAND ----------
 
-dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0'], yes_i_am_sure=False)
+dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=False)
 
 # COMMAND ----------
 
@@ -156,7 +124,7 @@ dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0'], 
 
 # COMMAND ----------
 
-dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0'], yes_i_am_sure=True)
+dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=True)
 
 # COMMAND ----------
 
