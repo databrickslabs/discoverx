@@ -5,6 +5,7 @@
 # COMMAND ----------
 
 # MAGIC %pip install pydantic
+# MAGIC %pip install ipydatagrid
 
 # COMMAND ----------
 
@@ -13,12 +14,23 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Clean Up Old Demos
+# MAGIC %sql
+# MAGIC DROP TABLE IF EXISTS _discoverx.classification.tags;
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN source_address UNSET TAGS ('dx_ip_v4');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN destination_address UNSET TAGS ('dx_ip_v4');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN content UNSET TAGS ('dx_ip_v6');
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Generate sample data
 
 # COMMAND ----------
 
-dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample"} )
+dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample_dt"} )
 
 # COMMAND ----------
 
@@ -36,6 +48,11 @@ dx = DX()
 
 # MAGIC %md
 # MAGIC ### Scan
+# MAGIC This section demonstrates a typical DiscoverX workflow which consists of the following steps:
+# MAGIC - `dx.scan()`: Scan the lakehouse including catalogs with names starting with `discoverx`
+# MAGIC - `dx.inspect()`: Inspect and manually adjust the scan result using the DiscoverX inspection tool
+# MAGIC - `dx.publish()`: Publish the classification result which save/merge the result to a system table maintained by DiscoverX
+# MAGIC - `dx.search()`: Search your across your previously classified lakehouse for specific records or general classifications/tags
 
 # COMMAND ----------
 
@@ -43,7 +60,80 @@ dx.scan(catalogs="discoverx*")
 
 # COMMAND ----------
 
-dx.scanner.scan_result.df[0:10]
+dx.inspect()
+
+# COMMAND ----------
+
+# after saving you can see the tags in the data explorer under table details -> properties
+dx.publish(publish_uc_tags=True)
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM `_discoverx`.classification.tags
+
+# COMMAND ----------
+
+# DBTITLE 1,Simulate some manually added tags and previously classified columns
+# MAGIC %sql
+# MAGIC UPDATE _discoverx.classification.tags SET current = false, end_timestamp = current_timestamp() WHERE table_name = "cyber_data";
+# MAGIC INSERT INTO _discoverx.classification.tags VALUES 
+# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data_2", "content", "ip_v6", "inactive", current_timestamp(), "true", null),
+# MAGIC   ("discoverx_sample_dt",	"sample_datasets", "cyber_data", "ip_v6_address", "ip_v6", "inactive", current_timestamp(), "true", null);
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
+# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM `_discoverx`.classification.tags
+
+# COMMAND ----------
+
+# DBTITLE 1,Now rerun scan and inspection and manually change some tag-statuses ...
+dx.scan(catalogs="discoverx*")
+dx.inspect()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC After saving the tags in the next cell, only those chosen to be 'active' should be seen in Unity Catalog. All changes are captured in the classification table `_dicoverx.classification.tags`.
+
+# COMMAND ----------
+
+dx.publish(publish_uc_tags=True)
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM `_discoverx`.classification.tags WHERE current = True AND tag_status = "active"
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Search
+# MAGIC 
+# MAGIC This command can be used to search inside the content of tables.
+# MAGIC 
+# MAGIC If the tables have ben scanned before, the search will restrict the scope to only the columns that could contain the search term based on the avaialble rules.
+
+# COMMAND ----------
+
+# instantiate a new discoverx object
+dx_search = DX()
+
+# COMMAND ----------
+
+# DBTITLE 1,Search for all records representing the IP 1.2.3.4. Inference of matching rule type is automatic.
+dx.search(search_term='1.2.3.4').display()
+
+# COMMAND ----------
+
+import pyspark.sql.functions as func
+
+dx_search.search(search_tags="ip_v4").groupby(
+    ["catalog", "database", "table", "search_result.ip_v4"]
+).agg(func.count("search_result.ip_v4").alias("count")).display()
 
 # COMMAND ----------
 
@@ -82,6 +172,11 @@ SELECT
 FROM discoverx*.*.*
 GROUP BY [ip_v4]
 """).display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Deletes - Right To Be Forgotten Use Cases
 
 # COMMAND ----------
 
@@ -151,57 +246,12 @@ dx_custm_rules.scan(catalogs="discoverx*", sample_size=1000)
 
 # COMMAND ----------
 
-#  IDEA:
-# pipeline = [
-#   { 'task_type': 'scan',
-#     'task_id': 'pii_dev',
-#     'configuration': {
-#       'catalogs': '*',
-#       'databases': 'dev_*',
-#       'tables': '*',
-#       'sample_size': 10000,
-#       'rules': ['custom_device_id', 'dx_ip_address']
-#     }
-#   }
-# ]
-
-# dx.run(pipeline)
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ## Help
 
 # COMMAND ----------
 
 help(DX)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Search
-# MAGIC 
-# MAGIC This command can be used to search inside the content of tables.
-# MAGIC 
-# MAGIC If the tables have ben scanned before, the search will restrict the scope to only the columns that could contain the search term based on the avaialble rules.
-
-# COMMAND ----------
-
-# dx.search("erni@databricks.com", databases="prod_*") # This will only search inside columns tagged with dx_email.
-# dx.search("127.0.0.1", databases="prod_*") # This will only search inside columns tagged as dx_ip_address.
-# dx.search("127.0.0.1", restrict_to_matched_rules=False) # This not use tags to restrict the columns to search 
-
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Tagging
-
-# COMMAND ----------
-
-# dx.tag_columns(rule_match_frequency_table=None, classification_threshold=0.95) # This will show the SQL commands to apply tags from the temp view discoverx_temp_rule_match_frequency_table
-
-# dx.tag_columns(rule_match_frequency_table="", yes_i_am_sure=True) # This will apply the tags 
 
 # COMMAND ----------
 

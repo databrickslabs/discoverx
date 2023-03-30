@@ -1,12 +1,32 @@
 # pylint: disable=missing-function-docstring, missing-module-docstring
 
+from dataclasses import dataclass
 import pandas as pd
 import pytest
 from discoverx.common.helper import strip_margin
 from discoverx.scanner import ColumnInfo, TableInfo
 from discoverx.msql import Msql, SQLRow
-from discoverx.scanner import Classifier, ScanResult
+from discoverx.scanner import ScanResult
 
+@dataclass
+class MockScanner:
+    scan_result: ScanResult
+
+
+@pytest.fixture(scope="module")
+def classification_df(spark) -> pd.DataFrame:
+    return pd.DataFrame([
+        ["c", "db", "tb1", "email_1", "dx_email", True, "active"],
+        ["c", "db", "tb1", "email_2", "dx_email", True, "active"],
+        ["c", "db", "tb1", "date", "dx_date_partition", True, "active"],
+        ["c", "db", "tb2", "email_3", "dx_email", True, "active"],
+        ["c", "db", "tb2", "date", "dx_date_partition", True, "active"],
+        ["c", "db2", "tb3", "email_4", "dx_email", True, "active"],
+        ["c", "db", "tb1", "description", "any_number", True, "active"],  # any_number not in the tag list
+        ["m_c", "db", "tb1", "email_3", "dx_email", True, "active"],  # catalog does not match
+        ["c", "m_db", "tb1", "email_4", "dx_email", True, "active"],  # database does not match
+        ["c", "db", "m_tb1", "email_5", "dx_email", True, "active"],  # table does not match
+    ], columns=["catalog", "database", "table", "column", "rule_name", "current", "tag_status"])
 
 columns = [
     ColumnInfo("id", "number", None, ["id"]),
@@ -104,71 +124,41 @@ def test_msql_select_multi_and_repeated_tag():
     assert actual[0] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'")
     assert actual[1] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_2 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'")
 
-def test_msql_build_select_multi_and_repeated_tag():
+def test_msql_build_select_multi_and_repeated_tag(spark, classification_df):
     msql = "SELECT [dx_email] AS email, [dx_date_partition] AS d FROM c.d*.t* WHERE [dx_email] = 'a@b.c'"
-    df = pd.DataFrame([
-        ["c", "db", "tb1", "email_1", "dx_email", 0.99],
-        ["c", "db", "tb1", "email_2", "dx_email", 1.0],
-        ["c", "db", "tb1", "date", "dx_date_partition", 1],
-        ["c", "db", "tb2", "email_3", "dx_email", 0.99],
-        ["c", "db", "tb2", "date", "dx_date_partition", 1],
-        # The next rows should be ignored
-        ["c", "db", "tb1", "some_col", "dx_email", 0.5], # Threshold too low
-        ["c", "db", "tb1", "description", "any_number", 0.99], # any_number not in the tag list
-        ["m_c", "db", "tb1", "email_3", "dx_email", 0.99], # catalog does not match
-        ["c", "m_db", "tb1", "email_4", "dx_email", 0.99], # database does not match
-        ["c", "db", "m_tb1", "email_5", "dx_email", 0.99], # table does not match
-    ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
-
     expected_1 = SQLRow(
         "c",
         "db",
         "tb1",
         strip_margin("""
-            SELECT email_1 AS email, date AS d FROM c.db.tb1 WHERE email_1 = 'a@b.c'
-        """))
+                SELECT email_1 AS email, date AS d FROM c.db.tb1 WHERE email_1 = 'a@b.c'
+            """))
 
     expected_2 = SQLRow(
         "c",
         "db",
         "tb1",
         strip_margin("""
-            SELECT email_2 AS email, date AS d FROM c.db.tb1 WHERE email_2 = 'a@b.c'
-        """))
+                SELECT email_2 AS email, date AS d FROM c.db.tb1 WHERE email_2 = 'a@b.c'
+            """))
 
     expected_3 = SQLRow(
         "c",
         "db",
         "tb2",
         strip_margin("""
-            SELECT email_3 AS email, date AS d FROM c.db.tb2 WHERE email_3 = 'a@b.c'
-        """))
+                SELECT email_3 AS email, date AS d FROM c.db.tb2 WHERE email_3 = 'a@b.c'
+            """))
 
-    classifier = Classifier(classification_threshold=0.95, scan_result=ScanResult(df=df))
-    actual = Msql(msql).build(classifier)
+    actual = Msql(msql).build(classification_df)
     assert len(actual) == 3
     assert actual[0] == expected_1
     assert actual[1] == expected_2
     assert actual[2] == expected_3
 
-def test_msql_build_delete_multi_and_repeated_tag():
+def test_msql_build_delete_multi_and_repeated_tag(spark, classification_df):
     msql = "DELETE FROM c.d*.t* WHERE [dx_email] = 'a@b.c'"
-    df = pd.DataFrame([
-        ["c", "db", "tb1", "email_1", "dx_email", 0.99],
-        ["c", "db", "tb1", "email_2", "dx_email", 1.0],
-        ["c", "db", "tb1", "date", "dx_date_partition", 1],
-        ["c", "db", "tb2", "email_3", "dx_email", 0.99],
-        ["c", "db2", "tb3", "email_4", "dx_email", 1.0],
-        # The next rows should be ignored
-        ["c", "db", "tb1", "some_col", "dx_email", 0.5], # Threshold too low
-        ["c", "db", "tb1", "description", "any_number", 0.99], # any_number not in the tag list
-        ["m_c", "db", "tb1", "email_3", "dx_email", 0.99], # catalog does not match
-        ["c", "m_db", "tb1", "email_4", "dx_email", 0.99], # database does not match
-        ["c", "db", "m_tb1", "email_5", "dx_email", 0.99], # table does not match
-    ], columns = ["catalog", "database", "table", "column", "rule_name", "frequency"])
-
-    classifier = Classifier(classification_threshold=0.95, scan_result=ScanResult(df=df))
-    actual = Msql(msql).build(classifier)
+    actual = Msql(msql).build(classification_df)
 
     assert len(actual) == 4
     assert actual[0] == SQLRow("c", "db", "tb1", "DELETE FROM c.db.tb1 WHERE email_1 = 'a@b.c'")
