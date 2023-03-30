@@ -14,12 +14,12 @@ logger = logging.Logging()
 class Classifier:
     def __init__(
         self,
-        column_type_classification_threshold: float,
+        classification_threshold: float,
         scanner: Scanner,
         spark: SparkSession,
         classification_table_name: str,
     ):
-        self.column_type_classification_threshold = column_type_classification_threshold
+        self.classification_threshold = classification_threshold
         self.scanner = scanner
         self.spark = spark
         self.classification_table_name = classification_table_name
@@ -30,7 +30,7 @@ class Classifier:
         # classify scan result based on threshold
         if self.scanner.scan_result is not None:
             self.classified_result = self.scanner.scan_result.df[
-                self.scanner.scan_result.df["frequency"] > self.column_type_classification_threshold
+                self.scanner.scan_result.df["frequency"] > self.classification_threshold
             ].rename(
                 columns={
                     "catalog": "table_catalog",
