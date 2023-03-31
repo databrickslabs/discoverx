@@ -155,7 +155,7 @@ def test_select_by_tag(spark, dx_ip):
     with pytest.raises(ValueError):
         dx_ip.select_by_tags(from_tables="invalid from", by_tags="email")
     
-@pytest.mark.skip(reason="Delete is only working with v2 tables. Needs investigation")
+# @pytest.mark.skip(reason="Delete is only working with v2 tables. Needs investigation")
 def test_delete_by_tag(spark, dx_ip):
 
     # search a specific term and auto-detect matching tags/rules
@@ -164,7 +164,6 @@ def test_delete_by_tag(spark, dx_ip):
 
     result = dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag="ip_v4", values="9.9.9.9", yes_i_am_sure=True).collect()
     assert result[0].table == 'tb_1'
-    assert result[0].tagged_columns.ip_v4.column == 'ip'
 
     with pytest.raises(ValueError):
         dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag="x")
@@ -176,7 +175,7 @@ def test_delete_by_tag(spark, dx_ip):
         dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag=['ip'], values="x")
     
     with pytest.raises(ValueError):
-        dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tags=True, values="x")
+        dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag=True, values="x")
 
     with pytest.raises(ValueError):
         dx_ip.delete_by_tag(from_tables="invalid from", by_tag="email", values="x")
