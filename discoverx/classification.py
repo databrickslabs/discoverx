@@ -50,7 +50,7 @@ class Classifier:
         else:
             raise Exception("No scan result available")
 
-    def compute_classification_result(self) -> pd.DataFrame:
+    def compute_classification_result(self):
         
         classification_result = self.above_threshold.drop(columns=["frequency"])
         classification_result["status"] = "detected"
@@ -77,7 +77,11 @@ class Classifier:
 
             return pd.DataFrame(output)
 
-        self.classification_result = pd.concat([classification_result, current_tags]).groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False).apply(aggregate_updates).reset_index().drop(columns=["level_4"])
+        self.classification_result = pd.concat([classification_result, current_tags]).groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True).apply(aggregate_updates).reset_index().drop(columns=["level_4"])
+        # when testing we don't have a 3-level namespace but we need
+        # to make sure we get None instead of NaN
+        self.classification_result.table_catalog = self.classification_result.table_catalog.astype(object)
+        self.classification_result.table_catalog = self.classification_result.table_catalog.where(pd.notnull(self.classification_result.table_catalog), None)
 
     def _get_classification_table_from_delta(self):
 
