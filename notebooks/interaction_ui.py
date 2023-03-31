@@ -206,11 +206,11 @@ dx.msql_experimental("DELETE FROM discoverx*.*.* WHERE [ip_v4] = '0.0.0.0'").dis
 # COMMAND ----------
 
 conf = {
-  'column_type_classification_threshold': 0.95,
+  'classification_threshold': 0.95,
 }
 dx = DX(**conf)
 
-dx = DX(column_type_classification_threshold=0.95)
+dx = DX(classification_threshold=0.95)
 
 # COMMAND ----------
 

@@ -68,14 +68,14 @@ def scan_ip_in_tb1(spark, mock_uc_functionality):
 def test_dx_instantiation(spark):
 
     dx = DX(spark=spark)
-    assert dx.column_type_classification_threshold == 0.95
+    assert dx.classification_threshold == 0.95
 
     # The validation should fail if threshold is outside of [0,1]
     with pytest.raises(ValueError) as e_threshold_error_plus:
-        dx = DX(column_type_classification_threshold=1.4, spark=spark)
+        dx = DX(classification_threshold=1.4, spark=spark)
 
     with pytest.raises(ValueError) as e_threshold_error_minus:
-        dx = DX(column_type_classification_threshold=-1.0, spark=spark)
+        dx = DX(classification_threshold=-1.0, spark=spark)
 
     # simple test for displaying rules
     try:
