@@ -1,3 +1,4 @@
+from functools import wraps
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
@@ -7,6 +8,8 @@ from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner
 from discoverx.classification import Classifier
+from discoverx.inspection import InspectionTool
+import ipywidgets as widgets
 
 
 class DX:
@@ -56,6 +59,7 @@ class DX:
         self.classifier: Optional[Classifier] = None
 
         self.intro()
+        self.out = widgets.Output()
 
     def intro(self):
         # TODO: Decide on how to do the introduction
@@ -175,6 +179,10 @@ class DX:
         self.logger.friendlyHTML(self.classifier.summary_html)
 
     def inspect(self):
+        # until we have an end-2-end interactive UI we need to 
+        # rerun classification to make sure users can rerun inspect
+        # without rerunning the scan
+        self.classifier.compute_classification_result()
         self.classifier.inspect()
         self.classifier.inspection_tool.display()
 

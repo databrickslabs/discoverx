@@ -25,10 +25,11 @@ class Classifier:
         self.spark = spark
         self.classification_table_name = classification_table_name
         self.classification_table = self._get_classification_table_from_delta()
-        self.classification_result: pd.DataFrame = self._compute_classification_result()
+        self.classification_result: Optional[pd.DataFrame] = None
         self.inspection_tool: Optional[InspectionTool] = None
         self.staged_updates: Optional[pd.DataFrame] = None
 
+        self.compute_classification_result()
 
     @property
     def above_threshold(self):
@@ -49,7 +50,7 @@ class Classifier:
         else:
             raise Exception("No scan result available")
 
-    def _compute_classification_result(self) -> pd.DataFrame:
+    def compute_classification_result(self) -> pd.DataFrame:
         
         classification_result = self.above_threshold.drop(columns=["frequency"])
         classification_result["status"] = "detected"
@@ -76,7 +77,7 @@ class Classifier:
 
             return pd.DataFrame(output)
 
-        return pd.concat([classification_result, current_tags]).groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False).apply(aggregate_updates).reset_index().drop(columns=["level_4"])
+        self.classification_result = pd.concat([classification_result, current_tags]).groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False).apply(aggregate_updates).reset_index().drop(columns=["level_4"])
 
     def _get_classification_table_from_delta(self):
 
@@ -153,19 +154,19 @@ class Classifier:
 
 
     def inspect(self):
-        self.inspection_tool = InspectionTool(self.classification_result)
+        self.inspection_tool = InspectionTool(self.classification_result, self.publish)
 
     def publish(self, publish_uc_tags: bool):
+
         if self.inspection_tool is not None:
             self._stage_updates(self.inspection_tool.inspected_table)
         else:
             self._stage_updates(self.classification_result)
-
+      
         staged_updates_df = self.spark.createDataFrame(
             self.staged_updates,
             "table_catalog: string, table_schema: string, table_name: string, column_name: string, action: string, tag_name: string",
         ).withColumn("effective_timestamp", func.current_timestamp())
-
         # merge using scd-typ2
         logger.friendly(f"Update classification table {self.classification_table_name}")
 

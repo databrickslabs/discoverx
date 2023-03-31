@@ -7,13 +7,14 @@ import ipywidgets as widgets
 import IPython.display as ipython_display
 
 class InspectionTool:
-  def __init__(self, classification_pdf: pd.DataFrame):
+  def __init__(self, classification_pdf: pd.DataFrame, publish_function=None):
+    self.publish_function = publish_function
     self.inspected_table: Optional[pd.DataFrame] = None
     self.datagrid = self._setup_datagrid(classification_pdf, self._get_renderer())
     self.button = self._setup_button()
     self.text = self._setup_text()
     self.current_row = None
-    self.published_tags_header = widgets.Text(value="Tags To Be Published", disabled=True)
+    self.published_tags_header = widgets.Text(value="Tags To Be Published (Edit + Entr)", disabled=True)
     self.current_tags_header = widgets.Text(value="Current Tags", disabled=True)
     self.detected_tags_header = widgets.Text(value="Detected Tags", disabled=True)
     self.published_tags = widgets.Text(
@@ -68,12 +69,16 @@ class InspectionTool:
     return button
 
   def _on_button_clicked(self, b):
-    # TODO: Make sure empty strings are represented correctly
     self.inspected_table = self.datagrid.data
-    self.button.icon = "check"
     self.datagrid.close()
     self.published_tags.disabled = True
     self.button.disabled = True
+    self.button.button_style = "warning"
+    self.button.description = "Publishing ..."
+    self.publish_function(False)
+    self.button.button_style = "success"
+    self.button.description = "Published"
+    self.set_button_checked()
 
   @staticmethod
   def _setup_text():

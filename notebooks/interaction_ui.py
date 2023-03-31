@@ -55,11 +55,7 @@ dx.scan(catalogs="discoverx*")
 
 # COMMAND ----------
 
-dx.inspect()
-
-# COMMAND ----------
-
-dx.publish(publish_uc_tags=True)
+dx.inspect_simple()
 
 # COMMAND ----------
 
@@ -77,7 +73,6 @@ dx_search = DX()
 
 # COMMAND ----------
 
-# DBTITLE 1,Search for all records representing the IP 1.2.3.4. Inference of matching rule type is automatic.
 dx.search(search_term='1.2.3.4').display()
 
 # COMMAND ----------
