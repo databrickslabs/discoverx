@@ -235,7 +235,7 @@ class Scanner:
 
         catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
         matching_columns = [
-            f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS {r.name}"
+            f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`"
             for r in expressions
         ]
         matching_string = ",\n                    ".join(matching_columns)

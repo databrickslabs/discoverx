@@ -1,5 +1,5 @@
 import pytest
-from discoverx.rules import Rule, Rules, RulesList, ip_v4_rule, ip_v6_rule, email_rule, mac_rule, url_rule, fqdn_rule
+from discoverx.rules import Rule, Rules, RulesList, builtin_rules
 
 
 def test_ruleslist():
@@ -7,8 +7,8 @@ def test_ruleslist():
     none_rules_list = RulesList()
     assert none_rules_list.rules_info == ""
 
-    rules_list = RulesList([ip_v4_rule, ip_v6_rule])
-    assert rules_list.rules_info == "<li>ip_v4 - IP address v4</li>\n              <li>ip_v6 - IP address v6</li>"
+    rules_list = RulesList(builtin_rules)
+    assert rules_list.rules_info.startswith("<li>ip_v4 - IP address v4</li>\n              <li>ip_v6 - IP address v6</li>")
 
 
 def test_rules():
@@ -19,8 +19,8 @@ def test_rules():
 
     # check that we can filter with unix wildcards
     rules_ip = Rules()
-    rules_ip.builtin_rules = RulesList([ip_v4_rule, ip_v6_rule])
-    assert len(rules.get_rules(rule_filter="*")) == 6
+    rules_ip.builtin_rules = RulesList(builtin_rules)
+    assert len(rules.get_rules(rule_filter="*")) == 16
     assert [rule.name for rule in rules.get_rules(rule_filter="*v4")] == ["ip_v4"]
 
     # add some custom rules
@@ -34,10 +34,10 @@ def test_rules():
     }
     cust_rule = Rule(**device_rule_def)
     cust_rules = Rules(custom_rules=[cust_rule])
-    cust_rules.builtin_rules = RulesList([ip_v4_rule, ip_v6_rule])
+    cust_rules.builtin_rules = RulesList(builtin_rules)
 
     assert "custom_device_id" in cust_rules.get_rules_info()
-    assert len(cust_rules.get_rules(rule_filter="*")) == 3
+    assert len(cust_rules.get_rules(rule_filter="*")) == 17
 
 
 def test_rule_validation():
@@ -103,10 +103,5 @@ def test_standard_rules():
     if match/no-match examples are provided. Here, we therefore simply
     test that those examples
     """
-
-    assert (email_rule.match_example is not None) and (email_rule.nomatch_example is not None)
-    assert (ip_v4_rule.match_example is not None) and (ip_v4_rule.nomatch_example is not None)
-    assert (ip_v6_rule.match_example is not None) and (ip_v6_rule.nomatch_example is not None)
-    assert (mac_rule.match_example is not None) and (mac_rule.nomatch_example is not None)
-    assert (url_rule.match_example is not None) and (url_rule.nomatch_example is not None)
-    assert (fqdn_rule.match_example is not None) and (fqdn_rule.nomatch_example is not None)
+    for rule in builtin_rules:
+        assert (rule.match_example is not None) and (rule.nomatch_example is not None)
