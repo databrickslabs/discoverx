@@ -14,9 +14,9 @@ class InspectionTool:
     self.button = self._setup_button()
     self.text = self._setup_text()
     self.current_row = None
-    self.published_tags_header = widgets.Text(value="Tags To Be Published (Edit + Entr)", disabled=True)
-    self.current_tags_header = widgets.Text(value="Current Tags", disabled=True)
-    self.detected_tags_header = widgets.Text(value="Detected Tags", disabled=True)
+    self.published_tags_header = widgets.HTML(value="<h4>Tags To Be Published (Edit + Entr)</h4>")
+    self.current_tags_header = widgets.HTML(value="<h4>Current Tags</h4>")
+    self.detected_tags_header = widgets.HTML(value="<h4>Detected Tags</h4>")
     self.published_tags = widgets.Text(
       value='',
       disabled=False
@@ -32,7 +32,15 @@ class InspectionTool:
     )
     self.headers = widgets.HBox([self.current_tags_header, self.detected_tags_header, self.published_tags_header])
     self.tag_text = widgets.HBox([self.current_tags, self.detected_tags, self.published_tags])
-    self.inspection_widget = widgets.VBox([self.text, self.datagrid, self.headers, self.tag_text, self.button])
+    gridbox = widgets.GridspecLayout(3, 3)
+    gridbox[0, 0] = self.current_tags_header
+    gridbox[0, 1] = self.detected_tags_header
+    gridbox[0, 2] = self.published_tags_header
+    gridbox[1, 0] = self.current_tags
+    gridbox[1, 1] = self.detected_tags
+    gridbox[1, 2] = self.published_tags
+    gridbox[2, 0] = self.button
+    self.inspection_widget = widgets.VBox([self.text, self.datagrid, gridbox])
 
 
   def display(self):
@@ -122,8 +130,6 @@ class DataGridAutoSize(DataGrid):
         index_names = [*df.index.names]
         index_size = np.sum([column_widths.get(v, base_row_header_size) for v in index_names])
         columns_size = np.sum([column_widths.get(v, base_column_size) for v in df.columns])
-        #print(column_widths)
-        #print([column_widths.get(v, base_column_size) for v in df.columns])
 
         width = index_size + columns_size + adjustment
         height = len(df) * base_row_size + df.columns.nlevels * base_column_header_size + adjustment

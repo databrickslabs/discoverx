@@ -55,7 +55,7 @@ dx.scan(catalogs="discoverx*")
 
 # COMMAND ----------
 
-dx.inspect_simple()
+dx.inspect()
 
 # COMMAND ----------
 
