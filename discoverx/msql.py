@@ -21,6 +21,7 @@ class Msql:
     """This class compiles M-SQL expressions into regular SQL"""
     
     from_statement_expr = r"(FROM\s+)(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))"
+    from_components_expr = r"^(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))$"
     command_expr = r"^\s*(\w+)\s"
     tag_regex = r"\[([\w_-]+)\]"
     valid_commands = ["SELECT", "DELETE"]
@@ -148,6 +149,15 @@ class Msql:
             return (matches[0][2], matches[0][3], matches[0][4])
         else:
             raise ValueError(f"Could not extract table name from M-SQL expression: {self.msql}")
+    
+    @staticmethod
+    def validate_from_components(from_tables: str):
+        """Extracts the catalog, database and table name from the from_table string"""
+        matches = re.findall(Msql.from_components_expr, from_tables)
+        if len(matches) == 1 and len(matches[0]) == 4:
+            return (matches[0][1], matches[0][2], matches[0][3])
+        else:
+            raise ValueError(f"Invalid from_tables statement. Should be in format 'catalog.database.table'. You can use '*' as wildcard.: {from_tables}")
     
     def _extract_command(self):
         """Extracts the command from the M-SQL expression"""

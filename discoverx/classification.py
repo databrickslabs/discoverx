@@ -195,7 +195,7 @@ class Classifier:
 
         # vacuum
         logger.debug("Vacuum classification table")
-        self.classification_table.vacuum()
+        # self.classification_table.vacuum()
 
         if publish_uc_tags:
             # set unity catalog tags (private preview feature)

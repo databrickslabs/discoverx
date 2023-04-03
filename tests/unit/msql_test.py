@@ -214,3 +214,20 @@ def test_execute_sql_should_fail_for_no_successful_queries(spark):
 #     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''"
 #     with pytest.raises(ValueError):
 #         SqlBuilder()._replace_tag(msql, 'dx_pii', 'email_1')
+
+def test_validate_from_components():
+    assert (Msql.validate_from_components("c.d.t") == ("c", "d", "t"))
+    assert (Msql.validate_from_components("*.*.*") == ("*", "*", "*"))
+
+    with pytest.raises(ValueError):
+        Msql.validate_from_components("c.d")
+
+    with pytest.raises(ValueError):
+        Msql.validate_from_components(" c.d.t")
+
+    with pytest.raises(ValueError):
+        Msql.validate_from_components("c.d.t ")
+
+    with pytest.raises(ValueError):
+        Msql.validate_from_components("c. d.t")
+

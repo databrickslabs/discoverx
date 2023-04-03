@@ -81,10 +81,14 @@ def spark() -> SparkSession:
     """
     logging.info("Configuring Spark session for testing environment")
     warehouse_dir = tempfile.TemporaryDirectory().name
+    if Path(warehouse_dir).exists():
+        shutil.rmtree(warehouse_dir)
+
     _builder = (
         SparkSession.builder.master("local[1]")
-        .config("spark.hive.metastore.warehouse.dir", Path(warehouse_dir).as_uri())
+        .config("spark.sql.warehouse.dir", Path(warehouse_dir).as_uri())
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+        .config("spark.sql.shuffle.partitions", "1")
         .config(
             "spark.sql.catalog.spark_catalog",
             "org.apache.spark.sql.delta.catalog.DeltaCatalog",
@@ -99,6 +103,8 @@ def spark() -> SparkSession:
     if Path(warehouse_dir).exists():
         shutil.rmtree(warehouse_dir)
 
+
+    
 
 @pytest.fixture(autouse=True, scope="module")
 def sample_datasets(spark: SparkSession, request):
@@ -119,6 +125,10 @@ def sample_datasets(spark: SparkSession, request):
 
     module_path = Path(request.module.__file__)
 
+    warehouse_dir = tempfile.TemporaryDirectory().name
+    if Path(warehouse_dir).exists():
+        shutil.rmtree(warehouse_dir)
+
     # tb_1
     test_file_path = module_path.parent / "data/tb_1.csv"
     (spark
@@ -127,7 +137,7 @@ def sample_datasets(spark: SparkSession, request):
         .schema("id integer,ip string,mac string,description string")
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("view_tb_1")
-    spark.sql("CREATE TABLE IF NOT EXISTS default.tb_1 AS SELECT * FROM view_tb_1")
+    spark.sql(f"CREATE TABLE IF NOT EXISTS default.tb_1 USING delta LOCATION '{warehouse_dir}/tb_1' AS SELECT * FROM view_tb_1 ")
 
     # columns_mock
     test_file_path = module_path.parent / "data/columns_mock.csv"
@@ -137,7 +147,7 @@ def sample_datasets(spark: SparkSession, request):
         .schema("table_catalog string,table_schema string,table_name string,column_name string,data_type string,partition_index int")
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("view_columns_mock")
-    spark.sql("CREATE TABLE IF NOT EXISTS default.columns_mock AS SELECT * FROM view_columns_mock")
+    spark.sql(f"CREATE TABLE IF NOT EXISTS default.columns_mock USING delta LOCATION '{warehouse_dir}/columns_mock' AS SELECT * FROM view_columns_mock")
     
 
     logging.info("Sample datasets created")
@@ -148,7 +158,8 @@ def sample_datasets(spark: SparkSession, request):
 
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
     spark.sql("DROP TABLE IF EXISTS default.columns_mock")
-
+    if Path(warehouse_dir).exists():
+        shutil.rmtree(warehouse_dir)
 
 @pytest.fixture(scope="session", autouse=True)
 def mlflow_local():

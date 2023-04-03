@@ -25,7 +25,7 @@
 
 # COMMAND ----------
 
-dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample_dt"} )
+dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample"} )
 
 # COMMAND ----------
 
@@ -68,12 +68,57 @@ dx.inspect()
 
 # COMMAND ----------
 
-# instantiate a new discoverx object
-dx_search = DX()
+dx.search(search_term='1.2.3.4').display()
 
 # COMMAND ----------
 
-dx.search(search_term='1.2.3.4').display()
+# MAGIC %md
+# MAGIC ## Select by tag
+
+# COMMAND ----------
+
+dx.select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"]).display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Select by tag with aggregations
+# MAGIC 
+# MAGIC The select output can be aggregated like a normal Spark dataframe.
+
+# COMMAND ----------
+
+import pyspark.sql.functions as func
+
+# Count the occurrences of each IP address per table per IP column
+(dx
+  .select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"])
+  .groupby(["catalog", "database", "table", "tagged_columns.ip_v4.column", "tagged_columns.ip_v4.value"])
+  .agg(func.count("tagged_columns.ip_v4.value").alias("count"))  
+).display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Deletes - GDPR - Right To Be Forgotten
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Delete from all tables - WHAT_IF
+
+# COMMAND ----------
+
+dx.delete_by_tag(from_tables="discoverx*.*.*", by_tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=False)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Delete from all tables
+
+# COMMAND ----------
+
+dx.delete_by_tag(from_tables="discoverx*.*.*", by_tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=True).display()
 
 # COMMAND ----------
 
@@ -84,11 +129,7 @@ dx.search(search_term='1.2.3.4').display()
 
 # COMMAND ----------
 
-conf = {
-  'classification_threshold': 0.95,
-}
-dx = DX(**conf)
-
+# You can change the classificaiton threshold with
 dx = DX(classification_threshold=0.95)
 
 # COMMAND ----------
