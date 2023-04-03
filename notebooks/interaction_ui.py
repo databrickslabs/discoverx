@@ -88,13 +88,14 @@ dx.select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"]).display()
 
 # COMMAND ----------
 
-# import pyspark.sql.functions as func
+import pyspark.sql.functions as func
 
-# (dx
-#   .select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"])
-#   .groupby(["catalog", "database", "table", "tagged_columns.ip_v4"])
-#   .agg(func.count("tagged_columns.ip_v4").alias("count"))  
-# ).display()
+# Count the occurrences of each IP address per table per IP column
+(dx
+  .select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"])
+  .groupby(["catalog", "database", "table", "tagged_columns.ip_v4.column", "tagged_columns.ip_v4.value"])
+  .agg(func.count("tagged_columns.ip_v4.value").alias("count"))  
+).display()
 
 # COMMAND ----------
 
@@ -108,7 +109,7 @@ dx.select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"]).display()
 
 # COMMAND ----------
 
-dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=False)
+dx.delete_by_tag(from_tables="discoverx*.*.*", by_tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=False)
 
 # COMMAND ----------
 
@@ -117,7 +118,7 @@ dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0', '
 
 # COMMAND ----------
 
-dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=True)
+dx.delete_by_tag(from_tables="discoverx*.*.*", by_tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=True).display()
 
 # COMMAND ----------
 
@@ -128,11 +129,7 @@ dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0', '
 
 # COMMAND ----------
 
-conf = {
-  'classification_threshold': 0.95,
-}
-dx = DX(**conf)
-
+# You can change the classificaiton threshold with
 dx = DX(classification_threshold=0.95)
 
 # COMMAND ----------
