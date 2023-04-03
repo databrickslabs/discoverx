@@ -85,11 +85,11 @@ dx.search(search_term='1.2.3.4').display()
 # COMMAND ----------
 
 conf = {
-  'column_type_classification_threshold': 0.95,
+  'classification_threshold': 0.95,
 }
 dx = DX(**conf)
 
-dx = DX(column_type_classification_threshold=0.95)
+dx = DX(classification_threshold=0.95)
 
 # COMMAND ----------
 
