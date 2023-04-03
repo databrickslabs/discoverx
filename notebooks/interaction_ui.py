@@ -89,7 +89,7 @@ conf = {
 }
 dx = DX(**conf)
 
-dx = DX(classification_threshold=0.95)
+dx = DX(column_type_classification_threshold=0.95)
 
 # COMMAND ----------
 
