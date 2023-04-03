@@ -1,3 +1,4 @@
+from functools import wraps
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
@@ -7,6 +8,8 @@ from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner
 from discoverx.classification import Classifier
+from discoverx.inspection import InspectionTool
+import ipywidgets as widgets
 
 
 class DX:
@@ -18,7 +21,7 @@ class DX:
         custom_rules (List[Rule], Optional): Custom rules which will be
             used to detect columns with corresponding patterns in your
             data
-        column_type_classification_threshold (float, optional):
+        classification_threshold (float, optional):
             The threshold which will associate a column with a specific
             rule and classify accordingly. The minimum and maximum
             threshold values which can be specified are 0 and 1
@@ -30,7 +33,7 @@ class DX:
     def __init__(
         self,
         custom_rules: Optional[List[Rule]] = None,
-        column_type_classification_threshold: float = 0.95,
+        classification_threshold: float = 0.95,
         spark: Optional[SparkSession] = None,
         classification_table_name: str = "_discoverx.classification.tags",
     ):
@@ -41,9 +44,10 @@ class DX:
         self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules)
-        self.column_type_classification_threshold = (
+
+        self.classification_threshold = (
             self._validate_classification_threshold(
-                column_type_classification_threshold
+                classification_threshold
             )
         )
         self.classification_table_name = classification_table_name
@@ -56,6 +60,7 @@ class DX:
         self.classifier: Optional[Classifier] = None
 
         self.intro()
+        self.out = widgets.Output()
 
     def intro(self):
         # TODO: Decide on how to do the introduction
@@ -112,9 +117,9 @@ class DX:
         )
 
         self.scanner.scan()
-        self.classify(self.column_type_classification_threshold)
+        self.classify(self.classification_threshold)
 
-    def classify(self, column_type_classification_threshold: float):
+    def classify(self, classification_threshold: float):
         if self.scanner is None:
             raise Exception(
                 "You first need to scan your lakehouse using Scanner.scan()"
@@ -124,8 +129,9 @@ class DX:
                 "Your scan did not finish successfully. Please consider rerunning Scanner.scan()"
             )
 
+
         self.classifier = Classifier(
-            column_type_classification_threshold,
+            classification_threshold,
             self.scanner,
             self.spark,
             self.classification_table_name,
@@ -134,6 +140,10 @@ class DX:
         self.logger.friendlyHTML(self.classifier.summary_html)
 
     def inspect(self):
+        # until we have an end-2-end interactive UI we need to 
+        # rerun classification to make sure users can rerun inspect
+        # without rerunning the scan
+        self.classifier.compute_classification_result()
         self.classifier.inspect()
         self.classifier.inspection_tool.display()
 
@@ -232,13 +242,12 @@ class DX:
             classification_result_pdf = (
                 self.spark.sql(f"SELECT * FROM {self.classification_table_name}")
                 .filter(func.col("current") == True)
-                .filter(func.col("tag_status") == "active")
                 .select(
                     func.col("table_catalog").alias("catalog"),
                     func.col("table_schema").alias("database"),
                     func.col("table_name").alias("table"),
                     func.col("column_name").alias("column"),
-                    "rule_name",
+                    "tag_name",
                 ).toPandas()
             )
         except Exception:
@@ -266,7 +275,7 @@ class DX:
             float: The validated threshold value
         """
         if (threshold < 0) or (threshold > 1):
-            error_msg = f"column_type_classification_threshold has to be in interval [0,1]. Given value is {threshold}"
+            error_msg = f"classification_threshold has to be in interval [0,1]. Given value is {threshold}"
             self.logger.error(error_msg)
             raise ValueError(error_msg)
         return threshold

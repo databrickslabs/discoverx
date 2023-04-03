@@ -17,11 +17,6 @@
 # DBTITLE 1,Clean Up Old Demos
 # MAGIC %sql
 # MAGIC DROP TABLE IF EXISTS _discoverx.classification.tags;
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v6_address UNSET TAGS ('dx_ip_v6');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data ALTER COLUMN ip_v4_address UNSET TAGS ('dx_ip_v4');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN source_address UNSET TAGS ('dx_ip_v4');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN destination_address UNSET TAGS ('dx_ip_v4');
-# MAGIC ALTER TABLE discoverx_sample_dt.sample_datasets.cyber_data_2 ALTER COLUMN content UNSET TAGS ('dx_ip_v6');
 
 # COMMAND ----------
 
@@ -64,16 +59,6 @@ dx.inspect()
 
 # COMMAND ----------
 
-# after saving you can see the tags in the data explorer under table details -> properties
-dx.publish(publish_uc_tags=True)
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC SELECT * FROM `_discoverx_erni`.classification.tags
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ## Search
 # MAGIC 
@@ -83,16 +68,7 @@ dx.publish(publish_uc_tags=True)
 
 # COMMAND ----------
 
-# DBTITLE 1,Search for all records representing the IP 1.2.3.4. Inference of matching rule type is automatic.
 dx.search(search_term='1.2.3.4').display()
-
-# COMMAND ----------
-
-import pyspark.sql.functions as func
-
-dx.search(search_tags="ip_v4").groupby(
-    ["catalog", "database", "table", "search_result.ip_v4"]
-).agg(func.count("search_result.ip_v4").alias("count")).display()
 
 # COMMAND ----------
 
@@ -102,6 +78,23 @@ dx.search(search_tags="ip_v4").groupby(
 # COMMAND ----------
 
 dx.select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"]).display()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Select by tag with aggregations
+# MAGIC 
+# MAGIC The select output can be aggregated like a normal Spark dataframe.
+
+# COMMAND ----------
+
+# import pyspark.sql.functions as func
+
+# (dx
+#   .select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"])
+#   .groupby(["catalog", "database", "table", "tagged_columns.ip_v4"])
+#   .agg(func.count("tagged_columns.ip_v4").alias("count"))  
+# ).display()
 
 # COMMAND ----------
 
@@ -136,11 +129,11 @@ dx.delete_by_tag(from_tables="discoverx*.*.*", tag="ip_v4", values=['0.0.0.0', '
 # COMMAND ----------
 
 conf = {
-  'column_type_classification_threshold': 0.95,
+  'classification_threshold': 0.95,
 }
 dx = DX(**conf)
 
-dx = DX(column_type_classification_threshold=0.95)
+dx = DX(classification_threshold=0.95)
 
 # COMMAND ----------
 

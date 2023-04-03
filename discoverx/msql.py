@@ -76,11 +76,10 @@ class Msql:
         """Builds the M-SQL expression into a SQL expression"""
         
         classified_cols = classified_result_pdf.copy()
-        # TODO: Shouldn't we use the tags from the rule definitions instead of rule_name?
-        classified_cols = classified_cols[classified_cols['rule_name'].isin(self.tags)]
-        classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['rule_name']].reset_index()
+        classified_cols = classified_cols[classified_cols['tag_name'].isin(self.tags)]
+        classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['tag_name']].reset_index()
 
-        classified_cols['col_tags'] = classified_cols[['column', 'rule_name']].apply(tuple, axis=1)
+        classified_cols['col_tags'] = classified_cols[['column', 'tag_name']].apply(tuple, axis=1)
         df = classified_cols.groupby(['catalog', 'database', 'table']).aggregate(lambda x: list(x))[['col_tags']].reset_index()
 
         # Filter tables by matching filter

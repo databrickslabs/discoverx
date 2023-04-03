@@ -16,17 +16,17 @@ class MockScanner:
 @pytest.fixture(scope="module")
 def classification_df(spark) -> pd.DataFrame:
     return pd.DataFrame([
-        ["c", "db", "tb1", "email_1", "dx_email", True, "active"],
-        ["c", "db", "tb1", "email_2", "dx_email", True, "active"],
-        ["c", "db", "tb1", "date", "dx_date_partition", True, "active"],
-        ["c", "db", "tb2", "email_3", "dx_email", True, "active"],
-        ["c", "db", "tb2", "date", "dx_date_partition", True, "active"],
-        ["c", "db2", "tb3", "email_4", "dx_email", True, "active"],
-        ["c", "db", "tb1", "description", "any_number", True, "active"],  # any_number not in the tag list
-        ["m_c", "db", "tb1", "email_3", "dx_email", True, "active"],  # catalog does not match
-        ["c", "m_db", "tb1", "email_4", "dx_email", True, "active"],  # database does not match
-        ["c", "db", "m_tb1", "email_5", "dx_email", True, "active"],  # table does not match
-    ], columns=["catalog", "database", "table", "column", "rule_name", "current", "tag_status"])
+        ["c", "db", "tb1", "email_1", "dx_email"],
+        ["c", "db", "tb1", "email_2", "dx_email"],
+        ["c", "db", "tb1", "date", "dx_date_partition"],
+        ["c", "db", "tb2", "email_3", "dx_email"],
+        ["c", "db", "tb2", "date", "dx_date_partition"],
+        ["c", "db2", "tb3", "email_4", "dx_email"],
+        ["c", "db", "tb1", "description", "any_number"],  # any_number not in the tag list
+        ["m_c", "db", "tb1", "email_3", "dx_email"],  # catalog does not match
+        ["c", "m_db", "tb1", "email_4", "dx_email"],  # database does not match
+        ["c", "db", "m_tb1", "email_5", "dx_email"],  # table does not match
+    ], columns=["catalog", "database", "table", "column", "tag_name"])
 
 columns = [
     ColumnInfo("id", "number", None, ["id"]),
