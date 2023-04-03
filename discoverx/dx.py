@@ -176,7 +176,7 @@ class DX:
         else:
             where_statement = f"WHERE {' OR '.join(sql_filter)}"
 
-        return self._msql_experimental(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {namespace_statement} {where_statement}")
+        return self._msql(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {namespace_statement} {where_statement}")
 
     def select_by_tags(self,
             from_tables: str = "*.*.*",
@@ -192,7 +192,7 @@ class DX:
 
         from_statement = "named_struct(" + ', '.join([f"'{tag}', named_struct('column', '[{tag}]', 'value', [{tag}])" for tag in by_tags]) + ") AS tagged_columns"
         
-        return self._msql_experimental(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}")
+        return self._msql(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}")
 
     def delete_by_tag(self,
                from_tables = "*.*.*",
@@ -218,9 +218,9 @@ class DX:
             self.logger.friendly(f"Please confirm that you want to delete the following values from the table {from_tables} using the tag {by_tag}: {values}")
             self.logger.friendly(f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True.")
 
-        return self._msql_experimental(f"DELETE FROM {from_tables} WHERE [{by_tag}] IN ({value_string})", what_if=(not yes_i_am_sure))
+        return self._msql(f"DELETE FROM {from_tables} WHERE [{by_tag}] IN ({value_string})", what_if=(not yes_i_am_sure))
 
-    def _msql_experimental(self, msql: str, what_if: bool = False):
+    def _msql(self, msql: str, what_if: bool = False):
 
         self.logger.debug(f"Executing sql template: {msql}")
 

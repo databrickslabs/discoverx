@@ -89,13 +89,13 @@ def test_scan_and_msql(spark, dx_ip):
     End-2-end test involving both scanning and searching
     """
 
-    result = dx_ip._msql_experimental("SELECT [ip_v4] as ip FROM *.*.*").collect()
+    result = dx_ip._msql("SELECT [ip_v4] as ip FROM *.*.*").collect()
 
     assert {row.ip for row in result} == {"1.2.3.4", "3.4.5.60"}
 
     # test what-if
     try:
-        _ = dx_ip._msql_experimental("SELECT [ip_v4] as ip FROM *.*.*", what_if=True)
+        _ = dx_ip._msql("SELECT [ip_v4] as ip FROM *.*.*", what_if=True)
     except Exception as e:
         pytest.fail(f"Test failed with exception {e}")
 
