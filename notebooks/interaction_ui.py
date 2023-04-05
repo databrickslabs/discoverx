@@ -153,7 +153,8 @@ resource_request_id_rule = {
   'type': 'regex',
   'description': 'Resource request ID',
   'definition': r'^AR-\d{9}$',
-  'match_example': ['AR-123456789']
+  'match_example': ['AR-123456789'],
+  'nomatch_example': ['R-123']
 }
 
 resource_request_id_rule = Rule(**resource_request_id_rule)
