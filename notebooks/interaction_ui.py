@@ -1,6 +1,12 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # DiscoverX interaction
+# MAGIC # DiscoverX
+# MAGIC This notebook demonstrates DiscoverX by Databricks Labs.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Setup Demo
 
 # COMMAND ----------
 
@@ -14,25 +20,21 @@
 
 # COMMAND ----------
 
-# DBTITLE 1,Clean Up Old Demos
 # MAGIC %sql
+# MAGIC -- Clean up old demos
 # MAGIC DROP TABLE IF EXISTS _discoverx.classification.tags;
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Generate sample data
-
-# COMMAND ----------
-
+# Generate sample data
 dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample"} )
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Plain functions flow
+# MAGIC ## DiscoverX Interaction
 # MAGIC 
-# MAGIC This is a demo interaction with pure functions
+# MAGIC In the following we demonstrate how to interact with DiscoverX.
 
 # COMMAND ----------
 
