@@ -64,21 +64,63 @@ dx.inspect()
 
 ## Publish the classificaiton
 
-After a `scan` you can publish the classificaiton results in a delta table (by default the table is `_discoverx.classification.tags`)
+After a `scan` you can publish the classificaiton results in a delta table (by default the table is `_discoverx.classification.tags`).
+
+You can either publish the classification from the inspection UI, or by executing
+
 ```
 dx.publish()
 ```
 
 ## Cross-table queries
 
-After a `publish` you can leverage the classified column tags to run cross-table `search` and `delete` actions.
+After a `publish` you can leverage the classified column tags to run cross-table `search`, `delete` and `select` actions.
+
 
 ### Search
 
+Search for a specific value across multiple tables.
+
 Eg. Search for all rows with `example_email@databricks.com` in a column classified as `dx_email`.
+
 ```
-dx.search("example_email@databricks.com", by_tags=["dx_email"])
+dx.search("example_email@databricks.com", from_tables="*.*.*", by_tags=["dx_email"])
 ```
+
+### Delete
+
+Delete 
+
+Preview delete statements
+```
+dx.delete_by_tag(from_tables="*.*.*", by_tag="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=False)
+```
+
+Execute delete statements
+```
+dx.delete_by_tag(from_tables="*.*.*", by_tag="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=True)
+```
+
+Note: You need to regularely [vacuum](https://docs.delta.io/latest/delta-utility.html#remove-files-no-longer-referenced-by-a-delta-table) all your delta tables to remove all traces of your deleted rows. 
+
+### Select
+
+Select all columns tagged with specified tags from multiple tables
+
+```
+dx.select_by_tags(from_tables="*.*.*", by_tags=["dx_iso_date", "dx_email"])
+```
+
+You can apply further transformations to build your summary tables. 
+Eg. Count the occurrence of each IP address per day across multiple tables and columns
+
+```
+df = (dx.select_by_tags(from_tables="*.*.*", by_tags=["dx_iso_date", "dx_ip_v4"])
+    .groupby(["catalog", "database", "table", "tagged_columns.dx_iso_date.column", "tagged_columns.dx_iso_date.value", "tagged_columns.dx_ip_v4.column"])
+    .agg(func.count("tagged_columns.dx_ip_v4.value").alias("count"))
+)
+```
+
 
 ## Configuration
 
@@ -95,7 +137,6 @@ dx.scan(
     sample_size=10000, # Number of rows to sample, use None for a full table scan
     what_if=False      # If `True` it prints the SQL that would be executed
 )
-
 ```
 
 ### Custom rules
