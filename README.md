@@ -74,14 +74,20 @@ dx.publish()
 
 ## Cross-table queries
 
-After a `publish` you can leverage the classified column tags to run cross-table `search`, `delete` and `select` actions.
+After a `publish` you can leverage the classified column tags to run cross-table `search`, `delete_by_tag` and `select_by_tags` actions.
 
 
 ### Search
 
 Search for a specific value across multiple tables.
 
-Eg. Search for all rows with `example_email@databricks.com` in a column classified as `dx_email`.
+```
+dx.search("example_email@databricks.com", from_tables="*.*.*")
+```
+
+The search will automatically try to classify the search term and restrict the search to columns that match that rule tags.
+
+You can also specify the tags where the search should be performed explicitly:
 
 ```
 dx.search("example_email@databricks.com", from_tables="*.*.*", by_tags=["dx_email"])
