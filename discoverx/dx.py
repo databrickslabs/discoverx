@@ -69,12 +69,12 @@ class DX:
         <h1>Hi there, I'm DiscoverX.</h1>
 
         <p>
-          I'm here to help you discover data that matches a set of rules in your lakehouse.<br />
-          You can scan a sample of 10000 rows per table from your entire lakehouse by using
+          I'm here to help you discover data in your lakehouse.<br />
+          You can scan your lakehouse by using
         </p>
         <pre><code>dx.scan()</code></pre>
         <p>
-          For more detailed instructions, use
+          For more detailed instructions, check out the <a href="https://github.com/databrickslabs/discoverx">readme</a> or use
         </p>
         <pre><code>help(DX)</code></pre>
         """
