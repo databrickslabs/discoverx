@@ -28,8 +28,13 @@ You can now scan the content of any set of tables for
 - IP addresses (v4 and v6)
 - Email addresses
 - URLs
-- Fully qualified domain names (FQDN)
-- MAC address
+- ... and many more
+
+See the full list of rules with 
+
+```
+dx.display_rules()
+```
 
 You can also provide your [custom matching rules](#custom-rules).
 
@@ -41,7 +46,7 @@ The scan will also classify the columns where the records match a rule for more 
 Scan all (samples 10k rows from each table)
 
 ```
-dx.scan(catalogs="*", databases="*", tables="*")
+dx.scan(from_tables="*.*.*")
 ```
 
 Check out the [scan parameters](#scan-parameters).
@@ -59,7 +64,10 @@ dx.inspect()
 
 ## Publish the classificaiton
 
-After a `scan` you can publish the classificaiton results in a delta table (by default `_discoverx.classification.tags`)
+After a `scan` you can publish the classificaiton results in a delta table (by default the table is `_discoverx.classification.tags`)
+```
+dx.publish()
+```
 
 ## Cross-table queries
 
@@ -69,7 +77,7 @@ After a `publish` you can leverage the classified column tags to run cross-table
 
 Eg. Search for all rows with `example_email@databricks.com` in a column classified as `dx_email`.
 ```
-dx.search("example_email@databricks.com", search_tags=["dx_email"])
+dx.search("example_email@databricks.com", by_tags=["dx_email"])
 ```
 
 ## Configuration

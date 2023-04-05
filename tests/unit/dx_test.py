@@ -58,29 +58,29 @@ def test_search(spark, dx_ip):
     assert result[0].search_result.ip_v4.column == 'ip'
 
     # search all records for specific tag
-    result_tags_only = dx_ip.search(search_tags='ip_v4')
+    result_tags_only = dx_ip.search(by_tags='ip_v4')
     assert {row.search_result.ip_v4.value for row in result_tags_only.collect()} == {"1.2.3.4", "3.4.5.60"}
 
     # specify catalog, database and table
-    result_tags_namespace = dx_ip.search(search_tags='ip_v4', catalog="*", database="default", table="tb_*")
+    result_tags_namespace = dx_ip.search(by_tags='ip_v4', catalog="*", database="default", table="tb_*")
     assert {row.search_result.ip_v4.value for row in result_tags_namespace.collect()} == {"1.2.3.4", "3.4.5.60"}
 
     # search specific term for list of specified tags
-    result_term_tag = dx_ip.search(search_term="3.4.5.60", search_tags=['ip_v4']).collect()
+    result_term_tag = dx_ip.search(search_term="3.4.5.60", by_tags=['ip_v4']).collect()
     assert result_term_tag[0].table == 'tb_1'
     assert result_term_tag[0].search_result.ip_v4.value == "3.4.5.60"
 
     with pytest.raises(ValueError) as no_tags_no_terms_error:
         dx_ip.search()
-    assert no_tags_no_terms_error.value.args[0] == "Neither search_term nor search_tags have been provided. At least one of them need to be specified."
+    assert no_tags_no_terms_error.value.args[0] == "Neither search_term nor by_tags have been provided. At least one of them need to be specified."
 
     with pytest.raises(ValueError) as list_with_ints:
-        dx_ip.search(search_tags=[1, 3, 'ip'])
-    assert list_with_ints.value.args[0] == "The provided search_tags [1, 3, 'ip'] have the wrong type. Please provide either a str or List[str]."
+        dx_ip.search(by_tags=[1, 3, 'ip'])
+    assert list_with_ints.value.args[0] == "The provided by_tags [1, 3, 'ip'] have the wrong type. Please provide either a str or List[str]."
 
     with pytest.raises(ValueError) as single_bool:
-        dx_ip.search(search_tags=True)
-    assert single_bool.value.args[0] == "The provided search_tags True have the wrong type. Please provide either a str or List[str]."
+        dx_ip.search(by_tags=True)
+    assert single_bool.value.args[0] == "The provided by_tags True have the wrong type. Please provide either a str or List[str]."
 
 
 def test_select_by_tag(spark, dx_ip):
@@ -139,7 +139,7 @@ def test_search_multiple(spark, mock_uc_functionality):
     dx.publish()
 
     # search a specific term and auto-detect matching tags/rules
-    result = dx.search(search_tags=["ip_v4", "mac"])
+    result = dx.search(by_tags=["ip_v4", "mac"])
     assert result.collect()[0].table == 'tb_1'
     assert result.collect()[0].search_result.ip_v4.column == 'ip'
     assert result.collect()[0].search_result.mac.column == 'mac'

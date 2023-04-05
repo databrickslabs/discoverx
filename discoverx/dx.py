@@ -14,6 +14,7 @@ import ipywidgets as widgets
 
 class DX:
     """DiscoverX scans and searches your lakehouse
+
     DiscoverX scans your data for patterns which have been pre-defined
     as rules. You can either use standard rules which come with
     DiscoverX or define and add custom rules.
@@ -93,18 +94,27 @@ class DX:
 
 
     def display_rules(self):
+        """Displays the available rules in a friendly HTML format"""
         text = self.rules.get_rules_info()
         self.logger.friendlyHTML(text)
 
     def scan(
         self,
-        catalogs="*",
-        databases="*",
-        tables="*",
+        from_tables="*.*.*",
         rules="*",
         sample_size=10000,
         what_if: bool = False,
     ):
+        """Scans the lakehouse for columns matching the given rules
+        
+        Args:
+            from_tables (str, optional): The tables to be scanned in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            rules (str, optional): The rule names to be used to scan the lakehouse, use "*" as a wildcard. Defaults to "*".
+            sample_size (int, optional): The number of rows to be scanned per table. Defaults to 10000.
+            what_if (bool, optional): Whether to run the scan in what-if mode and print the SQL commands instead of executing them. Defaults to False.
+        """
+        catalogs, databases, tables = Msql.validate_from_components(from_tables)
+        
         self.scanner = Scanner(
             self.spark,
             self.rules,
@@ -117,9 +127,17 @@ class DX:
         )
 
         self.scanner.scan()
-        self.classify(self.classification_threshold)
+        self._classify(self.classification_threshold)
 
-    def classify(self, classification_threshold: float):
+    def _classify(self, classification_threshold: float):
+        """Classifies the columns in the lakehouse
+        
+        Args:
+            classification_threshold (float): The frequency threshold (0 to 1) above which a column will be classified
+            
+        Raises:
+            Exception: If the scan has not been run"""
+        
         if self.scanner is None:
             raise Exception(
                 "You first need to scan your lakehouse using Scanner.scan()"
@@ -140,6 +158,11 @@ class DX:
         self.logger.friendlyHTML(self.classifier.summary_html)
 
     def inspect(self):
+        """Displays the inspection tool for the classification results
+        
+        Raises:
+            Exception: If the classification has not been run
+        """
         # until we have an end-2-end interactive UI we need to 
         # rerun classification to make sure users can rerun inspect
         # without rerunning the scan
@@ -148,56 +171,94 @@ class DX:
         self.classifier.inspection_tool.display()
 
     def publish(self, publish_uc_tags=False):
+        """Publishes the classification results to the lakehouse 
+        
+        Args:
+            publish_uc_tags (bool, optional): Whether to publish the tags to Unity Catalog. Defaults to False.
+        
+        Raises:
+            Exception: If the classification has not been run
+        
+        """
+        
         # save tags
         self.classifier.publish(publish_uc_tags=publish_uc_tags)
 
     def search(self,
                search_term: Optional[str] = None,
-               search_tags: Optional[Union[List[str], str]] = None,
-               catalog: str = "*",
-               database: str = "*",
-               table: str = "*",
+               from_tables: str = "*.*.*",
+               by_tags: Optional[Union[List[str], str]] = None
                ):
+        """Searches your lakehouse for columns matching the given search term
+        
+        Args:
+            search_term (str, optional): The search term to be used to search for columns. Defaults to None.
+            from_tables (str, optional): The tables to be searched in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_tags (Union[List[str], str], optional): The tags to be used to search for columns. Defaults to None.
+            
+        Raises:
+            ValueError: If neither search_term nor by_tags have been provided
+            ValueError: If the search_term type is not valid
+            ValueError: If the by_tags type is not valid
+        
+        Returns:
+            DataFrame: A dataframe containing the results of the search
+        """
+        
+        Msql.validate_from_components(from_tables)
 
-        if (search_term is None) and (search_tags is None):
-            raise ValueError("Neither search_term nor search_tags have been provided. At least one of them need to be specified.")
+        if (search_term is None) and (by_tags is None):
+            raise ValueError("Neither search_term nor by_tags have been provided. At least one of them need to be specified.")
 
         if (search_term is not None) and (not isinstance(search_term, str)):
             raise ValueError(f"The search_term type {type(search_term)} is not valid. Either None or a string have to be provided.")
 
-        if search_tags is None:
+        if by_tags is None:
             self.logger.friendly("You did not provide any tags to be searched. "
                                  "We will try to auto-detect matching rules for the given search term")
             search_matching_rules = self.rules.match_search_term(search_term)
             self.logger.friendly(f"Discoverx will search your lakehouse using the tags {search_matching_rules}")
-        elif isinstance(search_tags, str):
-            search_matching_rules = [search_tags]
-        elif isinstance(search_tags, list) and all(isinstance(elem, str) for elem in search_tags):
-            search_matching_rules = search_tags
+        elif isinstance(by_tags, str):
+            search_matching_rules = [by_tags]
+        elif isinstance(by_tags, list) and all(isinstance(elem, str) for elem in by_tags):
+            search_matching_rules = by_tags
         else:
-            raise ValueError(f"The provided search_tags {search_tags} have the wrong type. Please provide"
+            raise ValueError(f"The provided by_tags {by_tags} have the wrong type. Please provide"
                              f" either a str or List[str].")
 
         sql_filter = [f"[{rule_name}] = '{search_term}'" for rule_name in search_matching_rules]
-        from_statement = "named_struct(" + ', '.join([f"'{rule_name}', named_struct('column', '[{rule_name}]', 'value', [{rule_name}])" for rule_name in search_matching_rules]) + ") AS search_result"
-        namespace_statement = ".".join([catalog, database, table])
+        select_statement = "named_struct(" + ', '.join([f"'{rule_name}', named_struct('column', '[{rule_name}]', 'value', [{rule_name}])" for rule_name in search_matching_rules]) + ") AS search_result"
+        
         if search_term is None:
             where_statement = ""
         else:
             where_statement = f"WHERE {' OR '.join(sql_filter)}"
 
-        return self._msql(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {namespace_statement} {where_statement}")
+        return self._msql(f"SELECT {select_statement}, to_json(struct(*)) AS row_content FROM {from_tables} {where_statement}")
 
     def select_by_tags(self,
             from_tables: str = "*.*.*",
             by_tags: Optional[Union[List[str], str]] = None):
+        """Selects all columns in the lakehouse that match the given tags
+        
+        Args:
+            from_tables (str, optional): The tables to be selected in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_tags (Union[List[str], str], optional): The tags to be used to search for columns. Defaults to None.
+        
+        Raises:
+            ValueError: If the by_tags type is not valid
+        
+        Returns:
+            DataFrame: A dataframe containing the UNION ALL results of the select"""
+
+        Msql.validate_from_components(from_tables)
 
         if isinstance(by_tags, str):
             by_tags = [by_tags]
         elif isinstance(by_tags, list) and all(isinstance(elem, str) for elem in by_tags):
             by_tags = by_tags
         else:
-            raise ValueError(f"The provided search_tags {by_tags} have the wrong type. Please provide"
+            raise ValueError(f"The provided by_tags {by_tags} have the wrong type. Please provide"
                              f" either a str or List[str].")
 
         from_statement = "named_struct(" + ', '.join([f"'{tag}', named_struct('column', '[{tag}]', 'value', [{tag}])" for tag in by_tags]) + ") AS tagged_columns"
@@ -210,6 +271,21 @@ class DX:
                values: Optional[Union[List[str], str]] = None,
                yes_i_am_sure: bool = False
                ):
+        """Deletes all rows in the lakehouse that match any of the provided values in a column tagged with the given tag
+        
+        Args:
+            from_tables (str, optional): The tables to delete from in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_tag (str, optional): The tag to be used to search for columns. Defaults to None.
+            values (Union[List[str], str], optional): The values to be deleted. Defaults to None.
+            yes_i_am_sure (bool, optional): Whether you are sure that you want to delete the data. If False prints the SQL statements instead of executing them. Defaults to False.
+            
+        Raises:
+            ValueError: If the from_tables is not valid
+            ValueError: If the by_tag is not valid
+            ValueError: If the values is not valid
+        """
+
+        Msql.validate_from_components(from_tables)
 
         if (by_tag is None) or (not isinstance(by_tag, str)):
             raise ValueError(f"Please provide a tag to identify the columns to be matched on the provided values.")

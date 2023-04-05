@@ -51,7 +51,7 @@ dx = DX()
 
 # COMMAND ----------
 
-dx.scan(catalogs="discoverx*")
+dx.scan(from_tables="discoverx*.*.*")
 
 # COMMAND ----------
 
@@ -68,7 +68,7 @@ dx.inspect()
 
 # COMMAND ----------
 
-dx.search(search_term='1.2.3.4').display()
+dx.search(search_term='1.2.3.4', from_tables="*.*.*").display()
 
 # COMMAND ----------
 
@@ -156,13 +156,13 @@ resource_request_id_rule = {
 
 resource_request_id_rule = Rule(**resource_request_id_rule)
 
-dx_custm_rules = DX(custom_rules=[resource_request_id_rule])
-dx_custm_rules.display_rules()
+dx = DX(custom_rules=[resource_request_id_rule])
+dx.display_rules()
 # # dx.register_rules(custom_rules)
 
 # COMMAND ----------
 
-dx_custm_rules.scan(catalogs="discoverx*", sample_size=1000)
+dx.scan(from_tables="discoverx*.*.*", sample_size=1000)
 
 # COMMAND ----------
 

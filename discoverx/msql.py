@@ -157,7 +157,7 @@ class Msql:
         if len(matches) == 1 and len(matches[0]) == 4:
             return (matches[0][1], matches[0][2], matches[0][3])
         else:
-            raise ValueError(f"Invalid from_tables statement. Should be in format 'catalog.database.table'. You can use '*' as wildcard.: {from_tables}")
+            raise ValueError(f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'catalog.database.table'. You can use '*' as wildcard.")
     
     def _extract_command(self):
         """Extracts the command from the M-SQL expression"""
