@@ -91,7 +91,6 @@ class DX:
             self.logger.friendlyHTML(intro_text)
         else:
             self.logger.friendlyHTML(missing_uc_text)
-            raise Exception("Unity Catalog is not enabled")
 
 
     def display_rules(self):
