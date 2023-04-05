@@ -38,7 +38,7 @@ dx.display_rules()
 
 You can also provide your [custom matching rules](#custom-rules).
 
-The scan will also classify the columns where the records match a rule for more than a [classification threshold](#classification-threshold) (95% by default).
+The scan will automatically classify columns where the number of matching records exceeds a [classification threshold](#classification-threshold) (95% by default).
 
 
 ### Example
@@ -66,7 +66,7 @@ dx.inspect()
 
 After a `scan` you can publish the classificaiton results in a delta table (by default the table is `_discoverx.classification.tags`).
 
-You can either publish the classification from the inspection UI, or by executing
+You can either publish the classification from the inspection UI, or apply directly without fine-tuning by executing
 
 ```
 dx.publish()
