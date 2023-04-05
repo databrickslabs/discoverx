@@ -39,7 +39,7 @@ def test_classifier(spark):
     dummy_scanner.scan_result = ScanResult(df_scan_result)
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx.scanner = dummy_scanner
-    dx.classify(classification_threshold=0.95)
+    dx._classify(classification_threshold=0.95)
     assert_frame_equal(
         dx.classifier.classification_result.reset_index(drop=True),
         pd.DataFrame(
@@ -81,7 +81,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner.scan_result = ScanResult(df_scan_result)
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx.scanner = dummy_scanner
-    dx.classify(classification_threshold=0.95)
+    dx._classify(classification_threshold=0.95)
     dx.publish()
 
     expected_df = pd.DataFrame(
@@ -103,7 +103,7 @@ def test_merging_scan_results(spark, mock_current_time):
     # we get the same result the classification should remain unchanged.
     dx2 = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx2.scanner = dummy_scanner
-    dx2.classify(classification_threshold=0.95)
+    dx2._classify(classification_threshold=0.95)
     dx2.publish()
 
     expected_df = pd.DataFrame(
@@ -137,7 +137,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx3 = DX(spark=spark, classification_table_name="_discoverx.tags")
     dummy_scanner.scan_result = ScanResult(df_scan_result3)
     dx3.scanner = dummy_scanner
-    dx3.classify(classification_threshold=0.95)
+    dx3._classify(classification_threshold=0.95)
     dx3.publish()
 
     current_time = pd.Timestamp(2023, 1, 1, 0)
@@ -177,7 +177,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx5 = DX(spark=spark, classification_table_name="_discoverx.tags")
     dummy_scanner.scan_result = ScanResult(df_scan_result5)
     dx5.scanner = dummy_scanner
-    dx5.classify(classification_threshold=0.95)
+    dx5._classify(classification_threshold=0.95)
     dx5.publish()
 
     expected5_df = pd.DataFrame(
@@ -256,7 +256,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx6 = DX(spark=spark, classification_table_name="_discoverx.tags")
     dummy_scanner.scan_result = ScanResult(df_scan_result6)
     dx6.scanner = dummy_scanner
-    dx6.classify(classification_threshold=0.95)
+    dx6._classify(classification_threshold=0.95)
     # simulate manual changes in InteractionTool - set ip6 to active again
     dx6.classifier.inspection_tool = InspectionTool(dx6.classifier.classification_result, dx6.classifier.publish)
     dx6.classifier.inspection_tool.inspected_table = dx6.classifier.classification_result

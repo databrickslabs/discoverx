@@ -9,7 +9,7 @@ logger = logging.Logging()
 @pytest.fixture(scope="module", name="dx_ip")
 def scan_ip_in_tb1(spark, mock_uc_functionality):
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
-    dx.scan(tables="tb_1", rules="ip_*")
+    dx.scan(from_tables="*.*.tb_1", rules="ip_*")
     dx.publish()
     yield dx
 
@@ -50,7 +50,7 @@ def test_scan_and_msql(spark, dx_ip):
     except Exception as e:
         pytest.fail(f"Test failed with exception {e}")
 
-def test_search(spark, dx_ip):
+def test_search(spark, dx_ip: DX):
 
     # search a specific term and auto-detect matching tags/rules
     result = dx_ip.search("1.2.3.4").collect()
@@ -62,7 +62,7 @@ def test_search(spark, dx_ip):
     assert {row.search_result.ip_v4.value for row in result_tags_only.collect()} == {"1.2.3.4", "3.4.5.60"}
 
     # specify catalog, database and table
-    result_tags_namespace = dx_ip.search(by_tags='ip_v4', catalog="*", database="default", table="tb_*")
+    result_tags_namespace = dx_ip.search(by_tags='ip_v4', from_tables="*.default.tb_*")
     assert {row.search_result.ip_v4.value for row in result_tags_namespace.collect()} == {"1.2.3.4", "3.4.5.60"}
 
     # search specific term for list of specified tags
@@ -135,7 +135,7 @@ def test_delete_by_tag(spark, dx_ip):
 # test multiple tags
 def test_search_multiple(spark, mock_uc_functionality):
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
-    dx.scan(tables="tb_1", rules="*")
+    dx.scan(from_tables="*.*.tb_1", rules="*")
     dx.publish()
 
     # search a specific term and auto-detect matching tags/rules
