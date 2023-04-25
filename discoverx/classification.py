@@ -140,7 +140,7 @@ class Classifier:
         </p>
         {summary_html_table}
         <p>
-          You can see the full classification output with 'dx.scan_result'.
+          You can see the full classification output with 'dx.scan_result()'.
         </p>
 
 
