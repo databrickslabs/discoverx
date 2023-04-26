@@ -39,7 +39,7 @@ dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_s
 # COMMAND ----------
 
 from discoverx import DX
-dx = DX()
+dx = DX(locale="US")
 
 # COMMAND ----------
 

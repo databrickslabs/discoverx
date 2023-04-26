@@ -105,7 +105,7 @@ class RulesList:
 
 
 # define builtin rules
-builtin_rules = [
+global_rules = [
     RegexRule(
         name="credit-card-expiration-date",
         description="Credit Card Expiration Date",
@@ -275,7 +275,7 @@ class Rules:
             custom_rules (List[Rule], optional): A list of
                 custom-defined rules. Defaults to None.
         """
-        rules = builtin_rules
+        rules = global_rules.copy()
         if locale is not None:
             if locale.lower() not in localized_rules.keys():
                 raise ValueError(f"Unsupported locale: {locale}. Use one of {localized_rules.keys()}")
