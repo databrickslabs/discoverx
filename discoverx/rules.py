@@ -107,8 +107,46 @@ class RulesList:
 # define builtin rules
 builtin_rules = [
     RegexRule(
+        name="credit-card-expiration-date",
+        description="Credit Card Expiration Date",
+        definition=r"^\d{2}/\d{2}$",
+        match_example=["01/20", "12/25"],
+        nomatch_example=["1/20", "01/2020", "01/2", "01/200"]
+    ),
+    RegexRule(
+        name="credit-card-number",
+        description="Credit Card Number",
+        definition=r"^\d{4}-\d{4}-\d{4}-\d{4}$",
+        match_example=["1234-5678-9012-3456", "9876-5432-1098-7654"],
+        nomatch_example=["1234-5678-9012-345", "1234-5678-9012-34567", "1234-5678-9012-3456-7890"]
+    ),
+    RegexRule(
+        name="email",
+        description="Email address",
+        definition=r"^.+@[^\.].*\.[a-z]{2,}$",
+        match_example=["whatever@somewhere.museum", "foreignchars@myforeigncharsdomain.nu", "me+mysomething@mydomain.com"],
+        nomatch_example=["a@b.c", "me@.my.com", "a@b.comFOREIGNCHAR"],
+    ),
+    RegexRule(
+        name="fqdn",
+        description="Fully Qualified Domain Names",
+        definition=r"^([-a-zA-Z0-9:%._\+~#=]{1,63}\.){1,8}[a-zA-Z]{1,12}\.?$",
+        match_example=[
+            "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com",
+            "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com.mx.gmail.com.",
+            "1.2.3.4.com",
+            "xn--kxae4bafwg.xn--pxaix.gr",
+        ],
+        nomatch_example=[
+            "so-me.na-me.567",
+            "label.name.321",
+            "1234567890-1234567890-1234567890-1234567890-12345678901234567890.123.com",
+            "abc.cdf@mydoamain.com",
+            "Some text abc.cdf.com",
+        ],
+    ),
+    RegexRule(
         name="ip_v4",
-        type="regex",
         description="IP address v4",
         definition=r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
         match_example=["192.1.1.1", "0.0.0.0"],
@@ -116,23 +154,27 @@ builtin_rules = [
     ),
     RegexRule(
         name="ip_v6",
-        type="regex",
         description="IP address v6",
         definition=r"^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$",
         match_example=["2001:db8:3333:4444:5555:6666:7777:8888", "::1234:5678", "2001:db8::", "::"],
         nomatch_example=["2001.0000"],
     ),
     RegexRule(
-        name="email",
-        type="regex",
-        description="Email address",
-        definition=r"^.+@[^\.].*\.[a-z]{2,}$",
-        match_example=["whatever@somewhere.museum", "foreignchars@myforeigncharsdomain.nu", "me+mysomething@mydomain.com"],
-        nomatch_example=["a@b.c", "me@.my.com", "a@b.comFOREIGNCHAR"],
+        name="iso-date",
+        description="ISO Date",
+        definition=r"^\d{4}-\d{2}-\d{2}$",
+        match_example=["2020-01-01", "2020-12-31"],
+        nomatch_example=["2020-01", "2020-01-01-01", "2020-01-01T01:01:01"]
+    ),
+    RegexRule(
+        name="iso-date-time",
+        description="ISO Date Time",
+        definition=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$",
+        match_example=["2020-01-01T01:01:01", "2020-12-31T23:59:59"],
+        nomatch_example=["2020-01", "2020-01-01", "2020-01-01-01"]
     ),
     RegexRule(
         name="mac",
-        type="regex",
         description="MAC Addresses",
         definition=r"^(?=[-:\w]*[a-fA-F]+[-:\w]*)(([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2}))$",
         match_example=["01:02:03:04:ab:cd", "01-02-03-04-ab-cd", "0102-0304-abcd", "01020304abcd"],
@@ -144,7 +186,6 @@ builtin_rules = [
     ),
     RegexRule(
         name="url",
-        type="regex",
         description="URL",
         definition=r"^(https?|ftp|file|mailto):\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$",
         match_example=[
@@ -163,108 +204,60 @@ builtin_rules = [
             "my@email.com"
         ],
     ),
-    RegexRule(
-        name="fqdn",
-        type="regex",
-        description="Fully Qualified Domain Names",
-        definition=r"^([-a-zA-Z0-9:%._\+~#=]{1,63}\.){1,8}[a-zA-Z]{1,12}\.?$",
-        match_example=[
-            "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com",
-            "ec2-35-160-210-253.us-west-2-.compute.amazonaws.com.mx.gmail.com.",
-            "1.2.3.4.com",
-            "xn--kxae4bafwg.xn--pxaix.gr",
-        ],
-        nomatch_example=[
-            "so-me.na-me.567",
-            "label.name.321",
-            "1234567890-1234567890-1234567890-1234567890-12345678901234567890.123.com",
-            "abc.cdf@mydoamain.com",
-            "Some text abc.cdf.com",
-        ],
-    ),
-    RegexRule(
-        name="us-social-security-number",
-        type="regex",
-        description="US Social Security Number",
-        definition=r"^(?!000|666|9)\d{3}-(?!00)\d{2}-(?!0000)\d{4}$",
-        match_example=["123-45-6789"],
-        nomatch_example=["123-45-678", "123-456-7890", "123-45-67890", "123-456-789"]
-    ),
-    RegexRule(
-        name="us-phone-number",
-        type="regex",
-        description="US Phone Number",
-        definition=r"^\+?1?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$",
-        match_example=["+1 (123) 456-7890", "123-456-7890", "123.456.7890", "1234567890", "(123)456-7890"],
-        nomatch_example=["123-45-6789", "987-65-4321"]
-    ),
-    RegexRule(
-        name="us-zip-code",
-        type="regex",
-        description="US Zip Code",
-        definition=r"^\d{5}(?:[-\s]\d{4})?$",
-        match_example=["12345", "12345-6789"],
-        nomatch_example=["1234", "123456"]
-    ),
-    RegexRule(
-        name="us-state",
-        type="regex",
-        description="US State",
-        definition=r"^(?i)(Alabama|Alaska|American Samoa|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|District of Columbia|Federated States of Micronesia|Florida|Georgia|Guam|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Marshall Islands|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Northern Mariana Islands|Ohio|Oklahoma|Oregon|Palau|Pennsylvania|Puerto Rico|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virgin Islands|Virginia|Washington|West Virginia|Wisconsin|Wyoming)$",
-        match_example=["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"],
-        nomatch_example=["AL", "AK", "AS", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FM", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MH", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "MP", "OH", "OK", "OR", "PW", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY"]
-    ),
-    RegexRule(
-        name="us-state-abbreviation",
-        type="regex",
-        description="US State Abbreviation",
-        definition=r"^(?i)(AL|AK|AS|AZ|AR|CA|CO|CT|DE|DC|FM|FL|GA|GU|HI|ID|IL|IN|IA|KS|KY|LA|ME|MH|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|MP|OH|OK|OR|PW|PA|PR|RI|SC|SD|TN|TX|UT|VT|VI|VA|WA|WV|WI|WY)$",
-        match_example=["AL", "AK", "AS", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FM", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MH", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "MP", "OH", "OK", "OR", "PW", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY"],
-        nomatch_example=["XY", "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"]
-    ),
-    RegexRule(
-        name="us-mailing-address",
-        type="regex",
-        description="US Mailing Address",
-        definition=r"^\d+\s[A-z]+\s[A-z]+",
-        match_example=["123 Main St", "456 Elm St", "789 Pine St"],
-        nomatch_example=["123 Main", "456 Elm", "789 Pine"]
-    ),
-    RegexRule(
-        name="credit-card-number",
-        type="regex",
-        description="Credit Card Number",
-        definition=r"^\d{4}-\d{4}-\d{4}-\d{4}$",
-        match_example=["1234-5678-9012-3456", "9876-5432-1098-7654"],
-        nomatch_example=["1234-5678-9012-345", "1234-5678-9012-34567", "1234-5678-9012-3456-7890"]
-    ),
-    RegexRule(
-        name="credit-card-expiration-date",
-        type="regex",
-        description="Credit Card Expiration Date",
-        definition=r"^\d{2}/\d{2}$",
-        match_example=["01/20", "12/25"],
-        nomatch_example=["1/20", "01/2020", "01/2", "01/200"]
-    ),
-    RegexRule(
-        name="iso-date",
-        type="regex",
-        description="ISO Date",
-        definition=r"^\d{4}-\d{2}-\d{2}$",
-        match_example=["2020-01-01", "2020-12-31"],
-        nomatch_example=["2020-01", "2020-01-01-01", "2020-01-01T01:01:01"]
-    ),
-    RegexRule(
-        name="iso-date-time",
-        type="regex",
-        description="ISO Date Time",
-        definition=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$",
-        match_example=["2020-01-01T01:01:01", "2020-12-31T23:59:59"],
-        nomatch_example=["2020-01", "2020-01-01", "2020-01-01-01"]
-    ),
-
 ]
 
+localized_rules = {
+    "us": [
+        RegexRule(
+            name="us-mailing-address",
+            type="regex",
+            description="US Mailing Address",
+            definition=r"^\d+\s[A-z]+\s[A-z]+",
+            match_example=["123 Main St", "456 Elm St", "789 Pine St"],
+            nomatch_example=["123 Main", "456 Elm", "789 Pine"]
+        ),
+        RegexRule(
+            name="us-phone-number",
+            type="regex",
+            description="US Phone Number",
+            definition=r"^\+?1?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$",
+            match_example=["+1 (123) 456-7890", "123-456-7890", "123.456.7890", "1234567890", "(123)456-7890"],
+            nomatch_example=["123-45-6789", "987-65-4321"]
+        ),
+        RegexRule(
+            name="us-social-security-number",
+            type="regex",
+            description="US Social Security Number",
+            definition=r"^(?!000|666|9)\d{3}-(?!00)\d{2}-(?!0000)\d{4}$",
+            match_example=["123-45-6789"],
+            nomatch_example=["123-45-678", "123-456-7890", "123-45-67890", "123-456-789"]
+        ),
+        RegexRule(
+            name="us-state",
+            type="regex",
+            description="US State",
+            definition=r"^(?i)(Alabama|Alaska|American Samoa|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|District of Columbia|Federated States of Micronesia|Florida|Georgia|Guam|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Marshall Islands|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Northern Mariana Islands|Ohio|Oklahoma|Oregon|Palau|Pennsylvania|Puerto Rico|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virgin Islands|Virginia|Washington|West Virginia|Wisconsin|Wyoming)$",
+            match_example=["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"],
+            nomatch_example=["AL", "AK", "AS", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FM", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MH", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "MP", "OH", "OK", "OR", "PW", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY"]
+        ),
+        RegexRule(
+            name="us-state-abbreviation",
+            type="regex",
+            description="US State Abbreviation",
+            definition=r"^(?i)(AL|AK|AS|AZ|AR|CA|CO|CT|DE|DC|FM|FL|GA|GU|HI|ID|IL|IN|IA|KS|KY|LA|ME|MH|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|MP|OH|OK|OR|PW|PA|PR|RI|SC|SD|TN|TX|UT|VT|VI|VA|WA|WV|WI|WY)$",
+            match_example=["AL", "AK", "AS", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FM", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MH", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "MP", "OH", "OK", "OR", "PW", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY"],
+            nomatch_example=["XY", "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"]
+        ),
+        RegexRule(
+            name="us-zip-code",
+            type="regex",
+            description="US Zip Code",
+            definition=r"^\d{5}(?:[-\s]\d{4})?$",
+            match_example=["12345", "12345-6789"],
+            nomatch_example=["1234", "123456"]
+        )
+    ]
+}
 
 class Rules:
     """This class represents built-in and custom rules
@@ -275,13 +268,19 @@ class Rules:
 
     """
 
-    def __init__(self, custom_rules: Optional[List[Rule]] = None):
+    def __init__(self, locale: Optional[str] = None, custom_rules: Optional[List[Rule]] = None):
         """
         Args:
+            locale (str, optional): The locale to use. Defaults to None.
             custom_rules (List[Rule], optional): A list of
                 custom-defined rules. Defaults to None.
         """
-        self.builtin_rules: RulesList = RulesList(builtin_rules)
+        rules = builtin_rules
+        if locale is not None:
+            if locale.lower() not in localized_rules.keys():
+                raise ValueError(f"Unsupported locale: {locale}. Use one of {localized_rules.keys()}")
+            rules += localized_rules[locale.lower()]
+        self.builtin_rules: RulesList = RulesList(rules)
         self.custom_rules = RulesList(custom_rules)
 
     def get_rules_info(self):

@@ -8,8 +8,15 @@ def test_ruleslist():
     assert none_rules_list.rules_info == ""
 
     rules_list = RulesList(builtin_rules)
-    assert rules_list.rules_info.startswith("<li>ip_v4 - IP address v4</li>\n              <li>ip_v6 - IP address v6</li>")
+    assert rules_list.rules_info.startswith("<li>credit-card-expiration-date - Credit Card Expiration Date</li>\n")
 
+def test_localized_rules():
+    rules = Rules(locale="us")
+    assert len(rules.get_rules(rule_filter="*")) == 16
+
+    # test fails if locale is not supported
+    with pytest.raises(ValueError):
+        Rules(locale="xx")
 
 def test_rules():
     # test builtin rules first
@@ -20,7 +27,7 @@ def test_rules():
     # check that we can filter with unix wildcards
     rules_ip = Rules()
     rules_ip.builtin_rules = RulesList(builtin_rules)
-    assert len(rules.get_rules(rule_filter="*")) == 16
+    assert len(rules.get_rules(rule_filter="*")) == 10
     assert [rule.name for rule in rules.get_rules(rule_filter="*v4")] == ["ip_v4"]
 
     # add some custom rules
@@ -36,7 +43,7 @@ def test_rules():
     cust_rules.builtin_rules = RulesList(builtin_rules)
 
     assert "custom_device_id" in cust_rules.get_rules_info()
-    assert len(cust_rules.get_rules(rule_filter="*")) == 17
+    assert len(cust_rules.get_rules(rule_filter="*")) == 11
 
 
 def test_rule_validation():

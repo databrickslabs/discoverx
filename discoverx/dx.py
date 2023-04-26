@@ -29,6 +29,11 @@ class DX:
             respectively. The former corresponds to none of the records
             for that column conforming to the given rule while the
             latter means that all records conform.
+        spark (SparkSession, optional): The SparkSession which will be
+            used to scan your data. Defaults to None.
+        locale (str, optional): The two-letter country code which will be 
+            used to determine the localized scanning rules. 
+            Defaults to None.
     """
 
     def __init__(
@@ -36,6 +41,7 @@ class DX:
         custom_rules: Optional[List[Rule]] = None,
         classification_threshold: float = 0.95,
         spark: Optional[SparkSession] = None,
+        locale: str = None,
         classification_table_name: str = "_discoverx.classification.tags",
     ):
 
@@ -44,7 +50,7 @@ class DX:
         self.spark = spark
         self.logger = logging.Logging()
 
-        self.rules = Rules(custom_rules=custom_rules)
+        self.rules = Rules(custom_rules=custom_rules, locale=locale)
 
         self.classification_threshold = (
             self._validate_classification_threshold(
