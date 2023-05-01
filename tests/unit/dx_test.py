@@ -128,6 +128,14 @@ def test_delete_by_tag(spark, dx_ip):
     with pytest.raises(ValueError):
         dx_ip.delete_by_tag(from_tables="invalid from", by_tag="email", values="x")
     
+def test_scan_result(dx_ip):
+    assert not dx_ip.scan_result().empty
+
+def test_scan_results_before_scan_should_fail(spark):
+    dx = DX(spark=spark)
+    with pytest.raises(Exception):
+        dx.scan_result()
+
 # test multiple tags
 def test_search_multiple(spark, mock_uc_functionality):
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
