@@ -135,6 +135,23 @@ class DX:
         self.scanner.scan()
         self._classify(self.classification_threshold)
 
+    def scan_result(self):
+        """Returns the scan results as a pandas DataFrame
+        
+        Raises:
+            Exception: If the scan has not been run
+        """
+        if self.scanner is None:
+            raise Exception(
+                "You first need to scan your lakehouse using Scanner.scan()"
+            )
+        if self.scanner.scan_result is None:
+            raise Exception(
+                "Your scan did not finish successfully. Please consider rerunning Scanner.scan()"
+            )
+
+        return self.scanner.scan_result.df
+
     def _classify(self, classification_threshold: float):
         """Classifies the columns in the lakehouse
         
