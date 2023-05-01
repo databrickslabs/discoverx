@@ -145,19 +145,18 @@ dx.display_rules()
 
 # COMMAND ----------
 
-from discoverx.rules import Rule
+from discoverx.rules import RegexRule
 
 
 resource_request_id_rule = {
   'name': 'resource_request_id',
-  'type': 'regex',
   'description': 'Resource request ID',
   'definition': r'^AR-\d{9}$',
   'match_example': ['AR-123456789'],
   'nomatch_example': ['R-123']
 }
 
-resource_request_id_rule = Rule(**resource_request_id_rule)
+resource_request_id_rule = RegexRule(**resource_request_id_rule)
 
 dx = DX(custom_rules=[resource_request_id_rule])
 dx.display_rules()

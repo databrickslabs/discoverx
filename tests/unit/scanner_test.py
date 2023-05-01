@@ -4,7 +4,7 @@ from pyspark.sql import SparkSession
 import pytest
 
 from discoverx.scanner import Scanner, ColumnInfo, TableInfo
-from discoverx.rules import Rule, Rules
+from discoverx.rules import RegexRule, Rules
 
 
 def test_get_table_list(spark):
@@ -106,11 +106,11 @@ GROUP BY catalog, database, table, column, rule_name"""
 @pytest.mark.parametrize(
     "rules_input, expected",
     [
-        ([Rule(name="any_word", type="regex", description="Any word", definition=r"\w")], expectedsingle),
+        ([RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w")], expectedsingle),
         (
             [
-                Rule(name="any_word", type="regex", description="Any word", definition=r"\w."),
-                Rule(name="any_number", type="regex", description="Any number", definition=r"\d."),
+                RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w."),
+                RegexRule(name="any_number", type="regex", description="Any number", definition=r"\d."),
             ],
             expectedmulti,
         ),
@@ -139,8 +139,8 @@ def test_sql_runs(spark):
     ]
     table_info = TableInfo(None, "default", "tb_1", columns)
     rules = [
-        Rule(name="any_word", type="regex", description="Any word", definition=r"\w+"),
-        Rule(name="any_number", type="regex", description="Any number", definition=r"\d+"),
+        RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w+"),
+        RegexRule(name="any_number", type="regex", description="Any number", definition=r"\d+"),
     ]
 
     rules = Rules(custom_rules=rules)
@@ -176,8 +176,8 @@ def test_scan_custom_rules(spark: SparkSession):
     ]
     table_list = [TableInfo(None, "default", "tb_1", columns)]
     rules = [
-        Rule(name="any_word", type="regex", description="Any word", definition=r"^\w*$"),
-        Rule(name="any_number", type="regex", description="Any number", definition=r"^\d*$"),
+        RegexRule(name="any_word", type="regex", description="Any word", definition=r"^\w*$"),
+        RegexRule(name="any_number", type="regex", description="Any number", definition=r"^\d*$"),
     ]
 
     rules = Rules(custom_rules=rules)

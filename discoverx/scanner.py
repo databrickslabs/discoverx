@@ -59,6 +59,10 @@ class ScanResult:
     df: pd.DataFrame
 
     @property
+    def is_empty(self) -> bool:
+        return self.df.empty
+
+    @property
     def n_scanned_columns(self) -> int:
         return len(
             self.df[["catalog", "database", "table", "column"]].drop_duplicates()

@@ -19,19 +19,18 @@ from_table_statement = ".".join([catalogs, schemas, tables])
 # COMMAND ----------
 
 # DBTITLE 1,Define custom rules (if needed)
-from discoverx.rules import Rule
+from discoverx.rules import RegexRule
 
 
 resource_request_id_rule = {
   'name': 'resource_request_id',
-  'type': 'regex',
   'description': 'Resource request ID',
   'definition': r'^AR-\d{9}$',
   'match_example': ['AR-123456789'],
   'nomatch_example': ['R-123']
 }
 
-resource_request_id_rule = Rule(**resource_request_id_rule)
+resource_request_id_rule = RegexRule(**resource_request_id_rule)
 
 # COMMAND ----------
 

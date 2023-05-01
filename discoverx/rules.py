@@ -18,11 +18,12 @@ class RuleTypes(str, Enum):
 
 
 class Rule(BaseModel):
-    """Definition of Rule
+    type: RuleTypes
+
+class RegexRule(Rule):
+    """Definition of Regex Rule that applies to a column content
     Attributes:
         name (str): Name of rule
-        type (RuleTypes): The type of the rule. Currently, only 'regex'
-            is supported
         description (str): Description of the rule
         definition (str): The actual definition. I.e. for regex-type
             rules this would contain the actual regular expressions as
@@ -33,9 +34,10 @@ class Rule(BaseModel):
         tag (str, optional): Name used to tag matched columns in unity
             catalog
     """
-
+    
+    type = RuleTypes.REGEX
+    
     name: str
-    type: RuleTypes
     description: str
     definition: str
     match_example: Optional[Union[str, List[str]]] = None
@@ -61,7 +63,7 @@ class Rule(BaseModel):
             validation_example = example
 
         for ex in validation_example:
-            if ((values["type"] == RuleTypes.REGEX) and not re.match(values["definition"], ex)) != fail_match:
+            if (not re.match(values["definition"], ex)) != fail_match:
                 raise ValueError(
                     f"The definition of the rule {values['name']} does not match the provided example {ex}"
                 )
@@ -104,7 +106,7 @@ class RulesList:
 
 # define builtin rules
 builtin_rules = [
-    Rule(
+    RegexRule(
         name="ip_v4",
         type="regex",
         description="IP address v4",
@@ -112,7 +114,7 @@ builtin_rules = [
         match_example=["192.1.1.1", "0.0.0.0"],
         nomatch_example=["192"],
     ),
-    Rule(
+    RegexRule(
         name="ip_v6",
         type="regex",
         description="IP address v6",
@@ -120,7 +122,7 @@ builtin_rules = [
         match_example=["2001:db8:3333:4444:5555:6666:7777:8888", "::1234:5678", "2001:db8::", "::"],
         nomatch_example=["2001.0000"],
     ),
-    Rule(
+    RegexRule(
         name="email",
         type="regex",
         description="Email address",
@@ -128,7 +130,7 @@ builtin_rules = [
         match_example=["whatever@somewhere.museum", "foreignchars@myforeigncharsdomain.nu", "me+mysomething@mydomain.com"],
         nomatch_example=["a@b.c", "me@.my.com", "a@b.comFOREIGNCHAR"],
     ),
-    Rule(
+    RegexRule(
         name="mac",
         type="regex",
         description="MAC Addresses",
@@ -140,7 +142,7 @@ builtin_rules = [
             "01:02:03:04:05:06" # There must be at least one letter
         ],
     ),
-    Rule(
+    RegexRule(
         name="url",
         type="regex",
         description="URL",
@@ -161,7 +163,7 @@ builtin_rules = [
             "my@email.com"
         ],
     ),
-    Rule(
+    RegexRule(
         name="fqdn",
         type="regex",
         description="Fully Qualified Domain Names",
@@ -180,7 +182,7 @@ builtin_rules = [
             "Some text abc.cdf.com",
         ],
     ),
-    Rule(
+    RegexRule(
         name="us-social-security-number",
         type="regex",
         description="US Social Security Number",
@@ -188,7 +190,7 @@ builtin_rules = [
         match_example=["123-45-6789"],
         nomatch_example=["123-45-678", "123-456-7890", "123-45-67890", "123-456-789"]
     ),
-    Rule(
+    RegexRule(
         name="us-phone-number",
         type="regex",
         description="US Phone Number",
@@ -196,7 +198,7 @@ builtin_rules = [
         match_example=["+1 (123) 456-7890", "123-456-7890", "123.456.7890", "1234567890", "(123)456-7890"],
         nomatch_example=["123-45-6789", "987-65-4321"]
     ),
-    Rule(
+    RegexRule(
         name="us-zip-code",
         type="regex",
         description="US Zip Code",
@@ -204,7 +206,7 @@ builtin_rules = [
         match_example=["12345", "12345-6789"],
         nomatch_example=["1234", "123456"]
     ),
-    Rule(
+    RegexRule(
         name="us-state",
         type="regex",
         description="US State",
@@ -212,7 +214,7 @@ builtin_rules = [
         match_example=["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"],
         nomatch_example=["AL", "AK", "AS", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FM", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MH", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "MP", "OH", "OK", "OR", "PW", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY"]
     ),
-    Rule(
+    RegexRule(
         name="us-state-abbreviation",
         type="regex",
         description="US State Abbreviation",
@@ -220,7 +222,7 @@ builtin_rules = [
         match_example=["AL", "AK", "AS", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FM", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MH", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "MP", "OH", "OK", "OR", "PW", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY"],
         nomatch_example=["XY", "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"]
     ),
-    Rule(
+    RegexRule(
         name="us-mailing-address",
         type="regex",
         description="US Mailing Address",
@@ -228,7 +230,7 @@ builtin_rules = [
         match_example=["123 Main St", "456 Elm St", "789 Pine St"],
         nomatch_example=["123 Main", "456 Elm", "789 Pine"]
     ),
-    Rule(
+    RegexRule(
         name="credit-card-number",
         type="regex",
         description="Credit Card Number",
@@ -236,7 +238,7 @@ builtin_rules = [
         match_example=["1234-5678-9012-3456", "9876-5432-1098-7654"],
         nomatch_example=["1234-5678-9012-345", "1234-5678-9012-34567", "1234-5678-9012-3456-7890"]
     ),
-    Rule(
+    RegexRule(
         name="credit-card-expiration-date",
         type="regex",
         description="Credit Card Expiration Date",
@@ -244,7 +246,7 @@ builtin_rules = [
         match_example=["01/20", "12/25"],
         nomatch_example=["1/20", "01/2020", "01/2", "01/200"]
     ),
-    Rule(
+    RegexRule(
         name="iso-date",
         type="regex",
         description="ISO Date",
@@ -252,7 +254,7 @@ builtin_rules = [
         match_example=["2020-01-01", "2020-12-31"],
         nomatch_example=["2020-01", "2020-01-01-01", "2020-01-01T01:01:01"]
     ),
-    Rule(
+    RegexRule(
         name="iso-date-time",
         type="regex",
         description="ISO Date Time",
@@ -260,7 +262,6 @@ builtin_rules = [
         match_example=["2020-01-01T01:01:01", "2020-12-31T23:59:59"],
         nomatch_example=["2020-01", "2020-01-01", "2020-01-01-01"]
     ),
-
 
 ]
 
