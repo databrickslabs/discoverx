@@ -107,14 +107,14 @@ class RulesList:
 # define builtin rules
 global_rules = [
     RegexRule(
-        name="credit-card-expiration-date",
+        name="credit_card_expiration_date",
         description="Credit Card Expiration Date",
         definition=r"^\d{2}/\d{2}$",
         match_example=["01/20", "12/25"],
         nomatch_example=["1/20", "01/2020", "01/2", "01/200"]
     ),
     RegexRule(
-        name="credit-card-number",
+        name="credit_card_number",
         description="Credit Card Number",
         definition=r"^\d{4}-\d{4}-\d{4}-\d{4}$",
         match_example=["1234-5678-9012-3456", "9876-5432-1098-7654"],
@@ -160,21 +160,21 @@ global_rules = [
         nomatch_example=["2001.0000"],
     ),
     RegexRule(
-        name="iso-date",
+        name="iso_date",
         description="ISO Date",
         definition=r"^\d{4}-\d{2}-\d{2}$",
         match_example=["2020-01-01", "2020-12-31"],
         nomatch_example=["2020-01", "2020-01-01-01", "2020-01-01T01:01:01"]
     ),
     RegexRule(
-        name="iso-date-time",
+        name="iso_date_time",
         description="ISO Date Time",
         definition=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$",
         match_example=["2020-01-01T01:01:01", "2020-12-31T23:59:59"],
         nomatch_example=["2020-01", "2020-01-01", "2020-01-01-01"]
     ),
     RegexRule(
-        name="mac",
+        name="mac_address",
         description="MAC Addresses",
         definition=r"^(?=[-:\w]*[a-fA-F]+[-:\w]*)(([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2}))$",
         match_example=["01:02:03:04:ab:cd", "01-02-03-04-ab-cd", "0102-0304-abcd", "01020304abcd"],
@@ -209,7 +209,7 @@ global_rules = [
 localized_rules = {
     "us": [
         RegexRule(
-            name="us-mailing-address",
+            name="us_mailing_address",
             type="regex",
             description="US Mailing Address",
             definition=r"^\d+\s[A-z]+\s[A-z]+",
@@ -217,7 +217,7 @@ localized_rules = {
             nomatch_example=["123 Main", "456 Elm", "789 Pine"]
         ),
         RegexRule(
-            name="us-phone-number",
+            name="us_phone_number",
             type="regex",
             description="US Phone Number",
             definition=r"^\+?1?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$",
@@ -225,7 +225,7 @@ localized_rules = {
             nomatch_example=["123-45-6789", "987-65-4321"]
         ),
         RegexRule(
-            name="us-social-security-number",
+            name="us_social_security_number",
             type="regex",
             description="US Social Security Number",
             definition=r"^(?!000|666|9)\d{3}-(?!00)\d{2}-(?!0000)\d{4}$",
@@ -233,7 +233,7 @@ localized_rules = {
             nomatch_example=["123-45-678", "123-456-7890", "123-45-67890", "123-456-789"]
         ),
         RegexRule(
-            name="us-state",
+            name="us_state",
             type="regex",
             description="US State",
             definition=r"^(?i)(Alabama|Alaska|American Samoa|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|District of Columbia|Federated States of Micronesia|Florida|Georgia|Guam|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Marshall Islands|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Northern Mariana Islands|Ohio|Oklahoma|Oregon|Palau|Pennsylvania|Puerto Rico|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virgin Islands|Virginia|Washington|West Virginia|Wisconsin|Wyoming)$",
@@ -241,7 +241,7 @@ localized_rules = {
             nomatch_example=["AL", "AK", "AS", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FM", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MH", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "MP", "OH", "OK", "OR", "PW", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY"]
         ),
         RegexRule(
-            name="us-state-abbreviation",
+            name="us_state_abbreviation",
             type="regex",
             description="US State Abbreviation",
             definition=r"^(?i)(AL|AK|AS|AZ|AR|CA|CO|CT|DE|DC|FM|FL|GA|GU|HI|ID|IL|IN|IA|KS|KY|LA|ME|MH|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|MP|OH|OK|OR|PW|PA|PR|RI|SC|SD|TN|TX|UT|VT|VI|VA|WA|WV|WI|WY)$",
@@ -249,7 +249,7 @@ localized_rules = {
             nomatch_example=["XY", "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"]
         ),
         RegexRule(
-            name="us-zip-code",
+            name="us_zip_code",
             type="regex",
             description="US Zip Code",
             definition=r"^\d{5}(?:[-\s]\d{4})?$",
