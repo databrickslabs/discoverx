@@ -28,7 +28,6 @@ class Classifier:
         self.inspection_tool: Optional[InspectionTool] = None
         self.staged_updates: Optional[pd.DataFrame] = None
 
-        self.compute_classification_result()
 
     @property
     def above_threshold(self):
@@ -53,6 +52,9 @@ class Classifier:
         
 
     def compute_classification_result(self):
+
+        if self.above_threshold.empty:
+            raise Exception(f"No columns with frequency above {self.classification_threshold} threshold.")
         
         classification_result = self.above_threshold.drop(columns=["frequency"])
         classification_result["status"] = "detected"
@@ -178,6 +180,8 @@ class Classifier:
 
 
     def inspect(self):
+        
+        self.compute_classification_result()
         self.inspection_tool = InspectionTool(self.classification_result, self.publish)
 
     def publish(self, publish_uc_tags: bool):
@@ -185,6 +189,7 @@ class Classifier:
         if self.inspection_tool is not None:
             self._stage_updates(self.inspection_tool.inspected_table)
         else:
+            self.compute_classification_result()
             self._stage_updates(self.classification_result)
       
         staged_updates_df = self.spark.createDataFrame(
