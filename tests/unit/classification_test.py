@@ -40,6 +40,7 @@ def test_classifier(spark):
     dx = DX(spark=spark, classification_table_name="_discoverx.tags")
     dx.scanner = dummy_scanner
     dx._classify(classification_threshold=0.95)
+    dx.classifier.compute_classification_result()
     assert_frame_equal(
         dx.classifier.classification_result.reset_index(drop=True),
         pd.DataFrame(
@@ -257,6 +258,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner.scan_result = ScanResult(df_scan_result6)
     dx6.scanner = dummy_scanner
     dx6._classify(classification_threshold=0.95)
+    dx6.classifier.compute_classification_result()
     # simulate manual changes in InteractionTool - set ip6 to active again
     dx6.classifier.inspection_tool = InspectionTool(dx6.classifier.classification_result, dx6.classifier.publish)
     dx6.classifier.inspection_tool.inspected_table = dx6.classifier.classification_result
