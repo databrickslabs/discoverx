@@ -8,7 +8,7 @@ def test_ruleslist():
     assert none_rules_list.rules_info == ""
 
     rules_list = RulesList(global_rules)
-    assert rules_list.rules_info.startswith("<li>credit-card-expiration-date - Credit Card Expiration Date</li>\n")
+    assert rules_list.rules_info.startswith("<li>credit_card_expiration_date - Credit Card Expiration Date</li>\n")
 
 def test_localized_rules():
     rules_us = Rules(locale="US")

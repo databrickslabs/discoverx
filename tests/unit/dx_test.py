@@ -143,9 +143,9 @@ def test_search_multiple(spark, mock_uc_functionality):
     dx.publish()
 
     # search a specific term and auto-detect matching tags/rules
-    result = dx.search(by_tags=["ip_v4", "mac"])
+    result = dx.search(by_tags=["ip_v4", "mac_address"])
     assert result.collect()[0].table == 'tb_1'
     assert result.collect()[0].search_result.ip_v4.column == 'ip'
-    assert result.collect()[0].search_result.mac.column == 'mac'
+    assert result.collect()[0].search_result.mac_address.column == 'mac'
 
     spark.sql("DROP TABLE IF EXISTS _discoverx.tags")
