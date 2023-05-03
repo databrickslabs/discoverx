@@ -1,5 +1,5 @@
 import pytest
-from discoverx.rules import Rule, RegexRule, Rules, RulesList, builtin_rules
+from discoverx.rules import Rule, RegexRule, Rules, RulesList, global_rules
 
 
 def test_ruleslist():
@@ -7,9 +7,16 @@ def test_ruleslist():
     none_rules_list = RulesList()
     assert none_rules_list.rules_info == ""
 
-    rules_list = RulesList(builtin_rules)
-    assert rules_list.rules_info.startswith("<li>ip_v4 - IP address v4</li>\n              <li>ip_v6 - IP address v6</li>")
+    rules_list = RulesList(global_rules)
+    assert rules_list.rules_info.startswith("<li>credit-card-expiration-date - Credit Card Expiration Date</li>\n")
 
+def test_localized_rules():
+    rules_us = Rules(locale="US")
+    assert len(rules_us.get_rules(rule_filter="*")) == 16
+
+    # test fails if locale is not supported
+    with pytest.raises(ValueError):
+        Rules(locale="xx")
 
 def test_rules():
     # test builtin rules first
@@ -19,9 +26,8 @@ def test_rules():
 
     # check that we can filter with unix wildcards
     rules_ip = Rules()
-    rules_ip.builtin_rules = RulesList(builtin_rules)
-    assert len(rules.get_rules(rule_filter="*")) == 16
-    assert [rule.name for rule in rules.get_rules(rule_filter="*v4")] == ["ip_v4"]
+    assert len(rules_ip.get_rules(rule_filter="*")) == 10
+    assert [rule.name for rule in rules_ip.get_rules(rule_filter="*v4")] == ["ip_v4"]
 
     # add some custom rules
     device_rule_def = {
@@ -33,10 +39,9 @@ def test_rules():
     }
     cust_rule = RegexRule(**device_rule_def)
     cust_rules = Rules(custom_rules=[cust_rule])
-    cust_rules.builtin_rules = RulesList(builtin_rules)
 
     assert "custom_device_id" in cust_rules.get_rules_info()
-    assert len(cust_rules.get_rules(rule_filter="*")) == 17
+    assert len(cust_rules.get_rules(rule_filter="*")) == 11
 
 
 def test_rule_validation():
@@ -97,5 +102,5 @@ def test_standard_rules():
     if match/no-match examples are provided. Here, we therefore simply
     test that those examples
     """
-    for rule in builtin_rules:
+    for rule in global_rules:
         assert (rule.match_example is not None) and (rule.nomatch_example is not None)

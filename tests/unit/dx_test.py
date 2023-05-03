@@ -1,5 +1,4 @@
 import pytest
-
 from discoverx.dx import DX
 from discoverx import logging
 
@@ -33,7 +32,6 @@ def test_dx_instantiation(spark):
         dx.display_rules()
     except Exception as display_rules_error:
         pytest.fail(f"Displaying rules failed with {display_rules_error}")
-
 
 def test_scan_and_msql(spark, dx_ip):
     """
@@ -81,7 +79,6 @@ def test_search(spark, dx_ip: DX):
     with pytest.raises(ValueError) as single_bool:
         dx_ip.search(by_tags=True)
     assert single_bool.value.args[0] == "The provided by_tags True have the wrong type. Please provide either a str or List[str]."
-
 
 def test_select_by_tag(spark, dx_ip):
 

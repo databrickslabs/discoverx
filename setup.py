@@ -25,7 +25,8 @@ LOCAL_REQUIREMENTS = [
     "pyspark>=3.3.0",
     "delta-spark>=2.2.0",
     "scikit-learn",
-    "pandas",
+    "pandas<2.0.0", # From 2.0.0 onwards, pandas does not support iteritems() anymore, spark.createDataFrame will fail
+    "numpy<1.24", # From 1.24 onwards, module 'numpy' has no attribute 'bool'.
     "mlflow",
     "ipydatagrid",
     "ipykernel",
