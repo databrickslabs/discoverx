@@ -39,16 +39,7 @@ class Classifier:
         
         return self.scanner.scan_result.df[
             self.scanner.scan_result.df["frequency"] > self.classification_threshold
-        ].rename(
-            #TODO: Rename from source
-            columns={
-                "catalog": "table_catalog",
-                "database": "table_schema",
-                "table": "table_name",
-                "column": "column_name",
-                "rule_name": "tag_name",
-            }
-        )
+        ]
         
 
     def compute_classification_result(self):
@@ -87,13 +78,16 @@ class Classifier:
             }
 
             return pd.DataFrame(output)
-
-        self.classification_result = (all_tags
-                                      .groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True)
-                                      .apply(aggregate_updates)
-                                      .reset_index()
-                                      .drop(columns=["level_4"])
-        )
+        
+        if all_tags.empty:
+            self.classification_result = pd.DataFrame(columns=["table_catalog", "table_schema", "table_name", "column_name", "Current Tags", "Detected Tags", "Tags to be published", "Tags changed"])
+        else:
+            self.classification_result = (all_tags
+                                        .groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True)
+                                        .apply(aggregate_updates)
+                                        .reset_index()
+                                        .drop(columns=["level_4"])
+            )
         # when testing we don't have a 3-level namespace but we need
         # to make sure we get None instead of NaN
         self.classification_result.table_catalog = self.classification_result.table_catalog.astype(object)

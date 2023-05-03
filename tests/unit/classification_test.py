@@ -18,8 +18,8 @@ def test_classifier(spark):
     dummy_scanner = Scanner(spark, Rules())
     df_scan_result = pd.DataFrame(
         {
-            "catalog": [None, None, None, None, None, None, None, None, None],
-            "database": [
+            "table_catalog": [None, None, None, None, None, None, None, None, None],
+            "table_schema": [
                 "default",
                 "default",
                 "default",
@@ -30,9 +30,9 @@ def test_classifier(spark):
                 "default",
                 "default",
             ],
-            "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
-            "column": ["ip", "ip", "ip", "mac", "mac", "mac", "description", "description", "description"],
-            "rule_name": ["ip_v4", "ip_v6", "mac", "ip_v4", "ip_v6", "mac", "ip_v4", "ip_v6", "mac"],
+            "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
+            "column_name": ["ip", "ip", "ip", "mac", "mac", "mac", "description", "description", "description"],
+            "tag_name": ["ip_v4", "ip_v6", "mac", "ip_v4", "ip_v6", "mac", "ip_v4", "ip_v6", "mac"],
             "frequency": [1.0, 0.0, 0.0, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0],
         }
     )
@@ -71,11 +71,11 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner = Scanner(spark, Rules())
     df_scan_result = pd.DataFrame(
         {
-            "catalog": [None, None, None, None, None, None],
-            "database": ["default", "default", "default", "default", "default", "default"],
-            "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
-            "column": ["ip", "ip", "mac", "mac", "description", "description"],
-            "rule_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
+            "table_catalog": [None, None, None, None, None, None],
+            "table_schema": ["default", "default", "default", "default", "default", "default"],
+            "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
+            "column_name": ["ip", "ip", "mac", "mac", "description", "description"],
+            "tag_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
             "frequency": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         }
     )
@@ -126,11 +126,11 @@ def test_merging_scan_results(spark, mock_current_time):
     # added to the classification table
     df_scan_result3 = pd.DataFrame(
         {
-            "catalog": [None, None, None, None, None, None, None, None],
-            "database": ["default", "default", "default", "default", "default", "default", "default", "default"],
-            "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
-            "column": ["ip", "ip", "ip6", "ip6", "mac", "mac", "description", "description"],
-            "rule_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
+            "table_catalog": [None, None, None, None, None, None, None, None],
+            "table_schema": ["default", "default", "default", "default", "default", "default", "default", "default"],
+            "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
+            "column_name": ["ip", "ip", "ip6", "ip6", "mac", "mac", "description", "description"],
+            "tag_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
             "frequency": [1.0, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0, 0.0],
         }
     )
@@ -166,11 +166,11 @@ def test_merging_scan_results(spark, mock_current_time):
     # assume ip column is not classified during a subsequent scan - we should not remove the existing tag
     df_scan_result5 = pd.DataFrame(
         {
-            "catalog": [None, None, None, None, None, None, None, None],
-            "database": ["default", "default", "default", "default", "default", "default", "default", "default"],
-            "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
-            "column": ["ip", "ip", "ip6", "ip6", "mac", "mac", "description", "description"],
-            "rule_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
+            "table_catalog": [None, None, None, None, None, None, None, None],
+            "table_schema": ["default", "default", "default", "default", "default", "default", "default", "default"],
+            "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
+            "column_name": ["ip", "ip", "ip6", "ip6", "mac", "mac", "description", "description"],
+            "tag_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
             "frequency": [0.7, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0, 0.0],
         }
     )
@@ -206,8 +206,8 @@ def test_merging_scan_results(spark, mock_current_time):
     # uc tags (mocked)
     df_scan_result6 = pd.DataFrame(
         {
-            "catalog": [None, None, None, None, None, None, None, None, None, None, None, None],
-            "database": [
+            "table_catalog": [None, None, None, None, None, None, None, None, None, None, None, None],
+            "table_schema": [
                 "default",
                 "default",
                 "default",
@@ -221,8 +221,8 @@ def test_merging_scan_results(spark, mock_current_time):
                 "default",
                 "default",
             ],
-            "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_2", "tb_2", "tb_2", "tb_1", "tb_1", "tb_1"],
-            "column": [
+            "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_2", "tb_2", "tb_2", "tb_1", "tb_1", "tb_1"],
+            "column_name": [
                 "ip",
                 "ip",
                 "ip",
@@ -236,7 +236,7 @@ def test_merging_scan_results(spark, mock_current_time):
                 "description",
                 "description",
             ],
-            "rule_name": [
+            "tag_name": [
                 "ip_v4",
                 "ip_v6",
                 "mac",
