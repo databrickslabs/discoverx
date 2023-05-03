@@ -24,7 +24,6 @@ class Classifier:
         self.scanner = scanner
         self.spark = spark
         self.classification_table_name = classification_table_name
-        self.classification_table = self._get_classification_table_from_delta()
         self.classification_result: Optional[pd.DataFrame] = None
         self.inspection_tool: Optional[InspectionTool] = None
         self.staged_updates: Optional[pd.DataFrame] = None
@@ -57,13 +56,20 @@ class Classifier:
         
         classification_result = self.above_threshold.drop(columns=["frequency"])
         classification_result["status"] = "detected"
-        current_tags = (
-          self.classification_table.toDF()
-          .filter(func.col("current"))
-          .drop("current", "end_timestamp", "effective_timestamp")
-          .select("*", func.lit("current").alias("status"))
-          .toPandas()
-          )
+        classification_table = self._get_classification_table_from_delta()
+
+        if classification_table is None:
+            all_tags = classification_result
+        else:
+            current_tags = (
+            classification_table.toDF()
+            .filter(func.col("current"))
+            .drop("current", "end_timestamp", "effective_timestamp")
+            .select("*", func.lit("current").alias("status"))
+            .toPandas()
+            )
+
+            all_tags = pd.concat([classification_result, current_tags])
 
         def aggregate_updates(pdf):
             current_tags = sorted(pdf.loc[pdf["status"] == "current", "tag_name"].tolist())
@@ -80,14 +86,25 @@ class Classifier:
 
             return pd.DataFrame(output)
 
-        self.classification_result = pd.concat([classification_result, current_tags]).groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True).apply(aggregate_updates).reset_index().drop(columns=["level_4"])
+        self.classification_result = (all_tags
+                                      .groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True)
+                                      .apply(aggregate_updates)
+                                      .reset_index()
+                                      .drop(columns=["level_4"])
+        )
         # when testing we don't have a 3-level namespace but we need
         # to make sure we get None instead of NaN
         self.classification_result.table_catalog = self.classification_result.table_catalog.astype(object)
         self.classification_result.table_catalog = self.classification_result.table_catalog.where(pd.notnull(self.classification_result.table_catalog), None)
 
-    def _get_classification_table_from_delta(self):
 
+    def _get_classification_table_from_delta(self):
+        try:
+          return DeltaTable.forName(self.spark, self.classification_table_name)
+        except AnalysisException:
+          return None
+        
+    def _get_or_create_classification_table_from_delta(self):
         try:
           return DeltaTable.forName(self.spark, self.classification_table_name)
         except AnalysisException:
@@ -177,7 +194,7 @@ class Classifier:
         # merge using scd-typ2
         logger.friendly(f"Update classification table {self.classification_table_name}")
 
-        self.classification_table.alias("target").merge(
+        self._get_or_create_classification_table_from_delta().alias("target").merge(
             staged_updates_df.alias("source"),
             "target.table_catalog <=> source.table_catalog AND target.table_schema = source.table_schema AND target.table_name = source.table_name AND target.column_name = source.column_name AND target.tag_name = source.tag_name AND target.current = true",
         ).whenMatchedUpdate(

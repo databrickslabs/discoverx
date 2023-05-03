@@ -14,6 +14,11 @@ def scan_ip_in_tb1(spark, mock_uc_functionality):
 
     spark.sql("DROP TABLE IF EXISTS _discoverx.tags")
 
+def test_scan_without_classification_table(spark, mock_uc_functionality):
+    dx = DX(spark=spark, classification_table_name="_discoverx.non_existent_tags_table")
+    dx.scan(from_tables="*.*.tb_1", rules="ip_*")
+
+    assert len(dx.scan_result()) > 0
 
 def test_dx_instantiation(spark):
 

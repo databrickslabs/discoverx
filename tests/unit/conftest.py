@@ -215,7 +215,7 @@ def mock_uc_functionality(spark, monkeymodule):
 
     # mock classifier method _get_classification_table_from_delta as we don't
     # have catalogs in open source spark
-    def get_classification_table_mock(self):
+    def get_or_create_classification_table_mock(self):
         (schema, table) = self.classification_table_name.split(".")
         self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {schema}")
         self.spark.sql(
@@ -225,7 +225,7 @@ def mock_uc_functionality(spark, monkeymodule):
         )
         return DeltaTable.forName(self.spark, self.classification_table_name)
 
-    monkeymodule.setattr(Classifier, "_get_classification_table_from_delta", get_classification_table_mock)
+    monkeymodule.setattr(Classifier, "_get_or_create_classification_table_from_delta", get_or_create_classification_table_mock)
 
     # mock UC's tag functionality
     def set_uc_tags(self, series):
@@ -243,7 +243,7 @@ def mock_uc_functionality(spark, monkeymodule):
     yield
 
     spark.sql("DROP TABLE IF EXISTS _discoverx.tags")
-    spark.sql("DROP SCHEMA IF EXISTS _discoverx")
+    spark.sql("DROP SCHEMA IF EXISTS _discoverx CASCADE")
 
 
 @pytest.fixture(scope="module")
