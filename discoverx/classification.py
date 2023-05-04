@@ -52,9 +52,9 @@ class Classifier:
         classification_table = self._get_classification_table_from_delta()
 
         if classification_table is None:
-            all_tags = classification_result
+            all_classes = classification_result
         else:
-            current_tags = (
+            current_classes = (
             classification_table.toDF()
             .filter(func.col("current"))
             .drop("current", "end_timestamp", "effective_timestamp")
@@ -62,27 +62,27 @@ class Classifier:
             .toPandas()
             )
 
-            all_tags = pd.concat([classification_result, current_tags])
+            all_classes = pd.concat([classification_result, current_classes])
 
         def aggregate_updates(pdf):
-            current_tags = sorted(pdf.loc[pdf["status"] == "current", "tag_name"].tolist())
-            detected_tags = sorted(pdf.loc[pdf["status"] == "detected", "tag_name"].tolist())
-            published_tags = sorted(pdf.loc[:, "tag_name"].unique().tolist())
-            changed = current_tags != published_tags
+            current_classes = sorted(pdf.loc[pdf["status"] == "current", "class_name"].tolist())
+            detected_classes = sorted(pdf.loc[pdf["status"] == "detected", "class_name"].tolist())
+            published_classes = sorted(pdf.loc[:, "class_name"].unique().tolist())
+            changed = current_classes != published_classes
 
             output = {
-              "Current Tags": [current_tags],
-              "Detected Tags": [detected_tags],
-              "Tags to be published": [published_tags],
-              "Tags changed": [changed]
+              "Current Classes": [current_classes],
+              "Detected Classes": [detected_classes],
+              "Classes to be published": [published_classes],
+              "Classes changed": [changed]
             }
 
             return pd.DataFrame(output)
         
-        if all_tags.empty:
-            self.classification_result = pd.DataFrame(columns=["table_catalog", "table_schema", "table_name", "column_name", "Current Tags", "Detected Tags", "Tags to be published", "Tags changed"])
+        if all_classes.empty:
+            self.classification_result = pd.DataFrame(columns=["table_catalog", "table_schema", "table_name", "column_name", "Current Classes", "Detected Classes", "Classes to be published", "Classes changed"])
         else:
-            self.classification_result = (all_tags
+            self.classification_result = (all_classes
                                         .groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True)
                                         .apply(aggregate_updates)
                                         .reset_index()
@@ -110,7 +110,7 @@ class Classifier:
           self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
           self.spark.sql(
               f"""
-            CREATE TABLE IF NOT EXISTS {self.classification_table_name} (table_catalog string, table_schema string, table_name string, column_name string, tag_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp)
+            CREATE TABLE IF NOT EXISTS {self.classification_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp)
             """
           )
           logger.friendly(f"The classification table {self.classification_table_name} has been created.")
@@ -125,10 +125,10 @@ class Classifier:
     @property
     def rule_match_str(self) -> str:
         rule_match_counts = []
-        df_summary = self.above_threshold.groupby(["tag_name"]).agg({"frequency": "count"})
+        df_summary = self.above_threshold.groupby(["class_name"]).agg({"frequency": "count"})
         df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
         for _, row in df_summary.iterrows():
-            rule_match_counts.append(f"            <li>{row['frequency']} {row['tag_name']} columns</li>")
+            rule_match_counts.append(f"            <li>{row['frequency']} {row['class_name']} columns</li>")
         return "\n".join(rule_match_counts)
 
     @property
@@ -138,7 +138,7 @@ class Classifier:
         classified_cols.index = pd.MultiIndex.from_frame(
             classified_cols[["table_catalog", "table_schema", "table_name", "column_name"]]
         )
-        summary_html_table = classified_cols[["tag_name", "frequency"]].to_html()
+        summary_html_table = classified_cols[["class_name", "frequency"]].to_html()
 
         return f"""
         <h2>Result summary</h2>
@@ -166,11 +166,11 @@ class Classifier:
         
         classification_pdf = input_classification_pdf.copy()
 
-        classification_pdf["to_be_unset"] = classification_pdf.apply(lambda x: list(set(x["Current Tags"]) - set(x["Tags to be published"])), axis=1)
-        classification_pdf["to_be_set"] = classification_pdf.apply(lambda x: list(set(x["Tags to be published"]) - set(x["Current Tags"])), axis=1)
-        classification_pdf["to_be_kept"] = classification_pdf.apply(lambda x: list(set(x["Tags to be published"]) & set(x["Current Tags"])), axis=1)
+        classification_pdf["to_be_unset"] = classification_pdf.apply(lambda x: list(set(x["Current Classes"]) - set(x["Classes to be published"])), axis=1)
+        classification_pdf["to_be_set"] = classification_pdf.apply(lambda x: list(set(x["Classes to be published"]) - set(x["Current Classes"])), axis=1)
+        classification_pdf["to_be_kept"] = classification_pdf.apply(lambda x: list(set(x["Classes to be published"]) & set(x["Current Classes"])), axis=1)
 
-        self.staged_updates = pd.melt(classification_pdf, id_vars=["table_catalog", "table_schema", "table_name", "column_name"], value_vars=["to_be_unset", "to_be_set", "to_be_kept"], var_name="action", value_name="tag_name").explode("tag_name").dropna(subset=["tag_name"]).reset_index(drop=True)
+        self.staged_updates = pd.melt(classification_pdf, id_vars=["table_catalog", "table_schema", "table_name", "column_name"], value_vars=["to_be_unset", "to_be_set", "to_be_kept"], var_name="action", value_name="class_name").explode("class_name").dropna(subset=["class_name"]).reset_index(drop=True)
 
 
     def inspect(self):
@@ -178,7 +178,7 @@ class Classifier:
         self.compute_classification_result()
         self.inspection_tool = InspectionTool(self.classification_result, self.publish)
 
-    def publish(self, publish_uc_tags: bool):
+    def publish(self):
 
         if self.inspection_tool is not None:
             self._stage_updates(self.inspection_tool.inspected_table)
@@ -188,14 +188,14 @@ class Classifier:
       
         staged_updates_df = self.spark.createDataFrame(
             self.staged_updates,
-            "table_catalog: string, table_schema: string, table_name: string, column_name: string, action: string, tag_name: string",
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, action: string, class_name: string",
         ).withColumn("effective_timestamp", func.current_timestamp())
         # merge using scd-typ2
         logger.friendly(f"Update classification table {self.classification_table_name}")
 
         self._get_or_create_classification_table_from_delta().alias("target").merge(
             staged_updates_df.alias("source"),
-            "target.table_catalog <=> source.table_catalog AND target.table_schema = source.table_schema AND target.table_name = source.table_name AND target.column_name = source.column_name AND target.tag_name = source.tag_name AND target.current = true",
+            "target.table_catalog <=> source.table_catalog AND target.table_schema = source.table_schema AND target.table_name = source.table_name AND target.column_name = source.column_name AND target.class_name = source.class_name AND target.current = true",
         ).whenMatchedUpdate(
             condition = "source.action = 'to_be_unset'",
             set={"current": "false", "end_timestamp": "source.effective_timestamp"}
@@ -205,7 +205,7 @@ class Classifier:
                 "table_schema": "source.table_schema",
                 "table_name": "source.table_name",
                 "column_name": "source.column_name",
-                "tag_name": "source.tag_name",
+                "class_name": "source.class_name",
                 "effective_timestamp": "source.effective_timestamp",
                 "current": "true",
                 "end_timestamp": "null",
@@ -216,25 +216,21 @@ class Classifier:
         logger.debug("Vacuum classification table")
         # self.classification_table.vacuum()
 
-        if publish_uc_tags:
-            # set unity catalog tags (private preview feature)
-            logger.friendly("Set/Unset Unity Catalog Column Tags")
-            self.staged_updates.apply(self._set_tag_uc, axis=1)
 
     def _set_tag_uc(self, series: pd.Series):
         if (series.action == "to_be_set"):
             logger.debug(
-                f"Set tag {series.tag_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
+                f"Set tag {series.class_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
             )
-            if series.tag_name != '':
+            if series.class_name != '':
               self.spark.sql(
-                  f"ALTER TABLE {series.table_catalog}.{series.table_schema}.{series.table_name} ALTER COLUMN {series.column_name} SET TAGS ('dx_{series.tag_name}')"
+                  f"ALTER TABLE {series.table_catalog}.{series.table_schema}.{series.table_name} ALTER COLUMN {series.column_name} SET TAGS ('dx_{series.class_name}')"
               )
         if (series.action == "to_be_unset"):
             logger.debug(
-                f"Unset tag {series.tag_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
+                f"Unset tag {series.class_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
             )
-            if series.tag_name != '':
+            if series.class_name != '':
               self.spark.sql(
-                  f"ALTER TABLE {series.table_catalog}.{series.table_schema}.{series.table_name} ALTER COLUMN {series.column_name} UNSET TAGS ('dx_{series.tag_name}')"
+                  f"ALTER TABLE {series.table_catalog}.{series.table_schema}.{series.table_name} ALTER COLUMN {series.column_name} UNSET TAGS ('dx_{series.class_name}')"
               )

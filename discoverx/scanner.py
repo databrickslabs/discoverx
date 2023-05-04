@@ -15,7 +15,7 @@ class ColumnInfo:
     name: str
     data_type: str
     partition_index: int
-    tags: list[str]
+    classes: list[str]
 
 
 @dataclass
@@ -25,14 +25,14 @@ class TableInfo:
     table: str
     columns: list[ColumnInfo]
 
-    def get_columns_by_tag(self, tag: str):
-        return [TaggedColumn(col.name, tag) for col in self.columns if tag in col.tags]
+    def get_columns_by_class(self, class_name: str):
+        return [ClassifiedColumn(col.name, class_name) for col in self.columns if class_name in col.classes]
 
 
 @dataclass
-class TaggedColumn:
+class ClassifiedColumn:
     name: str
-    tag: str
+    class_name: str
 
 
 @dataclass
@@ -258,11 +258,11 @@ class Scanner:
                 '{table_info.schema}' as table_schema,
                 '{table_info.table}' as table_name, 
                 column_name,
-                tag_name,
+                class_name,
                 (sum(value) / count(value)) as frequency
             FROM
             (
-                SELECT column_name, stack({len(expressions)}, {unpivot_expressions}) as (tag_name, value)
+                SELECT column_name, stack({len(expressions)}, {unpivot_expressions}) as (class_name, value)
                 FROM 
                 (
                     SELECT
@@ -276,7 +276,7 @@ class Scanner:
                     )
                 )
             )
-            GROUP BY table_catalog, table_schema, table_name, column_name, tag_name
+            GROUP BY table_catalog, table_schema, table_name, column_name, class_name
         """
 
         return strip_margin(sql)

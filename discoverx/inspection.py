@@ -16,50 +16,50 @@ class InspectionTool:
         self.datagrid = self._setup_datagrid(classification_pdf, self._get_renderer())
         self.current_row = None
 
-        # button to publish tags
+        # button to publish classes
         self.button = self._setup_button()
         self.text = widgets.HTML(value="<h2>Inspect Lakehouse Scan</h2>")
 
-        # set up Tag inspection & modification part of UI
-        self.tags_header = widgets.HTML(
-            value="<h3>Inspect & Modify Tags </h3>\n<i>Select any row above to inspect current/existing tags, inspect those detected by the scan and inspect and modify the ones which are going to be published.</i>"
+        # set up Class inspection & modification part of UI
+        self.classes_header = widgets.HTML(
+            value="<h3>Inspect & Modify Classes </h3>\n<i>Select any row above to inspect current/existing classes, inspect those detected by the scan and inspect and modify the ones which are going to be published.</i>"
         )
 
-        self.published_tags_header = widgets.HTML(
-            value="<h4>Tags To Be Published (Edit + Press Enter)</h4>"
+        self.published_classes_header = widgets.HTML(
+            value="<h4>Classes To Be Published (Edit + Press Enter)</h4>"
         )
-        self.published_tags = widgets.Text(value="", disabled=False)
-        self.published_tags.on_submit(self._on_publish_tags_submit)
+        self.published_classes = widgets.Text(value="", disabled=False)
+        self.published_classes.on_submit(self._on_publish_classes_submit)
 
-        self.current_tags_header = widgets.HTML(value="<h4>Current Tags</h4>")
-        self.current_tags = widgets.Text(value="", disabled=True)
+        self.current_classes_header = widgets.HTML(value="<h4>Current Classes</h4>")
+        self.current_classes = widgets.Text(value="", disabled=True)
 
-        self.detected_tags_header = widgets.HTML(value="<h4>Detected Tags</h4>")
-        self.detected_tags = widgets.Text(value="", disabled=True)
+        self.detected_classes_header = widgets.HTML(value="<h4>Detected Classes</h4>")
+        self.detected_classes = widgets.Text(value="", disabled=True)
 
         # organize all elements below the datagrid
         self.headers = widgets.HBox(
             [
-                self.current_tags_header,
-                self.detected_tags_header,
-                self.published_tags_header,
+                self.current_classes_header,
+                self.detected_classes_header,
+                self.published_classes_header,
             ]
         )
-        self.tag_text = widgets.HBox(
-            [self.current_tags, self.detected_tags, self.published_tags]
+        self.class_text = widgets.HBox(
+            [self.current_classes, self.detected_classes, self.published_classes]
         )
         gridbox = widgets.GridspecLayout(3, 3, layout=widgets.Layout(width="1100"))
-        gridbox[0, 0] = self.current_tags_header
-        gridbox[0, 1] = self.detected_tags_header
-        gridbox[0, 2] = self.published_tags_header
-        gridbox[1, 0] = self.current_tags
-        gridbox[1, 1] = self.detected_tags
-        gridbox[1, 2] = self.published_tags
+        gridbox[0, 0] = self.current_classes_header
+        gridbox[0, 1] = self.detected_classes_header
+        gridbox[0, 2] = self.published_classes_header
+        gridbox[1, 0] = self.current_classes
+        gridbox[1, 1] = self.detected_classes
+        gridbox[1, 2] = self.published_classes
         gridbox[2, 0] = self.button
 
         # complete UI layout
         self.inspection_widget = widgets.VBox(
-            [self.text, self.datagrid, self.tags_header, gridbox]
+            [self.text, self.datagrid, self.classes_header, gridbox]
         )
 
     def display(self):
@@ -80,35 +80,35 @@ class InspectionTool:
 
     def _on_cell_clicked(self, cell):
         self.current_row = cell["primary_key_row"]
-        self.published_tags.value = ", ".join(
+        self.published_classes.value = ", ".join(
             self.datagrid.get_cell_value(
-                "Tags to be published", cell["primary_key_row"]
+                "Classes to be published", cell["primary_key_row"]
             )[0]
         )
-        self.current_tags.value = ", ".join(
-            self.datagrid.get_cell_value("Current Tags", cell["primary_key_row"])[0]
+        self.current_classes.value = ", ".join(
+            self.datagrid.get_cell_value("Current Classes", cell["primary_key_row"])[0]
         )
-        self.detected_tags.value = ", ".join(
-            self.datagrid.get_cell_value("Detected Tags", cell["primary_key_row"])[0]
+        self.detected_classes.value = ", ".join(
+            self.datagrid.get_cell_value("Detected Classes", cell["primary_key_row"])[0]
         )
 
     def _get_renderer(self):
         return TextRenderer(
             background_color=VegaExpr(
-                "cell.metadata.data['Tags changed'][0] ? 'lightblue' :'white'"
+                "cell.metadata.data['Classes changed'][0] ? 'lightblue' :'white'"
             )
         )
 
-    def _on_publish_tags_submit(self, text):
+    def _on_publish_classes_submit(self, text):
         if self.current_row is not None:
-            new_input = [tag.replace(" ", "") for tag in text.value.split(",")]
+            new_input = [class_name.replace(" ", "") for class_name in text.value.split(",")]
             self.datagrid.set_cell_value(
-                "Tags to be published", self.current_row, new_input
+                "Classes to be published", self.current_row, new_input
             )
             changed = self.datagrid.get_cell_value(
-                "Current Tags", self.current_row
-            ) != self.datagrid.get_cell_value("Tags to be published", self.current_row)
-            self.datagrid.set_cell_value("Tags changed", self.current_row, changed)
+                "Current Classes", self.current_row
+            ) != self.datagrid.get_cell_value("Classes to be published", self.current_row)
+            self.datagrid.set_cell_value("Classes changed", self.current_row, changed)
 
     def _setup_button(self):
         button = widgets.Button(description="Publish All")
@@ -118,7 +118,7 @@ class InspectionTool:
     def _on_button_clicked(self, b):
         self.inspected_table = self.datagrid.data
         self.datagrid.close()
-        self.published_tags.disabled = True
+        self.published_classes.disabled = True
         self.button.disabled = True
         self.button.button_style = "warning"
         self.button.description = "Publishing ..."

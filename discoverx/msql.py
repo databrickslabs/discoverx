@@ -23,14 +23,14 @@ class Msql:
     from_statement_expr = r"(FROM\s+)(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))"
     from_components_expr = r"^(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))$"
     command_expr = r"^\s*(\w+)\s"
-    tag_regex = r"\[([\w_-]+)\]"
+    class_regex = r"\[([\w_-]+)\]"
     valid_commands = ["SELECT", "DELETE"]
 
     def __init__(self, msql: str) -> None:
         self.msql = msql
 
-        # Find distinct tags in M-SQL expression
-        self.tags = list(set(re.findall(self.tag_regex, msql)))
+        # Find distinct classes in M-SQL expression
+        self.classes = list(set(re.findall(self.class_regex, msql)))
 
         # Extract from clause components
         (self.catalogs, self.schemas, self.tables) = self._extract_from_components()
@@ -54,18 +54,18 @@ class Msql:
         msql = strip_margin(self.msql)
         msql = self._replace_from_statement(msql, table_info)
 
-        # Get all columns matching the tags
-        columns_by_tag = [table_info.get_columns_by_tag(tag) for tag in self.tags]
+        # Get all columns matching the classes
+        columns_by_class = [table_info.get_columns_by_class(class_name) for class_name in self.classes]
 
-        # Create all possible combinations of tagged columns to be queried
-        col_tag_combinations = list(itertools.product(*columns_by_tag))
+        # Create all possible combinations of classified columns to be queried
+        col_class_combinations = list(itertools.product(*columns_by_class))
 
-        # Replace tags in M-SQL expression with column names
+        # Replace classes in M-SQL expression with column names
         sql_statements = []
-        for tagged_cols in col_tag_combinations:
+        for classified_cols in col_class_combinations:
             temp_sql = msql
-            for tagged_col in tagged_cols:
-                temp_sql = temp_sql.replace(f"[{tagged_col.tag}]", tagged_col.name)
+            for classified_col in classified_cols:
+                temp_sql = temp_sql.replace(f"[{classified_col.class_name}]", classified_col.name)
             sql_statements.append(SQLRow(table_info.catalog, table_info.schema, table_info.table, temp_sql))
         
         return sql_statements
@@ -76,11 +76,11 @@ class Msql:
         """Builds the M-SQL expression into a SQL expression"""
         
         classified_cols = classified_result_pdf.copy()
-        classified_cols = classified_cols[classified_cols['tag_name'].isin(self.tags)]
-        classified_cols = classified_cols.groupby(['catalog', 'schema', 'table', 'column']).aggregate(lambda x: list(x))[['tag_name']].reset_index()
+        classified_cols = classified_cols[classified_cols['class_name'].isin(self.classes)]
+        classified_cols = classified_cols.groupby(['catalog', 'schema', 'table', 'column']).aggregate(lambda x: list(x))[['class_name']].reset_index()
 
-        classified_cols['col_tags'] = classified_cols[['column', 'tag_name']].apply(tuple, axis=1)
-        df = classified_cols.groupby(['catalog', 'schema', 'table']).aggregate(lambda x: list(x))[['col_tags']].reset_index()
+        classified_cols['col_classes'] = classified_cols[['column', 'class_name']].apply(tuple, axis=1)
+        df = classified_cols.groupby(['catalog', 'schema', 'table']).aggregate(lambda x: list(x))[['col_classes']].reset_index()
 
         # Filter tables by matching filter
         filtered_tables = [
@@ -93,7 +93,7 @@ class Msql:
                         col[0], # col name
                         "", # TODO
                         None, # TODO
-                        col[1] # Tags
+                        col[1] # Classes
                     ) for col in row[3]
                 ]
             ) for _, row in df.iterrows() if fnmatch(row[0], self.catalogs) and fnmatch(row[1], self.schemas) and fnmatch(row[2], self.tables)]

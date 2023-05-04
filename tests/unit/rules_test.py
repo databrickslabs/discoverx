@@ -35,7 +35,7 @@ def test_rules():
         "description": "Custom device ID XX-XXXX-XXXXXXXX",
         "definition": "\d{2}[-]\d{4}[-]\d{8}",
         "match_example": "00-1111-22222222",
-        "tag": "device_id",
+        "class_name": "device_id",
     }
     cust_rule = RegexRule(**device_rule_def)
     cust_rules = Rules(custom_rules=[cust_rule])

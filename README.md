@@ -64,7 +64,7 @@ dx.inspect()
 
 ## Publish the classificaiton
 
-After a `scan` you can publish the classificaiton results in a delta table (by default the table is `_discoverx.classification.tags`).
+After a `scan` you can publish the classificaiton results in a delta table (by default the table is `_discoverx.classification.classes`).
 
 You can either publish the classification from the inspection UI, or apply directly without fine-tuning by executing
 
@@ -74,7 +74,7 @@ dx.publish()
 
 ## Cross-table queries
 
-After a `publish` you can leverage the classified column tags to run cross-table `search`, `delete_by_tag` and `select_by_tags` actions.
+After a `publish` you can leverage the classified column classes to run cross-table `search`, `delete_by_class` and `select_by_classes` actions.
 
 
 ### Search
@@ -85,12 +85,12 @@ Search for a specific value across multiple tables.
 dx.search("example_email@databricks.com", from_tables="*.*.*")
 ```
 
-The search will automatically try to classify the search term and restrict the search to columns that match that rule tags.
+The search will automatically try to classify the search term and restrict the search to columns that match that rule classes.
 
-You can also specify the tags where the search should be performed explicitly:
+You can also specify the classes where the search should be performed explicitly:
 
 ```
-dx.search("example_email@databricks.com", from_tables="*.*.*", by_tags=["dx_email"])
+dx.search("example_email@databricks.com", from_tables="*.*.*", by_classes=["dx_email"])
 ```
 
 ### Delete
@@ -99,31 +99,31 @@ Delete
 
 Preview delete statements
 ```
-dx.delete_by_tag(from_tables="*.*.*", by_tag="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=False)
+dx.delete_by_class(from_tables="*.*.*", by_class="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=False)
 ```
 
 Execute delete statements
 ```
-dx.delete_by_tag(from_tables="*.*.*", by_tag="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=True)
+dx.delete_by_class(from_tables="*.*.*", by_class="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=True)
 ```
 
 Note: You need to regularely [vacuum](https://docs.delta.io/latest/delta-utility.html#remove-files-no-longer-referenced-by-a-delta-table) all your delta tables to remove all traces of your deleted rows. 
 
 ### Select
 
-Select all columns tagged with specified tags from multiple tables
+Select all columns classified with specified classes from multiple tables
 
 ```
-dx.select_by_tags(from_tables="*.*.*", by_tags=["dx_iso_date", "dx_email"])
+dx.select_by_classes(from_tables="*.*.*", by_classes=["dx_iso_date", "dx_email"])
 ```
 
 You can apply further transformations to build your summary tables. 
 Eg. Count the occurrence of each IP address per day across multiple tables and columns
 
 ```
-df = (dx.select_by_tags(from_tables="*.*.*", by_tags=["dx_iso_date", "dx_ip_v4"])
-    .groupby(["catalog", "schema", "table", "tagged_columns.dx_iso_date.column", "tagged_columns.dx_iso_date.value", "tagged_columns.dx_ip_v4.column"])
-    .agg(func.count("tagged_columns.dx_ip_v4.value").alias("count"))
+df = (dx.select_by_classes(from_tables="*.*.*", by_classes=["dx_iso_date", "dx_ip_v4"])
+    .groupby(["catalog", "schema", "table", "classified_columns.dx_iso_date.column", "classified_columns.dx_iso_date.value", "classified_columns.dx_ip_v4.column"])
+    .agg(func.count("classified_columns.dx_ip_v4.value").alias("count"))
 )
 ```
 
