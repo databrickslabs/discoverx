@@ -122,7 +122,7 @@ Eg. Count the occurrence of each IP address per day across multiple tables and c
 
 ```
 df = (dx.select_by_tags(from_tables="*.*.*", by_tags=["dx_iso_date", "dx_ip_v4"])
-    .groupby(["catalog", "database", "table", "tagged_columns.dx_iso_date.column", "tagged_columns.dx_iso_date.value", "tagged_columns.dx_ip_v4.column"])
+    .groupby(["catalog", "schema", "table", "tagged_columns.dx_iso_date.column", "tagged_columns.dx_iso_date.value", "tagged_columns.dx_ip_v4.column"])
     .agg(func.count("tagged_columns.dx_ip_v4.value").alias("count"))
 )
 ```
@@ -137,7 +137,7 @@ You can define
 ```
 dx.scan(
     catalogs="*",      # Catalog filter ('*' is a wildcard)
-    databases="*",     # Database filter ('*' is a wildcard)
+    schemas="*",       # Database filter ('*' is a wildcard)
     tables="*",        # Table filter ('*' is a wildcard)
     rules="*",         # Rule filter ('*' is a wildcard) or list[string]
     sample_size=10000, # Number of rows to sample, use None for a full table scan

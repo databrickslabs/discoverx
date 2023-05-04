@@ -95,7 +95,7 @@ import pyspark.sql.functions as func
 # Count the occurrences of each IP address per table per IP column
 (dx
   .select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"])
-  .groupby(["catalog", "database", "table", "tagged_columns.ip_v4.column", "tagged_columns.ip_v4.value"])
+  .groupby(["catalog", "schema", "table", "tagged_columns.ip_v4.column", "tagged_columns.ip_v4.value"])
   .agg(func.count("tagged_columns.ip_v4.value").alias("count"))  
 ).display()
 

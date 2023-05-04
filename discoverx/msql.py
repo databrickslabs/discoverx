@@ -13,7 +13,7 @@ import itertools
 @dataclass
 class SQLRow:
     catalog: str
-    database: str
+    schema: str
     table: str
     sql: str
 
@@ -33,7 +33,7 @@ class Msql:
         self.tags = list(set(re.findall(self.tag_regex, msql)))
 
         # Extract from clause components
-        (self.catalogs, self.databases, self.tables) = self._extract_from_components()
+        (self.catalogs, self.schemas, self.tables) = self._extract_from_components()
 
         # Extract command
         self.command = self._extract_command()
@@ -66,7 +66,7 @@ class Msql:
             temp_sql = msql
             for tagged_col in tagged_cols:
                 temp_sql = temp_sql.replace(f"[{tagged_col.tag}]", tagged_col.name)
-            sql_statements.append(SQLRow(table_info.catalog, table_info.database, table_info.table, temp_sql))
+            sql_statements.append(SQLRow(table_info.catalog, table_info.schema, table_info.table, temp_sql))
         
         return sql_statements
     
@@ -77,10 +77,10 @@ class Msql:
         
         classified_cols = classified_result_pdf.copy()
         classified_cols = classified_cols[classified_cols['tag_name'].isin(self.tags)]
-        classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['tag_name']].reset_index()
+        classified_cols = classified_cols.groupby(['catalog', 'schema', 'table', 'column']).aggregate(lambda x: list(x))[['tag_name']].reset_index()
 
         classified_cols['col_tags'] = classified_cols[['column', 'tag_name']].apply(tuple, axis=1)
-        df = classified_cols.groupby(['catalog', 'database', 'table']).aggregate(lambda x: list(x))[['col_tags']].reset_index()
+        df = classified_cols.groupby(['catalog', 'schema', 'table']).aggregate(lambda x: list(x))[['col_tags']].reset_index()
 
         # Filter tables by matching filter
         filtered_tables = [
@@ -96,10 +96,10 @@ class Msql:
                         col[1] # Tags
                     ) for col in row[3]
                 ]
-            ) for _, row in df.iterrows() if fnmatch(row[0], self.catalogs) and fnmatch(row[1], self.databases) and fnmatch(row[2], self.tables)]
+            ) for _, row in df.iterrows() if fnmatch(row[0], self.catalogs) and fnmatch(row[1], self.schemas) and fnmatch(row[2], self.tables)]
         
         if len(filtered_tables) == 0:
-            raise ValueError(f"No tables found matching filter: {self.catalogs}.{self.databases}.{self.tables}")
+            raise ValueError(f"No tables found matching filter: {self.catalogs}.{self.schemas}.{self.tables}")
 
         sqls = flat_map(self.compile_msql, filtered_tables)
         
@@ -111,12 +111,12 @@ class Msql:
             result = (spark
                 .sql(sql_row.sql)
                 .withColumn('catalog', lit(sql_row.catalog))
-                .withColumn('database', lit(sql_row.database))
+                .withColumn('schema', lit(sql_row.schema))
                 .withColumn('table', lit(sql_row.table)))
             if self.command == "DELETE":
                 result = result.withColumn('sql', lit(sql_row.sql))
         except Exception as e:
-            self.logger.info(f"Unable to execute SQL for {sql_row.catalog}.{sql_row.database}.{sql_row.table}: {e}")
+            self.logger.info(f"Unable to execute SQL for {sql_row.catalog}.{sql_row.schema}.{sql_row.table}: {e}")
             result = None
 
         return result
@@ -134,14 +134,14 @@ class Msql:
     def _replace_from_statement(self, msql: str, table_info: TableInfo):
         """Replaces the FROM statement in the M-SQL expression with the specified table name"""
         if table_info.catalog and table_info.catalog != "None":
-            replace_with = f"FROM {table_info.catalog}.{table_info.database}.{table_info.table}"
+            replace_with = f"FROM {table_info.catalog}.{table_info.schema}.{table_info.table}"
         else:
-            replace_with = f"FROM {table_info.database}.{table_info.table}"
+            replace_with = f"FROM {table_info.schema}.{table_info.table}"
         
         return re.sub(self.from_statement_expr, replace_with, msql)
     
     def _extract_from_components(self):
-        """Extracts the catalog, database and table name from the FROM statement in the M-SQL expression"""
+        """Extracts the catalog, schema and table name from the FROM statement in the M-SQL expression"""
         matches = re.findall(self.from_statement_expr, self.msql)
         if len(matches) > 1:
             raise ValueError(f"Multiple FROM statements found in M-SQL expression: {self.msql}")
@@ -152,12 +152,12 @@ class Msql:
     
     @staticmethod
     def validate_from_components(from_tables: str):
-        """Extracts the catalog, database and table name from the from_table string"""
+        """Extracts the catalog, schema and table name from the from_table string"""
         matches = re.findall(Msql.from_components_expr, from_tables)
         if len(matches) == 1 and len(matches[0]) == 4:
             return (matches[0][1], matches[0][2], matches[0][3])
         else:
-            raise ValueError(f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'catalog.database.table'. You can use '*' as wildcard.")
+            raise ValueError(f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'catalog.schema.table'. You can use '*' as wildcard.")
     
     def _extract_command(self):
         """Extracts the command from the M-SQL expression"""

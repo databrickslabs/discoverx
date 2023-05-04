@@ -70,7 +70,7 @@ def test_search(spark, dx_ip: DX):
     result_tags_only = dx_ip.search(by_tags='ip_v4')
     assert {row.search_result.ip_v4.value for row in result_tags_only.collect()} == {"1.2.3.4", "3.4.5.60"}
 
-    # specify catalog, database and table
+    # specify catalog, schema and table
     result_tags_namespace = dx_ip.search(by_tags='ip_v4', from_tables="*.default.tb_*")
     assert {row.search_result.ip_v4.value for row in result_tags_namespace.collect()} == {"1.2.3.4", "3.4.5.60"}
 

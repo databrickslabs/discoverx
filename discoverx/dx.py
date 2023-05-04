@@ -114,18 +114,18 @@ class DX:
         """Scans the lakehouse for columns matching the given rules
         
         Args:
-            from_tables (str, optional): The tables to be scanned in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            from_tables (str, optional): The tables to be scanned in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
             rules (str, optional): The rule names to be used to scan the lakehouse, use "*" as a wildcard. Defaults to "*".
             sample_size (int, optional): The number of rows to be scanned per table. Defaults to 10000.
             what_if (bool, optional): Whether to run the scan in what-if mode and print the SQL commands instead of executing them. Defaults to False.
         """
-        catalogs, databases, tables = Msql.validate_from_components(from_tables)
+        catalogs, schemas, tables = Msql.validate_from_components(from_tables)
         
         self.scanner = Scanner(
             self.spark,
             self.rules,
             catalogs=catalogs,
-            databases=databases,
+            schemas=schemas,
             tables=tables,
             rule_filter=rules,
             sample_size=sample_size,
@@ -216,7 +216,7 @@ class DX:
         
         Args:
             search_term (str, optional): The search term to be used to search for columns. Defaults to None.
-            from_tables (str, optional): The tables to be searched in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            from_tables (str, optional): The tables to be searched in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
             by_tags (Union[List[str], str], optional): The tags to be used to search for columns. Defaults to None.
             
         Raises:
@@ -265,7 +265,7 @@ class DX:
         """Selects all columns in the lakehouse that match the given tags
         
         Args:
-            from_tables (str, optional): The tables to be selected in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            from_tables (str, optional): The tables to be selected in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
             by_tags (Union[List[str], str], optional): The tags to be used to search for columns. Defaults to None.
         
         Raises:
@@ -297,7 +297,7 @@ class DX:
         """Deletes all rows in the lakehouse that match any of the provided values in a column tagged with the given tag
         
         Args:
-            from_tables (str, optional): The tables to delete from in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            from_tables (str, optional): The tables to delete from in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
             by_tag (str, optional): The tag to be used to search for columns. Defaults to None.
             values (Union[List[str], str], optional): The values to be deleted. Defaults to None.
             yes_i_am_sure (bool, optional): Whether you are sure that you want to delete the data. If False prints the SQL statements instead of executing them. Defaults to False.
@@ -343,7 +343,7 @@ class DX:
                 .filter(func.col("current") == True)
                 .select(
                     func.col("table_catalog").alias("catalog"),
-                    func.col("table_schema").alias("database"),
+                    func.col("table_schema").alias("schema"),
                     func.col("table_name").alias("table"),
                     func.col("column_name").alias("column"),
                     "tag_name",

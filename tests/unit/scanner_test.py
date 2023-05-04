@@ -42,7 +42,7 @@ def test_get_table_list(spark):
     MockedScanner = Scanner
     MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
     scanner = MockedScanner(
-        spark, rules=rules, catalogs="*", databases="*", tables="*_all_types", rule_filter="*", sample_size=100
+        spark, rules=rules, catalogs="*", schemas="*", tables="*_all_types", rule_filter="*", sample_size=100
     )
     actual = scanner._get_list_of_tables()
 

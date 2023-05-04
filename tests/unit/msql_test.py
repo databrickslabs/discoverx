@@ -24,9 +24,9 @@ def classification_df(spark) -> pd.DataFrame:
         ["c", "db2", "tb3", "email_4", "dx_email"],
         ["c", "db", "tb1", "description", "any_number"],  # any_number not in the tag list
         ["m_c", "db", "tb1", "email_3", "dx_email"],  # catalog does not match
-        ["c", "m_db", "tb1", "email_4", "dx_email"],  # database does not match
+        ["c", "m_db", "tb1", "email_4", "dx_email"],  # schema does not match
         ["c", "db", "m_tb1", "email_5", "dx_email"],  # table does not match
-    ], columns=["catalog", "database", "table", "column", "tag_name"])
+    ], columns=["catalog", "schema", "table", "column", "tag_name"])
 
 columns = [
     ColumnInfo("id", "number", None, ["id"]),
