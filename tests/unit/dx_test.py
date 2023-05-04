@@ -20,6 +20,12 @@ def test_scan_without_classification_table(spark, mock_uc_functionality):
 
     assert len(dx.scan_result()) > 0
 
+def test_scan_withno_results(spark, mock_uc_functionality):
+    dx = DX(spark=spark, classification_table_name="_discoverx.non_existent_tags_table")
+    dx.scan(from_tables="*.*.tb_1", rules="credit_card_number")
+
+    assert len(dx.scan_result()) > 0
+
 def test_dx_instantiation(spark):
 
     dx = DX(spark=spark)

@@ -28,7 +28,6 @@ class Classifier:
         self.inspection_tool: Optional[InspectionTool] = None
         self.staged_updates: Optional[pd.DataFrame] = None
 
-        self.compute_classification_result()
 
     @property
     def above_threshold(self):
@@ -40,19 +39,13 @@ class Classifier:
         
         return self.scanner.scan_result.df[
             self.scanner.scan_result.df["frequency"] > self.classification_threshold
-        ].rename(
-            #TODO: Rename from source
-            columns={
-                "catalog": "table_catalog",
-                "database": "table_schema",
-                "table": "table_name",
-                "column": "column_name",
-                "rule_name": "tag_name",
-            }
-        )
+        ]
         
 
     def compute_classification_result(self):
+
+        if self.above_threshold.empty:
+            raise Exception(f"No columns with frequency above {self.classification_threshold} threshold.")
         
         classification_result = self.above_threshold.drop(columns=["frequency"])
         classification_result["status"] = "detected"
@@ -85,13 +78,16 @@ class Classifier:
             }
 
             return pd.DataFrame(output)
-
-        self.classification_result = (all_tags
-                                      .groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True)
-                                      .apply(aggregate_updates)
-                                      .reset_index()
-                                      .drop(columns=["level_4"])
-        )
+        
+        if all_tags.empty:
+            self.classification_result = pd.DataFrame(columns=["table_catalog", "table_schema", "table_name", "column_name", "Current Tags", "Detected Tags", "Tags to be published", "Tags changed"])
+        else:
+            self.classification_result = (all_tags
+                                        .groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True)
+                                        .apply(aggregate_updates)
+                                        .reset_index()
+                                        .drop(columns=["level_4"])
+            )
         # when testing we don't have a 3-level namespace but we need
         # to make sure we get None instead of NaN
         self.classification_result.table_catalog = self.classification_result.table_catalog.astype(object)
@@ -178,6 +174,8 @@ class Classifier:
 
 
     def inspect(self):
+        
+        self.compute_classification_result()
         self.inspection_tool = InspectionTool(self.classification_result, self.publish)
 
     def publish(self, publish_uc_tags: bool):
@@ -185,6 +183,7 @@ class Classifier:
         if self.inspection_tool is not None:
             self._stage_updates(self.inspection_tool.inspected_table)
         else:
+            self.compute_classification_result()
             self._stage_updates(self.classification_result)
       
         staged_updates_df = self.spark.createDataFrame(

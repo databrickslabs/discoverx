@@ -65,7 +65,7 @@ class ScanResult:
     @property
     def n_scanned_columns(self) -> int:
         return len(
-            self.df[["catalog", "database", "table", "column"]].drop_duplicates()
+            self.df[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates()
         )
 
 
@@ -248,32 +248,32 @@ class Scanner:
             [f"'{r.name}', `{r.name}`" for r in expressions]
         )
         unpivot_columns = ", ".join([f"'{c.name}', `{c.name}`" for c in cols])
-
+        
         sql = f"""
             SELECT 
-                '{table_info.catalog}' as catalog,
-                '{table_info.database}' as database,
-                '{table_info.table}' as table, 
-                column,
-                rule_name,
+                '{table_info.catalog}' as table_catalog,
+                '{table_info.database}' as table_schema,
+                '{table_info.table}' as table_name, 
+                column_name,
+                tag_name,
                 (sum(value) / count(value)) as frequency
             FROM
             (
-                SELECT column, stack({len(expressions)}, {unpivot_expressions}) as (rule_name, value)
+                SELECT column_name, stack({len(expressions)}, {unpivot_expressions}) as (tag_name, value)
                 FROM 
                 (
                     SELECT
-                    column,
+                    column_name,
                     {matching_string}
                     FROM (
                         SELECT
-                            stack({len(cols)}, {unpivot_columns}) AS (column, value)
+                            stack({len(cols)}, {unpivot_columns}) AS (column_name, value)
                         FROM {catalog_str}{table_info.database}.{table_info.table}
                         TABLESAMPLE ({self.sample_size} ROWS)
                     )
                 )
             )
-            GROUP BY catalog, database, table, column, rule_name
+            GROUP BY table_catalog, table_schema, table_name, column_name, tag_name
         """
 
         return strip_margin(sql)
