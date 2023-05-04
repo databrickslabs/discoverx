@@ -266,7 +266,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx6.classifier.inspection_tool.inspected_table.at[0, "Classes changed"] = True
     dx6.classifier.inspection_tool.inspected_table.at[1, "Classes to be published"] = ['ip_v6', 'pii']
     dx6.classifier.inspection_tool.inspected_table.at[1, "Classes changed"] = True
-    dx6.publish(publish_uc_classes=True)
+    dx6.publish()
 
     expected6_df = pd.DataFrame(
         {
