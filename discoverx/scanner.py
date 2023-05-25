@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 import pandas as pd
 from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+from pyspark.sql.types import _parse_datatype_string
 from typing import Optional, List, Set
 
 from discoverx.common.helper import strip_margin, format_regex
@@ -68,6 +70,7 @@ class ScanResult:
 class Scanner:
 
     COLUMNS_TABLE_NAME = "system.information_schema.columns"
+    COMPLEX_TYPES = {StructType, ArrayType, MapType}
 
     def __init__(
         self,
@@ -92,6 +95,7 @@ class Scanner:
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
         self.scan_result: Optional[ScanResult] = None
+        self.column_list = []
 
     def _get_list_of_tables(self) -> List[TableInfo]:
         table_list_sql = self._get_table_list_sql()
@@ -208,6 +212,36 @@ class Scanner:
         else:
             self.scan_result = ScanResult(df=pd.DataFrame())
 
+    @staticmethod
+    def backtick_col_name(col_name: str) -> str:
+        col_name_splitted = col_name.split(".")
+        return ".".join(["`" + col + "`" for col in col_name_splitted])
+
+    def recursive_flatten_complex_type(self, col_name, schema):
+        if type(schema) in self.COMPLEX_TYPES:
+            iterable = schema
+        elif type(schema) is StructField:
+            iterable = schema.dataType
+        elif schema == StringType():
+            self.column_list.append({"name": col_name, "type": "string"})
+            return
+        else:
+            return
+
+        if type(iterable) is StructType:
+            for field in iterable:
+                if type(field.dataType) == StringType:
+                    self.column_list.append({"col_name": self.backtick_col_name(col_name + "." + field.name), "type": "string"})
+                elif type(field.dataType) in self.COMPLEX_TYPES:
+                    self.recursive_flatten_complex_type(col_name + "." + field.name, field)
+        elif type(iterable) is MapType:
+            if type(iterable.valueType) not in self.COMPLEX_TYPES:
+                self.column_list.append({"col_name": self.backtick_col_name(col_name), "type": "map_values"})
+            if type(iterable.keyType) not in self.COMPLEX_TYPES:
+                self.column_list.append({"col_name": self.backtick_col_name(col_name), "type": "map_keys"})
+        elif type(iterable) is ArrayType:
+            self.column_list.append({"col_name": self.backtick_col_name(col_name), "type": "array"})
+
     def _rule_matching_sql(self, table_info: TableInfo):
         """
         Given a table and a set of rules this method will return a
@@ -223,7 +257,47 @@ class Scanner:
         """
 
         expressions = [r for r in self.rule_list if r.type == RuleTypes.REGEX]
-        cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
+        expr_pdf = pd.DataFrame([{"rule_name": r.name, "rule_definition": r.definition, "key": 0} for r in expressions])
+        for col in table_info.columns:
+            self.recursive_flatten_complex_type(col.name, _parse_datatype_string(col.data_type))
+        columns_pdf = pd.DataFrame(self.column_list)
+        # prepare for cross-join
+        columns_pdf["key"] = 0
+        # cross-join
+        col_expr_pdf = columns_pdf.merge(expr_pdf, on=["key"])
+
+        def sum_expressions(row):
+            if row.type == "string":
+                return f"int(regexp_like({row.col_name}, '{row.rule_definition}'))"
+            elif row.type == "array":
+                return f"size(filter({row.col_name}, x -> x rlike '{row.rule_definition}'))"
+            elif row.type == "map_values":
+                return f"size(filter(map_values({row.col_name}), x -> x rlike '{row.rule_definition}'))"
+            elif row.type == "map_keys":
+                return f"size(filter(map_keys({row.col_name}), x -> x rlike '{row.rule_definition}'))"
+            else:
+                return None
+
+        def count_expressions(row):
+            if row.type == "string":
+                return "1"
+            elif row.type == "array":
+                return f"size({row.col_name})"
+            elif row.type == "map_values":
+                return f"size(map_values({row.col_name}))"
+            elif row.type == "map_keys":
+                return f"size(map_keys({row.col_name}))"
+            else:
+                return None
+
+        col_expr_pdf["sum_expression"] = col_expr_pdf.apply(sum_expressions, axis=1)
+        col_expr_pdf["count_expression"] = col_expr_pdf.apply(count_expressions, axis=1)
+        # build stack expression
+        stack_expression = list(zip(col_expr_pdf.col_name, col_expr_pdf.rule_name, col_expr_pdf.sum_expression, col_expr_pdf.count_expression))
+        stack_expression = [item for sublist in stack_expression for item in sublist]
+        stack_expr_string = f"stack(4, + {', '.join(stack_expression)}) as (column, rule_name, sum_value, count_value)"
+
+        #cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
 
         if not cols:
             raise Exception(

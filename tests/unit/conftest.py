@@ -8,13 +8,12 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
-from unittest.mock import patch
 
 import mlflow
 import pytest
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
+from pyspark.sql.types import *
 from discoverx.classification import DeltaTable
 from discoverx.dx import Classifier
 from discoverx.classification import func
@@ -139,6 +138,39 @@ def sample_datasets(spark: SparkSession, request):
     ).createOrReplaceTempView("view_tb_1")
     spark.sql(f"CREATE TABLE IF NOT EXISTS default.tb_1 USING delta LOCATION '{warehouse_dir}/tb_1' AS SELECT * FROM view_tb_1 ")
 
+    # tb_2
+    test_file_tb2_path = module_path.parent / "data/tb_2.json"
+    schema_json_example = (
+    StructType()
+    .add(
+        "customer",
+        StructType()
+        .add("name", StringType(), True)
+        .add("id", IntegerType(), True)
+        .add(
+            "contact",
+            StructType()
+            .add(
+                "address",
+                StructType()
+                .add("street", StringType(), True)
+                .add("town", StringType(), True)
+                .add("postal_number", StringType(), True)
+                .add("country", StringType(), True),
+                True,
+            )
+            .add("email", StringType()),
+        )
+        .add("products_owned", ArrayType(StringType()), True)
+        .add("interactions", MapType(StringType(), StringType())),
+        True,
+    )
+    .add("active", BooleanType(), True)
+    .add("categories", MapType(StringType(), StringType()))
+)
+    spark.read.schema(schema_json_example).json(str(test_file_tb2_path.resolve())).createOrReplaceTempView("view_tb_2")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.tb_1 USING delta LOCATION '{warehouse_dir}/tb_2' AS SELECT * FROM view_tb_2 ")
     # columns_mock
     test_file_path = module_path.parent / "data/columns_mock.csv"
     (spark

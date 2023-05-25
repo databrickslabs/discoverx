@@ -207,7 +207,7 @@ def test_scan(spark: SparkSession):
     rules = Rules()
     MockedScanner = Scanner
     MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
-    scanner = MockedScanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*")
+    scanner = MockedScanner(spark, rules=rules, tables="tb_*", rule_filter="ip_*")
     scanner.scan()
 
     assert scanner.scan_result.df.equals(expected)
