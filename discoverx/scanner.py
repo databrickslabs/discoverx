@@ -261,43 +261,39 @@ class Scanner:
         for col in table_info.columns:
             self.recursive_flatten_complex_type(col.name, _parse_datatype_string(col.data_type))
         columns_pdf = pd.DataFrame(self.column_list)
-        # prepare for cross-join
-        columns_pdf["key"] = 0
-        # cross-join
-        col_expr_pdf = columns_pdf.merge(expr_pdf, on=["key"])
-
-        def sum_expressions(row):
-            if row.type == "string":
-                return f"int(regexp_like({row.col_name}, '{row.rule_definition}'))"
-            elif row.type == "array":
-                return f"size(filter({row.col_name}, x -> x rlike '{row.rule_definition}'))"
-            elif row.type == "map_values":
-                return f"size(filter(map_values({row.col_name}), x -> x rlike '{row.rule_definition}'))"
-            elif row.type == "map_keys":
-                return f"size(filter(map_keys({row.col_name}), x -> x rlike '{row.rule_definition}'))"
-            else:
-                return None
-
-        def count_expressions(row):
-            if row.type == "string":
-                return "1"
-            elif row.type == "array":
-                return f"size({row.col_name})"
-            elif row.type == "map_values":
-                return f"size(map_values({row.col_name}))"
-            elif row.type == "map_keys":
-                return f"size(map_keys({row.col_name}))"
-            else:
-                return None
-
-        col_expr_pdf["sum_expression"] = col_expr_pdf.apply(sum_expressions, axis=1)
-        col_expr_pdf["count_expression"] = col_expr_pdf.apply(count_expressions, axis=1)
-        # build stack expression
-        stack_expression = list(zip(col_expr_pdf.col_name, col_expr_pdf.rule_name, col_expr_pdf.sum_expression, col_expr_pdf.count_expression))
-        stack_expression = [item for sublist in stack_expression for item in sublist]
-        stack_expr_string = f"stack(4, + {', '.join(stack_expression)}) as (column, rule_name, sum_value, count_value)"
-
+        # # prepare for cross-join
+        # columns_pdf["key"] = 0
+        # # cross-join
+        # col_expr_pdf = columns_pdf.merge(expr_pdf, on=["key"])
+        #
+        # def sum_expressions(row):
+        #     if row.type == "string":
+        #         return f"int(regexp_like({row.col_name}, '{row.rule_definition}'))"
+        #     elif row.type == "array":
+        #         return f"size(filter({row.col_name}, x -> x rlike '{row.rule_definition}'))"
+        #     elif row.type == "map_values":
+        #         return f"size(filter(map_values({row.col_name}), x -> x rlike '{row.rule_definition}'))"
+        #     elif row.type == "map_keys":
+        #         return f"size(filter(map_keys({row.col_name}), x -> x rlike '{row.rule_definition}'))"
+        #     else:
+        #         return None
+        #
+        # def count_expressions(row):
+        #     if row.type == "string":
+        #         return "1"
+        #     elif row.type == "array":
+        #         return f"size({row.col_name})"
+        #     elif row.type == "map_values":
+        #         return f"size(map_values({row.col_name}))"
+        #     elif row.type == "map_keys":
+        #         return f"size(map_keys({row.col_name}))"
+        #     else:
+        #         return None
+        #
+        # col_expr_pdf["sum_expression"] = col_expr_pdf.apply(sum_expressions, axis=1)
+        # col_expr_pdf["count_expression"] = col_expr_pdf.apply(count_expressions, axis=1)
         #cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
+        cols = columns_pdf.loc[columns_pdf.type == "string", "col_name"].to_list()
 
         if not cols:
             raise Exception(
@@ -317,7 +313,7 @@ class Scanner:
         unpivot_expressions = ", ".join(
             [f"'{r.name}', `{r.name}`" for r in expressions]
         )
-        unpivot_columns = ", ".join([f"'{c.name}', `{c.name}`" for c in cols])
+        unpivot_columns = ", ".join([f"'{c}', {c}" for c in cols])
 
         sql = f"""
             SELECT 
