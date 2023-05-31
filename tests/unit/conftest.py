@@ -253,7 +253,7 @@ def mock_uc_functionality(spark, monkeymodule):
         self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {schema}")
         self.spark.sql(
             f"""
-                CREATE TABLE IF NOT EXISTS {schema + '.' + table} (table_catalog string, table_schema string, table_name string, column_name string, tag_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp) USING DELTA
+                CREATE TABLE IF NOT EXISTS {schema + '.' + table} (table_catalog string, table_schema string, table_name string, column_name string, data_type string, tag_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp) USING DELTA
                 """
         )
         return DeltaTable.forName(self.spark, self.classification_table_name)

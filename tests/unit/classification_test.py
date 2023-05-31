@@ -1,7 +1,6 @@
 import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
-import numpy as np
 
 from discoverx.dx import DX
 from discoverx.dx import Scanner
@@ -32,6 +31,7 @@ def test_classifier(spark):
             ],
             "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
             "column": ["ip", "ip", "ip", "mac", "mac", "mac", "description", "description", "description"],
+            "type": ["string", "string", "string", "string", "string", "string", "string", "string", "string"],
             "rule_name": ["ip_v4", "ip_v6", "mac", "ip_v4", "ip_v6", "mac", "ip_v4", "ip_v6", "mac"],
             "frequency": [1.0, 0.0, 0.0, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0],
         }
@@ -48,6 +48,7 @@ def test_classifier(spark):
                 "table_schema": ["default", "default"],
                 "table_name": ["tb_1", "tb_1"],
                 "column_name": ["ip", "mac"],
+                "data_type": ["string", "string"],
                 "Current Tags": [[], []],
                 "Detected Tags": [["ip_v4"], ["mac"]],
                 "Tags to be published": [["ip_v4"], ["mac"]],
@@ -74,6 +75,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "database": ["default", "default", "default", "default", "default", "default"],
             "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
             "column": ["ip", "ip", "mac", "mac", "description", "description"],
+            "type": ["string", "string", "string", "string", "string", "string"],
             "rule_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
             "frequency": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         }
@@ -90,6 +92,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "table_schema": ["default"],
             "table_name": ["tb_1"],
             "column_name": ["ip"],
+            "data_type": ["string"],
             "tag_name": ["ip_v4"],
             "effective_timestamp": [pd.Timestamp(2023, 1, 1, 0)],
             "current": [True],
@@ -112,6 +115,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "table_schema": ["default"],
             "table_name": ["tb_1"],
             "column_name": ["ip"],
+            "data_type": ["string"],
             "tag_name": ["ip_v4"],
             "effective_timestamp": [pd.Timestamp(2023, 1, 1, 0)],
             "current": [True],
@@ -129,6 +133,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "database": ["default", "default", "default", "default", "default", "default", "default", "default"],
             "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
             "column": ["ip", "ip", "ip6", "ip6", "mac", "mac", "description", "description"],
+            "type": ["string", "string", "string", "string", "string", "string", "string", "string"],
             "rule_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
             "frequency": [1.0, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0, 0.0],
         }
@@ -147,6 +152,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "table_schema": ["default", "default"],
             "table_name": ["tb_1", "tb_1"],
             "column_name": ["ip", "ip6"],
+            "data_type": ["string", "string"],
             "tag_name": ["ip_v4", "ip_v6"],
             "effective_timestamp": [current_time, current_time],
             "current": [True, True],
@@ -169,6 +175,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "database": ["default", "default", "default", "default", "default", "default", "default", "default"],
             "table": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
             "column": ["ip", "ip", "ip6", "ip6", "mac", "mac", "description", "description"],
+            "type": ["string", "string", "string", "string", "string", "string", "string", "string"],
             "rule_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
             "frequency": [0.7, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0, 0.0],
         }
@@ -186,6 +193,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "table_schema": ["default", "default"],
             "table_name": ["tb_1", "tb_1"],
             "column_name": ["ip", "ip6"],
+            "data_type": ["string", "string"],
             "tag_name": ["ip_v4", "ip_v6"],
             "effective_timestamp": [current_time, current_time],
             "current": [True, True],
@@ -235,6 +243,20 @@ def test_merging_scan_results(spark, mock_current_time):
                 "description",
                 "description",
             ],
+            "type": [
+                "string",
+                "string",
+                "string",
+                "string",
+                "string",
+                "string",
+                "string",
+                "string",
+                "string",
+                "string",
+                "string",
+                "string",
+            ],
             "rule_name": [
                 "ip_v4",
                 "ip_v6",
@@ -272,6 +294,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "table_schema": ["default", "default", "default", "default"],
             "table_name": ["tb_1", "tb_1", "tb_1", "tb_2"],
             "column_name": ["ip", "ip6", "ip6", "mac"],
+            "data_type": ["string", "string", "string", "string"],
             "tag_name": ["ip_v4", "ip_v6", "pii", "mac"],
             "effective_timestamp": [current_time, current_time, current_time, current_time],
             "current": [False, True, True, True],

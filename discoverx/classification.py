@@ -43,6 +43,7 @@ class Classifier:
                     "database": "table_schema",
                     "table": "table_name",
                     "column": "column_name",
+                    "type": "data_type",
                     "rule_name": "tag_name",
                 }
             )
@@ -77,7 +78,7 @@ class Classifier:
 
             return pd.DataFrame(output)
 
-        self.classification_result = pd.concat([classification_result, current_tags]).groupby(["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True).apply(aggregate_updates).reset_index().drop(columns=["level_4"])
+        self.classification_result = pd.concat([classification_result, current_tags]).groupby(["table_catalog", "table_schema", "table_name", "column_name", "data_type"], dropna=False, group_keys=True).apply(aggregate_updates).reset_index().drop(columns=["level_5"])
         # when testing we don't have a 3-level namespace but we need
         # to make sure we get None instead of NaN
         self.classification_result.table_catalog = self.classification_result.table_catalog.astype(object)
@@ -94,7 +95,7 @@ class Classifier:
           self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
           self.spark.sql(
               f"""
-            CREATE TABLE IF NOT EXISTS {self.classification_table_name} (table_catalog string, table_schema string, table_name string, column_name string, tag_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp)
+            CREATE TABLE IF NOT EXISTS {self.classification_table_name} (table_catalog string, table_schema string, table_name string, column_name string, data_type string, tag_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp)
             """
           )
           logger.friendly(f"The classification table {self.classification_table_name} has been created.")
@@ -154,8 +155,7 @@ class Classifier:
         classification_pdf["to_be_set"] = classification_pdf.apply(lambda x: list(set(x["Tags to be published"]) - set(x["Current Tags"])), axis=1)
         classification_pdf["to_be_kept"] = classification_pdf.apply(lambda x: list(set(x["Tags to be published"]) & set(x["Current Tags"])), axis=1)
 
-        self.staged_updates = pd.melt(classification_pdf, id_vars=["table_catalog", "table_schema", "table_name", "column_name"], value_vars=["to_be_unset", "to_be_set", "to_be_kept"], var_name="action", value_name="tag_name").explode("tag_name").dropna(subset=["tag_name"]).reset_index(drop=True)
-
+        self.staged_updates = pd.melt(classification_pdf, id_vars=["table_catalog", "table_schema", "table_name", "column_name", "data_type"], value_vars=["to_be_unset", "to_be_set", "to_be_kept"], var_name="action", value_name="tag_name").explode("tag_name").dropna(subset=["tag_name"]).reset_index(drop=True)
 
     def inspect(self):
         self.inspection_tool = InspectionTool(self.classification_result, self.publish)
@@ -169,14 +169,14 @@ class Classifier:
       
         staged_updates_df = self.spark.createDataFrame(
             self.staged_updates,
-            "table_catalog: string, table_schema: string, table_name: string, column_name: string, action: string, tag_name: string",
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, data_type: string, action: string, tag_name: string",
         ).withColumn("effective_timestamp", func.current_timestamp())
         # merge using scd-typ2
         logger.friendly(f"Update classification table {self.classification_table_name}")
 
         self.classification_table.alias("target").merge(
             staged_updates_df.alias("source"),
-            "target.table_catalog <=> source.table_catalog AND target.table_schema = source.table_schema AND target.table_name = source.table_name AND target.column_name = source.column_name AND target.tag_name = source.tag_name AND target.current = true",
+            "target.table_catalog <=> source.table_catalog AND target.table_schema = source.table_schema AND target.table_name = source.table_name AND target.column_name = source.column_name AND target.data_type = source.data_type AND target.tag_name = source.tag_name AND target.current = true",
         ).whenMatchedUpdate(
             condition = "source.action = 'to_be_unset'",
             set={"current": "false", "end_timestamp": "source.effective_timestamp"}
@@ -186,6 +186,7 @@ class Classifier:
                 "table_schema": "source.table_schema",
                 "table_name": "source.table_name",
                 "column_name": "source.column_name",
+                "data_type": "source.data_type",
                 "tag_name": "source.tag_name",
                 "effective_timestamp": "source.effective_timestamp",
                 "current": "true",
