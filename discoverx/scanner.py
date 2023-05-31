@@ -261,52 +261,20 @@ class Scanner:
 
             if data_type:
                 self.recursive_flatten_complex_type(col.name, data_type, column_list)
-        columns_pdf = pd.DataFrame(column_list)
-        # # prepare for cross-join
-        # columns_pdf["key"] = 0
-        # # cross-join
-        # col_expr_pdf = columns_pdf.merge(expr_pdf, on=["key"])
-        #
-        # def sum_expressions(row):
-        #     if row.type == "string":
-        #         return f"int(regexp_like({row.col_name}, '{row.rule_definition}'))"
-        #     elif row.type == "array":
-        #         return f"size(filter({row.col_name}, x -> x rlike '{row.rule_definition}'))"
-        #     elif row.type == "map_values":
-        #         return f"size(filter(map_values({row.col_name}), x -> x rlike '{row.rule_definition}'))"
-        #     elif row.type == "map_keys":
-        #         return f"size(filter(map_keys({row.col_name}), x -> x rlike '{row.rule_definition}'))"
-        #     else:
-        #         return None
-        #
-        # def count_expressions(row):
-        #     if row.type == "string":
-        #         return "1"
-        #     elif row.type == "array":
-        #         return f"size({row.col_name})"
-        #     elif row.type == "map_values":
-        #         return f"size(map_values({row.col_name}))"
-        #     elif row.type == "map_keys":
-        #         return f"size(map_keys({row.col_name}))"
-        #     else:
-        #         return None
-        #
-        # col_expr_pdf["sum_expression"] = col_expr_pdf.apply(sum_expressions, axis=1)
-        # col_expr_pdf["count_expression"] = col_expr_pdf.apply(count_expressions, axis=1)
-        # cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
-        if len(columns_pdf) == 0:
+
+        if len(column_list) == 0:
             raise Exception(f"There are no columns with supported types to be scanned in {table_info.table}")
 
         if not expressions:
             raise Exception(f"There are no rules to scan for.")
 
-        string_cols = columns_pdf.loc[columns_pdf.type == "string", "col_name"].to_list()
+        string_cols = [col for col in column_list if col["type"] == "string"]
 
         sql_list = []
         if len(string_cols) > 0:
             sql_list.append(self.string_col_sql(string_cols, expressions, table_info))
 
-        array_cols = columns_pdf.loc[columns_pdf.type == "array", "col_name"].to_list()
+        array_cols = [col for col in column_list if col["type"] == "array"]
         if len(array_cols) > 0:
             sql_list.append(self.array_col_sql(array_cols, expressions, table_info))
 
@@ -321,7 +289,7 @@ class Scanner:
         matching_string = ",\n                    ".join(matching_columns)
 
         unpivot_expressions = ", ".join([f"'{r.name}', `{r.name}`" for r in expressions])
-        unpivot_columns = ", ".join([f"'{c}', {c}" for c in cols])
+        unpivot_columns = ", ".join([f"'{c['col_name']}', '{c['type']}', {c['col_name']}" for c in cols])
 
         sql = f"""
                     SELECT 
@@ -329,25 +297,27 @@ class Scanner:
                         '{table_info.database}' as database,
                         '{table_info.table}' as table, 
                         column,
+                        type,
                         rule_name,
                         (sum(value) / count(value)) as frequency
                     FROM
                     (
-                        SELECT column, stack({len(expressions)}, {unpivot_expressions}) as (rule_name, value)
+                        SELECT column, type, stack({len(expressions)}, {unpivot_expressions}) as (rule_name, value)
                         FROM 
                         (
                             SELECT
                             column,
+                            type,
                             {matching_string}
                             FROM (
                                 SELECT
-                                    stack({len(cols)}, {unpivot_columns}) AS (column, value)
+                                    stack({len(cols)}, {unpivot_columns}) AS (column, type, value)
                                 FROM {catalog_str}{table_info.database}.{table_info.table}
                                 TABLESAMPLE ({self.sample_size} ROWS)
                             )
                         )
                     )
-                    GROUP BY catalog, database, table, column, rule_name
+                    GROUP BY catalog, database, table, column, type, rule_name
                 """
         return strip_margin(sql)
 
@@ -363,7 +333,7 @@ class Scanner:
         matching_string = ",\n                    ".join(matching_columns)
 
         unpivot_expressions = ", ".join([f"'{r.name}', `{r.name}_sum`, `{r.name}_count`" for r in expressions])
-        unpivot_columns = ", ".join([f"'{c}', {c}" for c in cols])
+        unpivot_columns = ", ".join([f"'{c['col_name']}', '{c['type']}', {c['col_name']}" for c in cols])
 
         sql = f"""
                     SELECT 
@@ -371,24 +341,26 @@ class Scanner:
                         '{table_info.database}' as database,
                         '{table_info.table}' as table, 
                         column,
+                        type,
                         rule_name,
                         (sum(value_sum) / sum(value_count)) as frequency
                     FROM
                     (
-                        SELECT column, stack({len(expressions)}, {unpivot_expressions}) as (rule_name, value_sum, value_count)
+                        SELECT column, type, stack({len(expressions)}, {unpivot_expressions}) as (rule_name, value_sum, value_count)
                         FROM 
                         (
                             SELECT
                             column,
+                            type,
                             {matching_string}
                             FROM (
                                 SELECT
-                                    stack({len(cols)}, {unpivot_columns}) AS (column, value)
+                                    stack({len(cols)}, {unpivot_columns}) AS (column, type, value)
                                 FROM {catalog_str}{table_info.database}.{table_info.table}
                                 TABLESAMPLE ({self.sample_size} ROWS)
                             )
                         )
                     )
-                    GROUP BY catalog, database, table, column, rule_name
+                    GROUP BY catalog, database, table, column, type, rule_name
                 """
         return strip_margin(sql)
