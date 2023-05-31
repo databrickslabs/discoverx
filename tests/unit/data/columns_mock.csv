@@ -25,4 +25,4 @@ hive_metastore,default,tb_all_types,str_part_col,STRING,1
 ,default,tb_1,description,STRING,
 ,default,tb_2,active,BOOLEAN,
 ,default,tb_2,categories,"map<string,string>",
-,default,tb_2,customer,"struct<name:string,contact:struct<address:struct<street:string,town:string,postal_number:string,country:string>,email:string>,products_owned:array<string>>",
+,default,tb_2,customer,"struct<name:string,contact:struct<address:struct<street:string,town:string,postal_number:string,country:string, ips_used: array<string>>,email:string>,products_owned:array<string>>",

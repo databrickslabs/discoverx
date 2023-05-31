@@ -212,6 +212,10 @@ def test_scan(spark: SparkSession):
             ["None", "default", "tb_2", "`customer`.`contact`.`address`.`country`", "ip_v6", 0.0],
             ["None", "default", "tb_2", "`customer`.`contact`.`email`", "ip_v4", 0.0],
             ["None", "default", "tb_2", "`customer`.`contact`.`email`", "ip_v6", 0.0],
+            ["None", "default", "tb_2", "`customer`.`contact`.`address`.`ips_used`", "ip_v4", 1.0],
+            ["None", "default", "tb_2", "`customer`.`contact`.`address`.`ips_used`", "ip_v6", 0.0],
+            ["None", "default", "tb_2", "`customer`.`products_owned`", "ip_v4", 0.0],
+            ["None", "default", "tb_2", "`customer`.`products_owned`", "ip_v6", 0.0],
         ],
         columns=["catalog", "database", "table", "column", "rule_name", "frequency"],
     )

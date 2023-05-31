@@ -156,7 +156,8 @@ def sample_datasets(spark: SparkSession, request):
                 .add("street", StringType(), True)
                 .add("town", StringType(), True)
                 .add("postal_number", StringType(), True)
-                .add("country", StringType(), True),
+                .add("country", StringType(), True)
+                .add("ips_used", ArrayType(StringType()), True),
                 True,
             )
             .add("email", StringType()),
