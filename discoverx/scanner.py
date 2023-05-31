@@ -3,6 +3,7 @@ import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 from pyspark.sql.types import _parse_datatype_string
+from pyspark.sql.utils import ParseException
 from typing import Optional, List, Set
 
 from discoverx.common.helper import strip_margin, format_regex
@@ -62,9 +63,7 @@ class ScanResult:
 
     @property
     def n_scanned_columns(self) -> int:
-        return len(
-            self.df[["catalog", "database", "table", "column"]].drop_duplicates()
-        )
+        return len(self.df[["catalog", "database", "table", "column"]].drop_duplicates())
 
 
 class Scanner:
@@ -95,7 +94,6 @@ class Scanner:
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
         self.scan_result: Optional[ScanResult] = None
-        self.column_list = []
 
     def _get_list_of_tables(self) -> List[TableInfo]:
         table_list_sql = self._get_table_list_sql()
@@ -107,9 +105,7 @@ class Scanner:
                 row["table_schema"],
                 row["table_name"],
                 [
-                    ColumnInfo(
-                        col["column_name"], col["data_type"], col["partition_index"], []
-                    )
+                    ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
                     for col in row["table_columns"]
                 ],
             )
@@ -128,9 +124,7 @@ class Scanner:
 
         catalog_sql = f"""AND regexp_like(table_catalog, "^{self.catalogs.replace("*", ".*")}$")"""
         database_sql = f"""AND regexp_like(table_schema, "^{self.databases.replace("*", ".*")}$")"""
-        table_sql = (
-            f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
-        )
+        table_sql = f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
 
         sql = f"""
         SELECT 
@@ -158,9 +152,7 @@ class Scanner:
 
     def scan(self):
 
-        logger.friendly(
-            """Ok, I'm going to scan your lakehouse for data that matches your rules."""
-        )
+        logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
         text = f"""
                 This is what you asked for:
 
@@ -200,15 +192,13 @@ class Scanner:
                     # Execute SQL and append result
                     dfs.append(self.spark.sql(sql).toPandas())
             except Exception as e:
-                logger.error(
-                    f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}"
-                )
+                logger.error(f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}")
                 continue
 
         logger.debug("Finished lakehouse scanning task")
 
         if dfs:
-            self.scan_result = ScanResult(df=pd.concat(dfs))
+            self.scan_result = ScanResult(df=pd.concat(dfs).reset_index(drop=True))
         else:
             self.scan_result = ScanResult(df=pd.DataFrame())
 
@@ -217,30 +207,34 @@ class Scanner:
         col_name_splitted = col_name.split(".")
         return ".".join(["`" + col + "`" for col in col_name_splitted])
 
-    def recursive_flatten_complex_type(self, col_name, schema):
+    def recursive_flatten_complex_type(self, col_name, schema, column_list):
         if type(schema) in self.COMPLEX_TYPES:
             iterable = schema
         elif type(schema) is StructField:
             iterable = schema.dataType
         elif schema == StringType():
-            self.column_list.append({"name": col_name, "type": "string"})
-            return
+            column_list.append({"col_name": col_name, "type": "string"})
+            return column_list
         else:
-            return
+            return column_list
 
         if type(iterable) is StructType:
             for field in iterable:
                 if type(field.dataType) == StringType:
-                    self.column_list.append({"col_name": self.backtick_col_name(col_name + "." + field.name), "type": "string"})
+                    column_list.append(
+                        {"col_name": self.backtick_col_name(col_name + "." + field.name), "type": "string"}
+                    )
                 elif type(field.dataType) in self.COMPLEX_TYPES:
-                    self.recursive_flatten_complex_type(col_name + "." + field.name, field)
+                    column_list = self.recursive_flatten_complex_type(col_name + "." + field.name, field, column_list)
         elif type(iterable) is MapType:
             if type(iterable.valueType) not in self.COMPLEX_TYPES:
-                self.column_list.append({"col_name": self.backtick_col_name(col_name), "type": "map_values"})
+                column_list.append({"col_name": self.backtick_col_name(col_name), "type": "map_values"})
             if type(iterable.keyType) not in self.COMPLEX_TYPES:
-                self.column_list.append({"col_name": self.backtick_col_name(col_name), "type": "map_keys"})
+                column_list.append({"col_name": self.backtick_col_name(col_name), "type": "map_keys"})
         elif type(iterable) is ArrayType:
-            self.column_list.append({"col_name": self.backtick_col_name(col_name), "type": "array"})
+            column_list.append({"col_name": self.backtick_col_name(col_name), "type": "array"})
+
+        return column_list
 
     def _rule_matching_sql(self, table_info: TableInfo):
         """
@@ -258,9 +252,16 @@ class Scanner:
 
         expressions = [r for r in self.rule_list if r.type == RuleTypes.REGEX]
         expr_pdf = pd.DataFrame([{"rule_name": r.name, "rule_definition": r.definition, "key": 0} for r in expressions])
+        column_list = []
         for col in table_info.columns:
-            self.recursive_flatten_complex_type(col.name, _parse_datatype_string(col.data_type))
-        columns_pdf = pd.DataFrame(self.column_list)
+            try:
+                data_type = _parse_datatype_string(col.data_type)
+            except ParseException:
+                data_type = None
+
+            if data_type:
+                self.recursive_flatten_complex_type(col.name, data_type, column_list)
+        columns_pdf = pd.DataFrame(column_list)
         # # prepare for cross-join
         # columns_pdf["key"] = 0
         # # cross-join
@@ -292,54 +293,52 @@ class Scanner:
         #
         # col_expr_pdf["sum_expression"] = col_expr_pdf.apply(sum_expressions, axis=1)
         # col_expr_pdf["count_expression"] = col_expr_pdf.apply(count_expressions, axis=1)
-        #cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
-        cols = columns_pdf.loc[columns_pdf.type == "string", "col_name"].to_list()
-
-        if not cols:
-            raise Exception(
-                f"There are no columns of type string to be scanned in {table_info.table}"
-            )
+        # cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
+        if len(columns_pdf) == 0:
+            raise Exception(f"There are no columns of type string to be scanned in {table_info.table}")
 
         if not expressions:
             raise Exception(f"There are no rules to scan for.")
 
+        string_cols = columns_pdf.loc[columns_pdf.type == "string", "col_name"].to_list()
+        all_sql = self.string_col_sql(string_cols, expressions, table_info)
+
+        return all_sql
+
+    def string_col_sql(self, cols: List, expressions: List, table_info: TableInfo) -> str:
         catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
         matching_columns = [
-            f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`"
-            for r in expressions
+            f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`" for r in expressions
         ]
         matching_string = ",\n                    ".join(matching_columns)
 
-        unpivot_expressions = ", ".join(
-            [f"'{r.name}', `{r.name}`" for r in expressions]
-        )
+        unpivot_expressions = ", ".join([f"'{r.name}', `{r.name}`" for r in expressions])
         unpivot_columns = ", ".join([f"'{c}', {c}" for c in cols])
 
         sql = f"""
-            SELECT 
-                '{table_info.catalog}' as catalog,
-                '{table_info.database}' as database,
-                '{table_info.table}' as table, 
-                column,
-                rule_name,
-                (sum(value) / count(value)) as frequency
-            FROM
-            (
-                SELECT column, stack({len(expressions)}, {unpivot_expressions}) as (rule_name, value)
-                FROM 
-                (
-                    SELECT
-                    column,
-                    {matching_string}
-                    FROM (
-                        SELECT
-                            stack({len(cols)}, {unpivot_columns}) AS (column, value)
-                        FROM {catalog_str}{table_info.database}.{table_info.table}
-                        TABLESAMPLE ({self.sample_size} ROWS)
+                    SELECT 
+                        '{table_info.catalog}' as catalog,
+                        '{table_info.database}' as database,
+                        '{table_info.table}' as table, 
+                        column,
+                        rule_name,
+                        (sum(value) / count(value)) as frequency
+                    FROM
+                    (
+                        SELECT column, stack({len(expressions)}, {unpivot_expressions}) as (rule_name, value)
+                        FROM 
+                        (
+                            SELECT
+                            column,
+                            {matching_string}
+                            FROM (
+                                SELECT
+                                    stack({len(cols)}, {unpivot_columns}) AS (column, value)
+                                FROM {catalog_str}{table_info.database}.{table_info.table}
+                                TABLESAMPLE ({self.sample_size} ROWS)
+                            )
+                        )
                     )
-                )
-            )
-            GROUP BY catalog, database, table, column, rule_name
-        """
-
+                    GROUP BY catalog, database, table, column, rule_name
+                """
         return strip_margin(sql)
