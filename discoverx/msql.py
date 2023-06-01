@@ -66,6 +66,15 @@ class Msql:
             temp_sql = msql
             for tagged_col in tagged_cols:
                 temp_sql = temp_sql.replace(f"[{tagged_col.tag}]", tagged_col.name)
+                # TODO: Can we avoid "replacing strings" for the different types in the future? This is due to the generation of MSQL. Maybe we should rather generate SQL directly from the search method...
+                if tagged_col.data_type == "array":
+                    # return a string of the array as value to be able to union later
+                    temp_sql = re.sub("(.*\'value\', )([^)]+)(\).*)", f"\g<1> array_join({tagged_col.name}, ', ') \g<3>", temp_sql)
+                    # modify the WHERE condition to work with arrays
+                    split_cond_sql = temp_sql.split("WHERE")
+                    if len(split_cond_sql) > 1:
+                        temp_sql = split_cond_sql[0] + "WHERE " + f"array_contains({tagged_col.name},{split_cond_sql[1].split('=')[1]})"
+
             sql_statements.append(SQLRow(table_info.catalog, table_info.database, table_info.table, temp_sql))
         
         return sql_statements
@@ -77,9 +86,9 @@ class Msql:
         
         classified_cols = classified_result_pdf.copy()
         classified_cols = classified_cols[classified_cols['tag_name'].isin(self.tags)]
-        classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column']).aggregate(lambda x: list(x))[['tag_name']].reset_index()
+        classified_cols = classified_cols.groupby(['catalog', 'database', 'table', 'column', 'data_type']).aggregate(lambda x: list(x))[['tag_name']].reset_index()
 
-        classified_cols['col_tags'] = classified_cols[['column', 'tag_name']].apply(tuple, axis=1)
+        classified_cols['col_tags'] = classified_cols[['column', 'data_type', 'tag_name']].apply(tuple, axis=1)
         df = classified_cols.groupby(['catalog', 'database', 'table']).aggregate(lambda x: list(x))[['col_tags']].reset_index()
 
         # Filter tables by matching filter
@@ -91,9 +100,9 @@ class Msql:
                 [
                     ColumnInfo(
                         col[0], # col name
-                        "", # TODO
+                        col[1], # data type
                         None, # TODO
-                        col[1] # Tags
+                        col[2] # Tags
                     ) for col in row[3]
                 ]
             ) for _, row in df.iterrows() if fnmatch(row[0], self.catalogs) and fnmatch(row[1], self.databases) and fnmatch(row[2], self.tables)]

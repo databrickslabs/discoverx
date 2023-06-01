@@ -323,6 +323,7 @@ class DX:
                     func.col("table_schema").alias("database"),
                     func.col("table_name").alias("table"),
                     func.col("column_name").alias("column"),
+                    "data_type",
                     "tag_name",
                 ).toPandas()
             )

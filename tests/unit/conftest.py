@@ -190,6 +190,7 @@ def sample_datasets(spark: SparkSession, request):
     logging.info("Test session finished, removing sample datasets")
 
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
+    spark.sql("DROP TABLE IF EXISTS default.tb_2")
     spark.sql("DROP TABLE IF EXISTS default.columns_mock")
     if Path(warehouse_dir).exists():
         shutil.rmtree(warehouse_dir)
