@@ -11,7 +11,7 @@ class Logging:
             from dbruntime.display import displayHTML # pylint: disable=import-error
             displayHTML(message)
         except:
-            # Strip HTML tags
+            # Strip HTML classes
             print(re.sub('<[^<]+?>', '', message))
         logging.info(message)
         

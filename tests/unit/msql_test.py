@@ -22,11 +22,11 @@ def classification_df(spark) -> pd.DataFrame:
         ["c", "db", "tb2", "email_3", "dx_email"],
         ["c", "db", "tb2", "date", "dx_date_partition"],
         ["c", "db2", "tb3", "email_4", "dx_email"],
-        ["c", "db", "tb1", "description", "any_number"],  # any_number not in the tag list
+        ["c", "db", "tb1", "description", "any_number"],  # any_number not in the class list
         ["m_c", "db", "tb1", "email_3", "dx_email"],  # catalog does not match
-        ["c", "m_db", "tb1", "email_4", "dx_email"],  # database does not match
+        ["c", "m_db", "tb1", "email_4", "dx_email"],  # schema does not match
         ["c", "db", "m_tb1", "email_5", "dx_email"],  # table does not match
-    ], columns=["catalog", "database", "table", "column", "tag_name"])
+    ], columns=["catalog", "schema", "table", "column", "class_name"])
 
 columns = [
     ColumnInfo("id", "number", None, ["id"]),
@@ -72,7 +72,7 @@ def test_msql_replace_from_clausole():
     assert len(actual) == 1
     assert actual[0] == expected
 
-def test_msql_select_single_tag():
+def test_msql_select_single_class():
     msql = "SELECT [dx_pii] AS pii FROM catalog.prod_db1.tb1"
 
     expected = SQLRow(
@@ -86,7 +86,7 @@ def test_msql_select_single_tag():
     assert len(actual) == 1
     assert actual[0] == expected
 
-def test_msql_select_repeated_tag():
+def test_msql_select_repeated_class():
     msql = "SELECT [dx_email] AS email FROM catalog.prod_db1.tb1"
 
     actual = Msql(msql).compile_msql(table_info)
@@ -94,7 +94,7 @@ def test_msql_select_repeated_tag():
     assert actual[0] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS email FROM catalog.prod_db1.tb1")
     assert actual[1] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_2 AS email FROM catalog.prod_db1.tb1")
 
-def test_msql_select_multi_tag():
+def test_msql_select_multi_class():
     msql = """
     SELECT [dx_date_partition] AS dt, [dx_pii] AS pii, count([dx_pii]) AS cnt
     FROM catalog.prod_db1.tb1
@@ -116,7 +116,7 @@ def test_msql_select_multi_tag():
     assert len(actual) == 1
     assert actual[0] == expected
 
-def test_msql_select_multi_and_repeated_tag():
+def test_msql_select_multi_and_repeated_class():
     msql = "SELECT [dx_email] AS email, [dx_date_partition] AS d FROM catalog.prod_db1.tb1 WHERE [dx_email] = 'a@b.c'"
 
     actual = Msql(msql).compile_msql(table_info)
@@ -124,7 +124,7 @@ def test_msql_select_multi_and_repeated_tag():
     assert actual[0] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'")
     assert actual[1] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_2 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'")
 
-def test_msql_build_select_multi_and_repeated_tag(spark, classification_df):
+def test_msql_build_select_multi_and_repeated_class(spark, classification_df):
     msql = "SELECT [dx_email] AS email, [dx_date_partition] AS d FROM c.d*.t* WHERE [dx_email] = 'a@b.c'"
     expected_1 = SQLRow(
         "c",
@@ -156,7 +156,7 @@ def test_msql_build_select_multi_and_repeated_tag(spark, classification_df):
     assert actual[1] == expected_2
     assert actual[2] == expected_3
 
-def test_msql_build_delete_multi_and_repeated_tag(spark, classification_df):
+def test_msql_build_delete_multi_and_repeated_class(spark, classification_df):
     msql = "DELETE FROM c.d*.t* WHERE [dx_email] = 'a@b.c'"
     actual = Msql(msql).build(classification_df)
 
@@ -210,10 +210,10 @@ def test_execute_sql_should_fail_for_no_successful_queries(spark):
         df = msql.execute_sql_rows(sqls=sql_rows, spark=spark)
 
 
-# def test_msql_replace_tag_fails_for_missing_alias_in_select():
+# def test_msql_replace_class_fails_for_missing_alias_in_select():
 #     msql = "SELECT [dx_pii] FROM x.y WHERE [dx_pii] = ''"
 #     with pytest.raises(ValueError):
-#         SqlBuilder()._replace_tag(msql, 'dx_pii', 'email_1')
+#         SqlBuilder()._replace_class(msql, 'dx_pii', 'email_1')
 
 def test_validate_from_components():
     assert (Msql.validate_from_components("c.d.t") == ("c", "d", "t"))

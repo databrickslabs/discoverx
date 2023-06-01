@@ -42,7 +42,7 @@ class DX:
         classification_threshold: float = 0.95,
         spark: Optional[SparkSession] = None,
         locale: str = None,
-        classification_table_name: str = "_discoverx.classification.tags",
+        classification_table_name: str = "_discoverx.classification.classes",
     ):
 
         if spark is None:
@@ -114,18 +114,18 @@ class DX:
         """Scans the lakehouse for columns matching the given rules
         
         Args:
-            from_tables (str, optional): The tables to be scanned in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
+            from_tables (str, optional): The tables to be scanned in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
             rules (str, optional): The rule names to be used to scan the lakehouse, use "*" as a wildcard. Defaults to "*".
             sample_size (int, optional): The number of rows to be scanned per table. Defaults to 10000.
             what_if (bool, optional): Whether to run the scan in what-if mode and print the SQL commands instead of executing them. Defaults to False.
         """
-        catalogs, databases, tables = Msql.validate_from_components(from_tables)
+        catalogs, schemas, tables = Msql.validate_from_components(from_tables)
         
         self.scanner = Scanner(
             self.spark,
             self.rules,
             catalogs=catalogs,
-            databases=databases,
+            schemas=schemas,
             tables=tables,
             rule_filter=rules,
             sample_size=sample_size,
@@ -193,36 +193,33 @@ class DX:
         self.classifier.inspect()
         self.classifier.inspection_tool.display()
 
-    def publish(self, publish_uc_tags=False):
+    def publish(self):
         """Publishes the classification results to the lakehouse 
-        
-        Args:
-            publish_uc_tags (bool, optional): Whether to publish the tags to Unity Catalog. Defaults to False.
         
         Raises:
             Exception: If the classification has not been run
         
         """
         
-        # save tags
-        self.classifier.publish(publish_uc_tags=publish_uc_tags)
+        # save classes
+        self.classifier.publish()
 
     def search(self,
                search_term: Optional[str] = None,
                from_tables: str = "*.*.*",
-               by_tags: Optional[Union[List[str], str]] = None
+               by_classes: Optional[Union[List[str], str]] = None
                ):
         """Searches your lakehouse for columns matching the given search term
         
         Args:
             search_term (str, optional): The search term to be used to search for columns. Defaults to None.
-            from_tables (str, optional): The tables to be searched in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_tags (Union[List[str], str], optional): The tags to be used to search for columns. Defaults to None.
+            from_tables (str, optional): The tables to be searched in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_classes (Union[List[str], str], optional): The classes to be used to search for columns. Defaults to None.
             
         Raises:
-            ValueError: If neither search_term nor by_tags have been provided
+            ValueError: If neither search_term nor by_classes have been provided
             ValueError: If the search_term type is not valid
-            ValueError: If the by_tags type is not valid
+            ValueError: If the by_classes type is not valid
         
         Returns:
             DataFrame: A dataframe containing the results of the search
@@ -230,23 +227,23 @@ class DX:
         
         Msql.validate_from_components(from_tables)
 
-        if (search_term is None) and (by_tags is None):
-            raise ValueError("Neither search_term nor by_tags have been provided. At least one of them need to be specified.")
+        if (search_term is None) and (by_classes is None):
+            raise ValueError("Neither search_term nor by_classes have been provided. At least one of them need to be specified.")
 
         if (search_term is not None) and (not isinstance(search_term, str)):
             raise ValueError(f"The search_term type {type(search_term)} is not valid. Either None or a string have to be provided.")
 
-        if by_tags is None:
-            self.logger.friendly("You did not provide any tags to be searched. "
+        if by_classes is None:
+            self.logger.friendly("You did not provide any classes to be searched. "
                                  "We will try to auto-detect matching rules for the given search term")
             search_matching_rules = self.rules.match_search_term(search_term)
-            self.logger.friendly(f"Discoverx will search your lakehouse using the tags {search_matching_rules}")
-        elif isinstance(by_tags, str):
-            search_matching_rules = [by_tags]
-        elif isinstance(by_tags, list) and all(isinstance(elem, str) for elem in by_tags):
-            search_matching_rules = by_tags
+            self.logger.friendly(f"Discoverx will search your lakehouse using the classes {search_matching_rules}")
+        elif isinstance(by_classes, str):
+            search_matching_rules = [by_classes]
+        elif isinstance(by_classes, list) and all(isinstance(elem, str) for elem in by_classes):
+            search_matching_rules = by_classes
         else:
-            raise ValueError(f"The provided by_tags {by_tags} have the wrong type. Please provide"
+            raise ValueError(f"The provided by_classes {by_classes} have the wrong type. Please provide"
                              f" either a str or List[str].")
 
         sql_filter = [f"[{rule_name}] = '{search_term}'" for rule_name in search_matching_rules]
@@ -259,59 +256,59 @@ class DX:
 
         return self._msql(f"SELECT {select_statement}, to_json(struct(*)) AS row_content FROM {from_tables} {where_statement}")
 
-    def select_by_tags(self,
+    def select_by_classes(self,
             from_tables: str = "*.*.*",
-            by_tags: Optional[Union[List[str], str]] = None):
-        """Selects all columns in the lakehouse that match the given tags
+            by_classes: Optional[Union[List[str], str]] = None):
+        """Selects all columns in the lakehouse that match the given classes
         
         Args:
-            from_tables (str, optional): The tables to be selected in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_tags (Union[List[str], str], optional): The tags to be used to search for columns. Defaults to None.
+            from_tables (str, optional): The tables to be selected in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_classes (Union[List[str], str], optional): The classes to be used to search for columns. Defaults to None.
         
         Raises:
-            ValueError: If the by_tags type is not valid
+            ValueError: If the by_classes type is not valid
         
         Returns:
             DataFrame: A dataframe containing the UNION ALL results of the select"""
 
         Msql.validate_from_components(from_tables)
 
-        if isinstance(by_tags, str):
-            by_tags = [by_tags]
-        elif isinstance(by_tags, list) and all(isinstance(elem, str) for elem in by_tags):
-            by_tags = by_tags
+        if isinstance(by_classes, str):
+            by_classes = [by_classes]
+        elif isinstance(by_classes, list) and all(isinstance(elem, str) for elem in by_classes):
+            by_classes = by_classes
         else:
-            raise ValueError(f"The provided by_tags {by_tags} have the wrong type. Please provide"
+            raise ValueError(f"The provided by_classes {by_classes} have the wrong type. Please provide"
                              f" either a str or List[str].")
 
-        from_statement = "named_struct(" + ', '.join([f"'{tag}', named_struct('column', '[{tag}]', 'value', [{tag}])" for tag in by_tags]) + ") AS tagged_columns"
+        from_statement = "named_struct(" + ', '.join([f"'{class_name}', named_struct('column', '[{class_name}]', 'value', [{class_name}])" for class_name in by_classes]) + ") AS classified_columns"
         
         return self._msql(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}")
 
-    def delete_by_tag(self,
+    def delete_by_class(self,
                from_tables = "*.*.*",
-               by_tag: str = None,
+               by_class: str = None,
                values: Optional[Union[List[str], str]] = None,
                yes_i_am_sure: bool = False
                ):
-        """Deletes all rows in the lakehouse that match any of the provided values in a column tagged with the given tag
+        """Deletes all rows in the lakehouse that match any of the provided values in a column classified with the given class
         
         Args:
-            from_tables (str, optional): The tables to delete from in format "catalog.database.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_tag (str, optional): The tag to be used to search for columns. Defaults to None.
+            from_tables (str, optional): The tables to delete from in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_class (str, optional): The class to be used to search for columns. Defaults to None.
             values (Union[List[str], str], optional): The values to be deleted. Defaults to None.
             yes_i_am_sure (bool, optional): Whether you are sure that you want to delete the data. If False prints the SQL statements instead of executing them. Defaults to False.
             
         Raises:
             ValueError: If the from_tables is not valid
-            ValueError: If the by_tag is not valid
+            ValueError: If the by_class is not valid
             ValueError: If the values is not valid
         """
 
         Msql.validate_from_components(from_tables)
 
-        if (by_tag is None) or (not isinstance(by_tag, str)):
-            raise ValueError(f"Please provide a tag to identify the columns to be matched on the provided values.")
+        if (by_class is None) or (not isinstance(by_class, str)):
+            raise ValueError(f"Please provide a class to identify the columns to be matched on the provided values.")
 
         if values is None:
             raise ValueError(f"Please specify the values to be deleted. You can either provide a list of values or a single value.")
@@ -324,10 +321,10 @@ class DX:
                              f" either a str or List[str].")
         
         if not yes_i_am_sure:
-            self.logger.friendly(f"Please confirm that you want to delete the following values from the table {from_tables} using the tag {by_tag}: {values}")
+            self.logger.friendly(f"Please confirm that you want to delete the following values from the table {from_tables} using the class {by_class}: {values}")
             self.logger.friendly(f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True.")
 
-        return self._msql(f"DELETE FROM {from_tables} WHERE [{by_tag}] IN ({value_string})", what_if=(not yes_i_am_sure))
+        return self._msql(f"DELETE FROM {from_tables} WHERE [{by_class}] IN ({value_string})", what_if=(not yes_i_am_sure))
 
     def _msql(self, msql: str, what_if: bool = False):
 
@@ -343,10 +340,10 @@ class DX:
                 .filter(func.col("current") == True)
                 .select(
                     func.col("table_catalog").alias("catalog"),
-                    func.col("table_schema").alias("database"),
+                    func.col("table_schema").alias("schema"),
                     func.col("table_name").alias("table"),
                     func.col("column_name").alias("column"),
-                    "tag_name",
+                    "class_name",
                 ).toPandas()
             )
         except Exception:

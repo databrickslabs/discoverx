@@ -15,39 +15,39 @@ class ColumnInfo:
     name: str
     data_type: str
     partition_index: int
-    tags: list[str]
+    classes: list[str]
 
 
 @dataclass
 class TableInfo:
     catalog: Optional[str]
-    database: str
+    schema: str
     table: str
     columns: list[ColumnInfo]
 
-    def get_columns_by_tag(self, tag: str):
-        return [TaggedColumn(col.name, tag) for col in self.columns if tag in col.tags]
+    def get_columns_by_class(self, class_name: str):
+        return [ClassifiedColumn(col.name, class_name) for col in self.columns if class_name in col.classes]
 
 
 @dataclass
-class TaggedColumn:
+class ClassifiedColumn:
     name: str
-    tag: str
+    class_name: str
 
 
 @dataclass
 class ScanContent:
     table_list: List[TableInfo]
     catalogs: Set[str]
-    databases: Set[str]
+    schemas: Set[str]
 
     @property
     def n_catalogs(self) -> int:
         return len(self.catalogs)
 
     @property
-    def n_databases(self) -> int:
-        return len(self.databases)
+    def n_schemas(self) -> int:
+        return len(self.schemas)
 
     @property
     def n_tables(self) -> int:
@@ -78,7 +78,7 @@ class Scanner:
         spark: SparkSession,
         rules: Rules,
         catalogs: str = "*",
-        databases: str = "*",
+        schemas: str = "*",
         tables: str = "*",
         rule_filter: str = "*",
         sample_size: int = 1000,
@@ -87,7 +87,7 @@ class Scanner:
         self.spark = spark
         self.rules = rules
         self.catalogs = catalogs
-        self.databases = databases
+        self.schemas = schemas
         self.tables = tables
         self.rules_filter = rule_filter
         self.sample_size = sample_size
@@ -127,7 +127,7 @@ class Scanner:
         """
 
         catalog_sql = f"""AND regexp_like(table_catalog, "^{self.catalogs.replace("*", ".*")}$")"""
-        database_sql = f"""AND regexp_like(table_schema, "^{self.databases.replace("*", ".*")}$")"""
+        schema_sql = f"""AND regexp_like(table_schema, "^{self.schemas.replace("*", ".*")}$")"""
         table_sql = (
             f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
         )
@@ -142,7 +142,7 @@ class Scanner:
         WHERE 
             table_schema != "information_schema" 
             {catalog_sql if self.catalogs != "*" else ""}
-            {database_sql if self.databases != "*" else ""}
+            {schema_sql if self.schemas != "*" else ""}
             {table_sql if self.tables != "*" else ""}
         GROUP BY table_catalog, table_schema, table_name
         """
@@ -152,9 +152,9 @@ class Scanner:
     def _resolve_scan_content(self) -> ScanContent:
         table_list = self._get_list_of_tables()
         catalogs = set(map(lambda x: x.catalog, table_list))
-        databases = set(map(lambda x: x.database, table_list))
+        schemas = set(map(lambda x: x.schema, table_list))
 
-        return ScanContent(table_list, catalogs, databases)
+        return ScanContent(table_list, catalogs, schemas)
 
     def scan(self):
 
@@ -165,7 +165,7 @@ class Scanner:
                 This is what you asked for:
 
                     catalogs ({self.content.n_catalogs}) = {self.catalogs}
-                    databases ({self.content.n_databases}) = {self.databases}
+                    schemas ({self.content.n_schemas}) = {self.schemas}
                     tables ({self.content.n_tables}) = {self.tables}
                     rules ({len(self.rule_list)}) = {self.rules_filter}
                     sample_size = {self.sample_size}
@@ -180,14 +180,17 @@ class Scanner:
 
         dfs = []
 
+        if len(self.content.table_list) == 0:
+            raise  Exception("No tables found matching your filters")
+
         for i, table in enumerate(self.content.table_list):
             if self.what_if:
                 logger.friendly(
-                    f"SQL that would be executed for '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{self.content.n_tables})"
+                    f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}' ({i + 1}/{self.content.n_tables})"
                 )
             else:
                 logger.friendly(
-                    f"Scanning table '{table.catalog}.{table.database}.{table.table}' ({i + 1}/{self.content.n_tables})"
+                    f"Scanning table '{table.catalog}.{table.schema}.{table.table}' ({i + 1}/{self.content.n_tables})"
                 )
 
             try:
@@ -201,7 +204,7 @@ class Scanner:
                     dfs.append(self.spark.sql(sql).toPandas())
             except Exception as e:
                 logger.error(
-                    f"Error while scanning table '{table.catalog}.{table.database}.{table.table}': {e}"
+                    f"Error while scanning table '{table.catalog}.{table.schema}.{table.table}': {e}"
                 )
                 continue
 
@@ -210,7 +213,7 @@ class Scanner:
         if dfs:
             self.scan_result = ScanResult(df=pd.concat(dfs))
         else:
-            self.scan_result = ScanResult(df=pd.DataFrame())
+            raise Exception("No tables were scanned successfully.")
 
     def _rule_matching_sql(self, table_info: TableInfo):
         """
@@ -252,14 +255,14 @@ class Scanner:
         sql = f"""
             SELECT 
                 '{table_info.catalog}' as table_catalog,
-                '{table_info.database}' as table_schema,
+                '{table_info.schema}' as table_schema,
                 '{table_info.table}' as table_name, 
                 column_name,
-                tag_name,
+                class_name,
                 (sum(value) / count(value)) as frequency
             FROM
             (
-                SELECT column_name, stack({len(expressions)}, {unpivot_expressions}) as (tag_name, value)
+                SELECT column_name, stack({len(expressions)}, {unpivot_expressions}) as (class_name, value)
                 FROM 
                 (
                     SELECT
@@ -268,12 +271,12 @@ class Scanner:
                     FROM (
                         SELECT
                             stack({len(cols)}, {unpivot_columns}) AS (column_name, value)
-                        FROM {catalog_str}{table_info.database}.{table_info.table}
+                        FROM {catalog_str}{table_info.schema}.{table_info.table}
                         TABLESAMPLE ({self.sample_size} ROWS)
                     )
                 )
             )
-            GROUP BY table_catalog, table_schema, table_name, column_name, tag_name
+            GROUP BY table_catalog, table_schema, table_name, column_name, class_name
         """
 
         return strip_margin(sql)

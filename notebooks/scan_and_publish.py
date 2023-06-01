@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # DiscoverX
-# MAGIC This notebook can be used for regular jobs which scan and classify/tag the lakehouse content.
+# MAGIC This notebook can be used for regular jobs which scan and classify/t the lakehouse content.
 
 # COMMAND ----------
 
@@ -45,7 +45,7 @@ dx.scan(from_tables=from_table_statement)
 
 # COMMAND ----------
 
-# DBTITLE 1,Publish Classification/Tags
+# DBTITLE 1,Publish Classification/Classes
 dx.publish()
 
 # COMMAND ----------

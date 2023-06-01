@@ -28,10 +28,10 @@ class RegexRule(Rule):
         definition (str): The actual definition. I.e. for regex-type
             rules this would contain the actual regular expressions as
             a RAW string, i.e. r'...'
-        example (str, optional): It is possible to provide an example of
+        match_example (str, optional): It is possible to provide an example of
             a string/expression to be matched by the Rule. This example
             is used to validate the Rule upon instantiation.
-        tag (str, optional): Name used to tag matched columns in unity
+        class_name (str, optional): Name of the class used to select columns in unity
             catalog
     """
     
@@ -42,7 +42,7 @@ class RegexRule(Rule):
     definition: str
     match_example: Optional[Union[str, List[str]]] = None
     nomatch_example: Optional[Union[str, List[str]]] = None
-    tag: Optional[str] = None
+    class_name: Optional[str] = None
 
     # pylint: disable=no-self-argument
     @validator("match_example")

@@ -7,21 +7,21 @@ logger = logging.Logging()
 
 @pytest.fixture(scope="module", name="dx_ip")
 def scan_ip_in_tb1(spark, mock_uc_functionality):
-    dx = DX(spark=spark, classification_table_name="_discoverx.tags")
+    dx = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx.scan(from_tables="*.*.tb_1", rules="ip_*")
     dx.publish()
     yield dx
 
-    spark.sql("DROP TABLE IF EXISTS _discoverx.tags")
+    spark.sql("DROP TABLE IF EXISTS _discoverx.classes")
 
 def test_scan_without_classification_table(spark, mock_uc_functionality):
-    dx = DX(spark=spark, classification_table_name="_discoverx.non_existent_tags_table")
+    dx = DX(spark=spark, classification_table_name="_discoverx.non_existent_classes_table")
     dx.scan(from_tables="*.*.tb_1", rules="ip_*")
 
     assert len(dx.scan_result()) > 0
 
 def test_scan_withno_results(spark, mock_uc_functionality):
-    dx = DX(spark=spark, classification_table_name="_discoverx.non_existent_tags_table")
+    dx = DX(spark=spark, classification_table_name="_discoverx.non_existent_classes_table")
     dx.scan(from_tables="*.*.tb_1", rules="credit_card_number")
 
     assert len(dx.scan_result()) > 0
@@ -61,83 +61,83 @@ def test_scan_and_msql(spark, dx_ip):
 
 def test_search(spark, dx_ip: DX):
 
-    # search a specific term and auto-detect matching tags/rules
+    # search a specific term and auto-detect matching classes/rules
     result = dx_ip.search("1.2.3.4").collect()
     assert result[0].table == 'tb_1'
     assert result[0].search_result.ip_v4.column == 'ip'
 
-    # search all records for specific tag
-    result_tags_only = dx_ip.search(by_tags='ip_v4')
-    assert {row.search_result.ip_v4.value for row in result_tags_only.collect()} == {"1.2.3.4", "3.4.5.60"}
+    # search all records for specific class
+    result_classes_only = dx_ip.search(by_classes='ip_v4')
+    assert {row.search_result.ip_v4.value for row in result_classes_only.collect()} == {"1.2.3.4", "3.4.5.60"}
 
-    # specify catalog, database and table
-    result_tags_namespace = dx_ip.search(by_tags='ip_v4', from_tables="*.default.tb_*")
-    assert {row.search_result.ip_v4.value for row in result_tags_namespace.collect()} == {"1.2.3.4", "3.4.5.60"}
+    # specify catalog, schema and table
+    result_classes_namespace = dx_ip.search(by_classes='ip_v4', from_tables="*.default.tb_*")
+    assert {row.search_result.ip_v4.value for row in result_classes_namespace.collect()} == {"1.2.3.4", "3.4.5.60"}
 
-    # search specific term for list of specified tags
-    result_term_tag = dx_ip.search(search_term="3.4.5.60", by_tags=['ip_v4']).collect()
-    assert result_term_tag[0].table == 'tb_1'
-    assert result_term_tag[0].search_result.ip_v4.value == "3.4.5.60"
+    # search specific term for list of specified classes
+    result_term_class = dx_ip.search(search_term="3.4.5.60", by_classes=['ip_v4']).collect()
+    assert result_term_class[0].table == 'tb_1'
+    assert result_term_class[0].search_result.ip_v4.value == "3.4.5.60"
 
-    with pytest.raises(ValueError) as no_tags_no_terms_error:
+    with pytest.raises(ValueError) as no_classes_no_terms_error:
         dx_ip.search()
-    assert no_tags_no_terms_error.value.args[0] == "Neither search_term nor by_tags have been provided. At least one of them need to be specified."
+    assert no_classes_no_terms_error.value.args[0] == "Neither search_term nor by_classes have been provided. At least one of them need to be specified."
 
     with pytest.raises(ValueError) as list_with_ints:
-        dx_ip.search(by_tags=[1, 3, 'ip'])
-    assert list_with_ints.value.args[0] == "The provided by_tags [1, 3, 'ip'] have the wrong type. Please provide either a str or List[str]."
+        dx_ip.search(by_classes=[1, 3, 'ip'])
+    assert list_with_ints.value.args[0] == "The provided by_classes [1, 3, 'ip'] have the wrong type. Please provide either a str or List[str]."
 
     with pytest.raises(ValueError) as single_bool:
-        dx_ip.search(by_tags=True)
-    assert single_bool.value.args[0] == "The provided by_tags True have the wrong type. Please provide either a str or List[str]."
+        dx_ip.search(by_classes=True)
+    assert single_bool.value.args[0] == "The provided by_classes True have the wrong type. Please provide either a str or List[str]."
 
-def test_select_by_tag(spark, dx_ip):
+def test_select_by_class(spark, dx_ip):
 
-    # search a specific term and auto-detect matching tags/rules
-    result = dx_ip.select_by_tags(from_tables="*.default.tb_*", by_tags="ip_v4").collect()
+    # search a specific term and auto-detect matching classes/rules
+    result = dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes="ip_v4").collect()
     assert result[0].table == 'tb_1'
-    assert result[0].tagged_columns.ip_v4.column == 'ip'
+    assert result[0].classified_columns.ip_v4.column == 'ip'
 
-    result = dx_ip.select_by_tags(from_tables="*.default.tb_*", by_tags=["ip_v4"]).collect()
+    result = dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes=["ip_v4"]).collect()
     assert result[0].table == 'tb_1'
-    assert result[0].tagged_columns.ip_v4.column == 'ip'
+    assert result[0].classified_columns.ip_v4.column == 'ip'
 
     with pytest.raises(ValueError):
-        dx_ip.select_by_tags(from_tables="*.default.tb_*")
+        dx_ip.select_by_classes(from_tables="*.default.tb_*")
     
     with pytest.raises(ValueError):
-        dx_ip.select_by_tags(from_tables="*.default.tb_*", by_tags=[1, 3, 'ip'])
+        dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes=[1, 3, 'ip'])
     
     with pytest.raises(ValueError):
-        dx_ip.select_by_tags(from_tables="*.default.tb_*", by_tags=True)
+        dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes=True)
 
     with pytest.raises(ValueError):
-        dx_ip.select_by_tags(from_tables="invalid from", by_tags="email")
+        dx_ip.select_by_classes(from_tables="invalid from", by_classes="email")
     
 # @pytest.mark.skip(reason="Delete is only working with v2 tables. Needs investigation")
-def test_delete_by_tag(spark, dx_ip):
+def test_delete_by_class(spark, dx_ip):
 
-    # search a specific term and auto-detect matching tags/rules
-    result = dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag="ip_v4", values="9.9.9.9")
+    # search a specific term and auto-detect matching classes/rules
+    result = dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
     assert result is None # Nothing should be executed
 
-    result = dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag="ip_v4", values="9.9.9.9", yes_i_am_sure=True).collect()
+    result = dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9", yes_i_am_sure=True).collect()
     assert result[0].table == 'tb_1'
 
     with pytest.raises(ValueError):
-        dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag="x")
+        dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="x")
 
     with pytest.raises(ValueError):
-        dx_ip.delete_by_tag(from_tables="*.default.tb_*", values="x")
+        dx_ip.delete_by_class(from_tables="*.default.tb_*", values="x")
     
     with pytest.raises(ValueError):
-        dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag=['ip'], values="x")
+        dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class=['ip'], values="x")
     
     with pytest.raises(ValueError):
-        dx_ip.delete_by_tag(from_tables="*.default.tb_*", by_tag=True, values="x")
+        dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class=True, values="x")
 
     with pytest.raises(ValueError):
-        dx_ip.delete_by_tag(from_tables="invalid from", by_tag="email", values="x")
+        dx_ip.delete_by_class(from_tables="invalid from", by_class="email", values="x")
     
 def test_scan_result(dx_ip):
     assert not dx_ip.scan_result().empty
@@ -147,16 +147,16 @@ def test_scan_results_before_scan_should_fail(spark):
     with pytest.raises(Exception):
         dx.scan_result()
 
-# test multiple tags
+# test multiple classes
 def test_search_multiple(spark, mock_uc_functionality):
-    dx = DX(spark=spark, classification_table_name="_discoverx.tags")
+    dx = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx.scan(from_tables="*.*.tb_1", rules="*")
     dx.publish()
 
-    # search a specific term and auto-detect matching tags/rules
-    result = dx.search(by_tags=["ip_v4", "mac_address"])
+    # search a specific term and auto-detect matching classes/rules
+    result = dx.search(by_classes=["ip_v4", "mac_address"])
     assert result.collect()[0].table == 'tb_1'
     assert result.collect()[0].search_result.ip_v4.column == 'ip'
     assert result.collect()[0].search_result.mac_address.column == 'mac'
 
-    spark.sql("DROP TABLE IF EXISTS _discoverx.tags")
+    spark.sql("DROP TABLE IF EXISTS _discoverx.classes")

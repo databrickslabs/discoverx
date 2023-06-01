@@ -220,7 +220,7 @@ def mock_uc_functionality(spark, monkeymodule):
         self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {schema}")
         self.spark.sql(
             f"""
-                CREATE TABLE IF NOT EXISTS {schema + '.' + table} (table_catalog string, table_schema string, table_name string, column_name string, tag_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp) USING DELTA
+                CREATE TABLE IF NOT EXISTS {schema + '.' + table} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp) USING DELTA
                 """
         )
         return DeltaTable.forName(self.spark, self.classification_table_name)
@@ -228,21 +228,21 @@ def mock_uc_functionality(spark, monkeymodule):
     monkeymodule.setattr(Classifier, "_get_or_create_classification_table_from_delta", get_or_create_classification_table_mock)
 
     # mock UC's tag functionality
-    def set_uc_tags(self, series):
+    def set_uc_classes(self, series):
         if (series.action == "to_be_set"):
             logging.debug(
-                f"Set tag {series.tag_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
+                f"Set tag {series.class_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
             )
         if (series.action == "to_be_unset"):
             logging.debug(
-                f"Unset tag {series.tag_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
+                f"Unset tag {series.class_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
             )
 
-    monkeymodule.setattr(Classifier, "_set_tag_uc", set_uc_tags)
+    monkeymodule.setattr(Classifier, "_set_tag_uc", set_uc_classes)
 
     yield
 
-    spark.sql("DROP TABLE IF EXISTS _discoverx.tags")
+    spark.sql("DROP TABLE IF EXISTS _discoverx.classes")
     spark.sql("DROP SCHEMA IF EXISTS _discoverx CASCADE")
 
 

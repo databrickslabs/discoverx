@@ -42,7 +42,7 @@ def test_get_table_list(spark):
     MockedScanner = Scanner
     MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
     scanner = MockedScanner(
-        spark, rules=rules, catalogs="*", databases="*", tables="*_all_types", rule_filter="*", sample_size=100
+        spark, rules=rules, catalogs="*", schemas="*", tables="*_all_types", rule_filter="*", sample_size=100
     )
     actual = scanner._get_list_of_tables()
 
@@ -56,11 +56,11 @@ expectedsingle = r"""SELECT
     'db' as table_schema,
     'tb' as table_name,
     column_name,
-    tag_name,
+    class_name,
     (sum(value) / count(value)) as frequency
 FROM
 (
-    SELECT column_name, stack(1, 'any_word', `any_word`) as (tag_name, value)
+    SELECT column_name, stack(1, 'any_word', `any_word`) as (class_name, value)
     FROM
     (
         SELECT
@@ -74,18 +74,18 @@ FROM
         )
     )
 )
-GROUP BY table_catalog, table_schema, table_name, column_name, tag_name"""
+GROUP BY table_catalog, table_schema, table_name, column_name, class_name"""
 
 expectedmulti = r"""SELECT
     'meta' as table_catalog,
     'db' as table_schema,
     'tb' as table_name,
     column_name,
-    tag_name,
+    class_name,
     (sum(value) / count(value)) as frequency
 FROM
 (
-    SELECT column_name, stack(2, 'any_word', `any_word`, 'any_number', `any_number`) as (tag_name, value)
+    SELECT column_name, stack(2, 'any_word', `any_word`, 'any_number', `any_number`) as (class_name, value)
     FROM
     (
         SELECT
@@ -100,7 +100,7 @@ FROM
         )
     )
 )
-GROUP BY table_catalog, table_schema, table_name, column_name, tag_name"""
+GROUP BY table_catalog, table_schema, table_name, column_name, class_name"""
 
 
 @pytest.mark.parametrize(
@@ -166,7 +166,7 @@ def test_scan_custom_rules(spark: SparkSession):
             ["None", "default", "tb_1", "description", "any_word", 0.5],
             ["None", "default", "tb_1", "description", "any_number", 0.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "tag_name", "frequency"],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "frequency"],
     )
 
     columns = [
@@ -201,7 +201,7 @@ def test_scan(spark: SparkSession):
             ["None", "default", "tb_1", "description", "ip_v4", 0.0],
             ["None", "default", "tb_1", "description", "ip_v6", 0.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "tag_name", "frequency"],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "frequency"],
     )
 
     rules = Rules()

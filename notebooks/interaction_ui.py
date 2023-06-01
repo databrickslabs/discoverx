@@ -22,7 +22,7 @@
 
 # MAGIC %sql
 # MAGIC -- Clean up old demos
-# MAGIC DROP TABLE IF EXISTS _discoverx.classification.tags;
+# MAGIC DROP TABLE IF EXISTS _discoverx.classification.classes;
 
 # COMMAND ----------
 
@@ -49,7 +49,7 @@ dx = DX(locale="US")
 # MAGIC - `dx.scan()`: Scan the lakehouse including catalogs with names starting with `discoverx`
 # MAGIC - `dx.inspect()`: Inspect and manually adjust the scan result using the DiscoverX inspection tool
 # MAGIC - `dx.publish()`: Publish the classification result which save/merge the result to a system table maintained by DiscoverX
-# MAGIC - `dx.search()`: Search your across your previously classified lakehouse for specific records or general classifications/tags
+# MAGIC - `dx.search()`: Search your across your previously classified lakehouse for specific records or general classifications/classes
 
 # COMMAND ----------
 
@@ -75,16 +75,16 @@ dx.search(search_term='1.2.3.4', from_tables="*.*.*").display()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Select by tag
+# MAGIC ## Select by class
 
 # COMMAND ----------
 
-dx.select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"]).display()
+dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"]).display()
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Select by tag with aggregations
+# MAGIC ## Select by class with aggregations
 # MAGIC 
 # MAGIC The select output can be aggregated like a normal Spark dataframe.
 
@@ -94,9 +94,9 @@ import pyspark.sql.functions as func
 
 # Count the occurrences of each IP address per table per IP column
 (dx
-  .select_by_tags(from_tables="discoverx*.*.*", by_tags=["ip_v4"])
-  .groupby(["catalog", "database", "table", "tagged_columns.ip_v4.column", "tagged_columns.ip_v4.value"])
-  .agg(func.count("tagged_columns.ip_v4.value").alias("count"))  
+  .select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"])
+  .groupby(["catalog", "schema", "table", "classified_columns.ip_v4.column", "classified_columns.ip_v4.value"])
+  .agg(func.count("classified_columns.ip_v4.value").alias("count"))  
 ).display()
 
 # COMMAND ----------
@@ -111,7 +111,7 @@ import pyspark.sql.functions as func
 
 # COMMAND ----------
 
-dx.delete_by_tag(from_tables="discoverx*.*.*", by_tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=False)
+dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=False)
 
 # COMMAND ----------
 
@@ -120,7 +120,7 @@ dx.delete_by_tag(from_tables="discoverx*.*.*", by_tag="ip_v4", values=['0.0.0.0'
 
 # COMMAND ----------
 
-dx.delete_by_tag(from_tables="discoverx*.*.*", by_tag="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=True).display()
+dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=True).display()
 
 # COMMAND ----------
 
