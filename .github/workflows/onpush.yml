@@ -48,10 +48,17 @@ jobs:
           echo "Run pylint"
           pylint discoverx
 
-      - name: Run unit tests
+      - name: Run tests with coverage
         run: |
-          echo "Launching unit tests"
-          pytest tests/unit
+          coverage run -m pytest tests/unit
+          coverage xml -i
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage-report
+          path: coverage.xml
+
 
       # TODO: Find an environment with UC enabled to run integration tests
       # - name: Workflow deployment (assets only upload)
