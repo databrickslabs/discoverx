@@ -1,6 +1,6 @@
 -- Databricks notebook source
 -- MAGIC %md
--- MAGIC 
+-- MAGIC
 -- MAGIC # Sample notebook
 
 -- COMMAND ----------
@@ -15,6 +15,36 @@ USE CATALOG ${discoverx_sample_catalog};
 -- COMMAND ----------
 
 CREATE DATABASE IF NOT EXISTS ${discoverx_sample_catalog}.sample_datasets
+
+-- COMMAND ----------
+
+CREATE TABLE IF NOT EXISTS ${discoverx_sample_catalog}.sample_datasets.accounts
+(
+  user_id   INT,
+  email     STRING,
+  comment   STRING,
+  city      STRING
+);
+
+INSERT OVERWRITE TABLE ${discoverx_sample_catalog}.sample_datasets.accounts VALUES
+  (1, 'my@email.com', '', 'EDINBURGH'),
+  (2, 'some@other.email.com', '', 'PADDINGTON'),
+  (3, 'erni@databricks.com', '', 'MAIDSTONE'),
+  (4, 'any@example.com', '', 'DARLINGTON');
+
+-- COMMAND ----------
+
+CREATE TABLE IF NOT EXISTS ${discoverx_sample_catalog}.sample_datasets.messages
+(
+  from    STRING,
+  to      STRING,
+  content STRING
+);
+
+INSERT OVERWRITE TABLE ${discoverx_sample_catalog}.sample_datasets.messages VALUES
+  ('my@email.com', 'some@other.email.com', 'example content 1'),
+  ('some@other.email.com', 'erni@databricks.com', 'example content 2'),
+  ('erni@databricks.com', 'any@example.com', 'example content 3');
 
 -- COMMAND ----------
 

@@ -33,7 +33,7 @@ dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_s
 
 # MAGIC %md
 # MAGIC ## DiscoverX Interaction
-# MAGIC 
+# MAGIC
 # MAGIC In the following we demonstrate how to interact with DiscoverX.
 
 # COMMAND ----------
@@ -57,20 +57,20 @@ dx.scan(from_tables="discoverx*.*.*")
 
 # COMMAND ----------
 
-dx.inspect()
+dx.publish()
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Search
-# MAGIC 
+# MAGIC
 # MAGIC This command can be used to search inside the content of tables.
-# MAGIC 
+# MAGIC
 # MAGIC If the tables have ben scanned before, the search will restrict the scope to only the columns that could contain the search term based on the avaialble rules.
 
 # COMMAND ----------
 
-dx.search(search_term='1.2.3.4', from_tables="*.*.*").display()
+dx.search(search_term='erni@databricks.com', from_tables="*.*.*").display()
 
 # COMMAND ----------
 
@@ -79,13 +79,13 @@ dx.search(search_term='1.2.3.4', from_tables="*.*.*").display()
 
 # COMMAND ----------
 
-dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"]).display()
+dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["email"]).display()
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Select by class with aggregations
-# MAGIC 
+# MAGIC
 # MAGIC The select output can be aggregated like a normal Spark dataframe.
 
 # COMMAND ----------
@@ -111,7 +111,12 @@ import pyspark.sql.functions as func
 
 # COMMAND ----------
 
-dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=False)
+dx.delete_by_class(
+  from_tables="discoverx*.*.*", 
+  by_class="email", 
+  values=['erni@databricks.com'], 
+  yes_i_am_sure=False
+)
 
 # COMMAND ----------
 
@@ -120,13 +125,13 @@ dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.
 
 # COMMAND ----------
 
-dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=True).display()
+dx.delete_by_class(from_tables="discoverx*.*.*", by_class="email", values=['erni@databricks.com'], yes_i_am_sure=True).display()
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Configuration
-# MAGIC 
+# MAGIC
 # MAGIC This section is optional, and can be used to customize the behaviour of DiscoverX
 
 # COMMAND ----------
@@ -147,24 +152,22 @@ dx.display_rules()
 
 from discoverx.rules import RegexRule
 
+contains_confidential = RegexRule(
+  name='contains_confidential',
+  description='Contains the words "confidential" or "restricted" (case insensitive)',
+  definition=r'^(?i).*(confidential|restricted).*$',
+  match_example=['Some confidential information', 'this is restricted to...', 'Confidential data'],
+  nomatch_example=['Any other text']
+)
 
-resource_request_id_rule = {
-  'name': 'resource_request_id',
-  'description': 'Resource request ID',
-  'definition': r'^AR-\d{9}$',
-  'match_example': ['AR-123456789'],
-  'nomatch_example': ['R-123']
-}
+dx = DX(custom_rules=[contains_confidential])
 
-resource_request_id_rule = RegexRule(**resource_request_id_rule)
+dx.scan(from_tables="*.*.*document*", sample_size=1000, rules="contains_confidential")
 
-dx = DX(custom_rules=[resource_request_id_rule])
-dx.display_rules()
-# # dx.register_rules(custom_rules)
 
 # COMMAND ----------
 
-dx.scan(from_tables="discoverx*.*.*", sample_size=1000)
+dx.scan(from_tables="*.*.*document*", sample_size=1000, rules="contains_confidential")
 
 # COMMAND ----------
 
