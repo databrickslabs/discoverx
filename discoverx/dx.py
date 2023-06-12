@@ -8,7 +8,6 @@ from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner
 from discoverx.classification import Classifier
-from discoverx.inspection import InspectionTool
 import ipywidgets as widgets
 
 
@@ -179,19 +178,6 @@ class DX:
         )
 
         self.logger.friendlyHTML(self.classifier.summary_html)
-
-    def inspect(self):
-        """Displays the inspection tool for the classification results
-        
-        Raises:
-            Exception: If the classification has not been run
-        """
-        # until we have an end-2-end interactive UI we need to 
-        # rerun classification to make sure users can rerun inspect
-        # without rerunning the scan
-        self.classifier.compute_classification_result()
-        self.classifier.inspect()
-        self.classifier.inspection_tool.display()
 
     def publish(self):
         """Publishes the classification results to the lakehouse 

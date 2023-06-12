@@ -8,7 +8,6 @@ from discoverx.dx import Scanner
 from discoverx.scanner import ScanResult
 from discoverx.rules import Rules
 from discoverx import logging
-from discoverx.inspection import InspectionTool
 
 logger = logging.Logging()
 
@@ -200,91 +199,4 @@ def test_merging_scan_results(spark, mock_current_time):
         .sort_values(by=["table_catalog", "table_schema", "table_name", "column_name"])
         .reset_index(drop=True),
         expected5_df.reset_index(drop=True),
-    )
-
-    # test new detected column and manual changes during inspect. Manually remove ip_v4, add pii class to ip_v6
-    # uc classes (mocked)
-    df_scan_result6 = pd.DataFrame(
-        {
-            "table_catalog": [None, None, None, None, None, None, None, None, None, None, None, None],
-            "table_schema": [
-                "default",
-                "default",
-                "default",
-                "default",
-                "default",
-                "default",
-                "default",
-                "default",
-                "default",
-                "default",
-                "default",
-                "default",
-            ],
-            "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_2", "tb_2", "tb_2", "tb_1", "tb_1", "tb_1"],
-            "column_name": [
-                "ip",
-                "ip",
-                "ip",
-                "ip6",
-                "ip6",
-                "ip6",
-                "mac",
-                "mac",
-                "mac",
-                "description",
-                "description",
-                "description",
-            ],
-            "class_name": [
-                "ip_v4",
-                "ip_v6",
-                "mac",
-                "ip_v4",
-                "ip_v6",
-                "mac",
-                "ip_v4",
-                "ip_v6",
-                "mac",
-                "ip_v4",
-                "ip_v6",
-                "mac",
-            ],
-            "frequency": [0.96, 0.0, 0.0, 0.0, 0.98, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-        }
-    )
-
-    dx6 = DX(spark=spark, classification_table_name="_discoverx.classes")
-    dummy_scanner.scan_result = ScanResult(df_scan_result6)
-    dx6.scanner = dummy_scanner
-    dx6._classify(classification_threshold=0.95)
-    dx6.classifier.compute_classification_result()
-    # simulate manual changes in InteractionTool - set ip6 to active again
-    dx6.classifier.inspection_tool = InspectionTool(dx6.classifier.classification_result, dx6.classifier.publish)
-    dx6.classifier.inspection_tool.inspected_table = dx6.classifier.classification_result
-    dx6.classifier.inspection_tool.inspected_table.at[0, "Classes to be published"] = []
-    dx6.classifier.inspection_tool.inspected_table.at[0, "Classes changed"] = True
-    dx6.classifier.inspection_tool.inspected_table.at[1, "Classes to be published"] = ['ip_v6', 'pii']
-    dx6.classifier.inspection_tool.inspected_table.at[1, "Classes changed"] = True
-    dx6.publish()
-
-    expected6_df = pd.DataFrame(
-        {
-            "table_catalog": [None, None, None, None],
-            "table_schema": ["default", "default", "default", "default"],
-            "table_name": ["tb_1", "tb_1", "tb_1", "tb_2"],
-            "column_name": ["ip", "ip6", "ip6", "mac"],
-            "class_name": ["ip_v4", "ip_v6", "pii", "mac"],
-            "effective_timestamp": [current_time, current_time, current_time, current_time],
-            "current": [False, True, True, True],
-            "end_timestamp": [current_time, pd.NaT, pd.NaT, pd.NaT],
-        }
-    ).sort_values(by=["table_catalog", "table_schema", "table_name", "column_name"])
-
-    assert_frame_equal(
-        spark.sql("SELECT * FROM _discoverx.classes")
-        .toPandas()
-        .sort_values(by=["table_catalog", "table_schema", "table_name", "column_name"])
-        .reset_index(drop=True),
-        expected6_df.reset_index(drop=True),
     )

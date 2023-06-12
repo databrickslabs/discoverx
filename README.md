@@ -53,20 +53,9 @@ Check out the [scan parameters](#scan-parameters).
 
 The result is a dataset with a `frequency` column, which defines the fraction of matched records against the total records scanned for each rule.
 
-## Inspect
-
-You can inspect and fine-tune the classification results with 
-
-```
-dx.inspect()
-```
-
-
 ## Publish the classificaiton
 
 After a `scan` you can publish the classificaiton results in a delta table (by default the table is `_discoverx.classification.classes`).
-
-You can either publish the classification from the inspection UI, or apply directly without fine-tuning by executing
 
 ```
 dx.publish()
