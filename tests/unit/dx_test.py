@@ -70,6 +70,10 @@ def test_search(spark, dx_ip: DX):
     result_classes_namespace = dx_ip.search("1.2.3.4", by_class='ip_v4', from_tables="*.default.tb_*")
     assert {row.search_result.ip_v4.value for row in result_classes_namespace.collect()} == {"1.2.3.4"}
 
+    with pytest.raises(ValueError) as no_search_term_error:
+        dx_ip.search(None)
+    assert no_search_term_error.value.args[0] == "search_term has not been provided."
+
     with pytest.raises(ValueError) as no_inferred_class_error:
         dx_ip.search("###")
     assert no_inferred_class_error.value.args[0] == "Could not infer any class for the given search term. Please specify the by_class parameter."
