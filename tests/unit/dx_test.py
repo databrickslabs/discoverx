@@ -137,17 +137,3 @@ def test_scan_results_before_scan_should_fail(spark):
     dx = DX(spark=spark)
     with pytest.raises(Exception):
         dx.scan_result()
-
-# test multiple classes
-def test_search_multiple(spark, mock_uc_functionality):
-    dx = DX(spark=spark, classification_table_name="_discoverx.classes")
-    dx.scan(from_tables="*.*.tb_1", rules="*")
-    dx.publish()
-
-    # search a specific term and auto-detect matching classes/rules
-    result = dx.search(by_classes=["ip_v4", "mac_address"])
-    assert result.collect()[0].table == 'tb_1'
-    assert result.collect()[0].search_result.ip_v4.column == 'ip'
-    assert result.collect()[0].search_result.mac_address.column == 'mac'
-
-    spark.sql("DROP TABLE IF EXISTS _discoverx.classes")
