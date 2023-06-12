@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import pandas as pd
+import concurrent.futures
 from pyspark.sql import SparkSession
 from typing import Optional, List, Set
 
@@ -72,6 +73,7 @@ class ScanResult:
 class Scanner:
 
     COLUMNS_TABLE_NAME = "system.information_schema.columns"
+    MAX_WORKERS = 10
 
     def __init__(
         self,
@@ -152,9 +154,35 @@ class Scanner:
     def _resolve_scan_content(self) -> ScanContent:
         table_list = self._get_list_of_tables()
         catalogs = set(map(lambda x: x.catalog, table_list))
-        schemas = set(map(lambda x: x.schema, table_list))
+        schemas = set(map(lambda x: f"{x.catalog}.{x.schema}", table_list))
 
         return ScanContent(table_list, catalogs, schemas)
+
+    def scan_table(self, table):
+        try:
+            if self.what_if:
+                logger.friendly(
+                    f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}'"
+                )
+            else:
+                logger.friendly(
+                    f"Scanning table '{table.catalog}.{table.schema}.{table.table}'"
+                )
+            
+            # Build rule matching SQL
+            sql = self._rule_matching_sql(table)
+
+            if self.what_if:
+                logger.friendly(sql)
+            else:
+                # Execute SQL and return the result
+                return self.spark.sql(sql).toPandas()
+        except Exception as e:
+            logger.error(
+                f"Error while scanning table '{table.catalog}.{table.schema}.{table.table}': {e}"
+            )
+            return None
+
 
     def scan(self):
 
@@ -178,35 +206,19 @@ class Scanner:
 
         logger.debug("Launching lakehouse scanning task\n")
 
-        dfs = []
-
         if len(self.content.table_list) == 0:
-            raise  Exception("No tables found matching your filters")
+            raise Exception("No tables found matching your filters")
 
-        for i, table in enumerate(self.content.table_list):
-            if self.what_if:
-                logger.friendly(
-                    f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}' ({i + 1}/{self.content.n_tables})"
-                )
-            else:
-                logger.friendly(
-                    f"Scanning table '{table.catalog}.{table.schema}.{table.table}' ({i + 1}/{self.content.n_tables})"
-                )
+        dfs = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
+            # Submit tasks to the thread pool
+            futures = [executor.submit(self.scan_table, table) for table in self.content.table_list]
 
-            try:
-                # Build rule matching SQL
-                sql = self._rule_matching_sql(table)
-
-                if self.what_if:
-                    logger.friendly(sql)
-                else:
-                    # Execute SQL and append result
-                    dfs.append(self.spark.sql(sql).toPandas())
-            except Exception as e:
-                logger.error(
-                    f"Error while scanning table '{table.catalog}.{table.schema}.{table.table}': {e}"
-                )
-                continue
+            # Process completed tasks
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result is not None:
+                    dfs.append(result)
 
         logger.debug("Finished lakehouse scanning task")
 
