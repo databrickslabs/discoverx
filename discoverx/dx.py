@@ -205,21 +205,21 @@ class DX:
         self.classifier.publish()
 
     def search(self,
-               search_term: Optional[str] = None,
+               search_term: str,
                from_tables: str = "*.*.*",
-               by_classes: Optional[Union[List[str], str]] = None
+               by_class: Optional[str] = None
                ):
         """Searches your lakehouse for columns matching the given search term
         
         Args:
-            search_term (str, optional): The search term to be used to search for columns. Defaults to None.
+            search_term (str): The search term to be used to search for columns.
             from_tables (str, optional): The tables to be searched in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_classes (Union[List[str], str], optional): The classes to be used to search for columns. Defaults to None.
+            by_class (str, optional): The class to be used to search for columns. Defaults to None.
             
         Raises:
-            ValueError: If neither search_term nor by_classes have been provided
+            ValueError: If search_term is not provided
             ValueError: If the search_term type is not valid
-            ValueError: If the by_classes type is not valid
+            ValueError: If the by_class type is not valid
         
         Returns:
             DataFrame: A dataframe containing the results of the search
@@ -227,39 +227,43 @@ class DX:
         
         Msql.validate_from_components(from_tables)
 
-        if (search_term is None) and (by_classes is None):
-            raise ValueError("Neither search_term nor by_classes have been provided. At least one of them need to be specified.")
+        if (search_term is None):
+            raise ValueError("search_term has not been provided.")
 
-        if (search_term is not None) and (not isinstance(search_term, str)):
-            raise ValueError(f"The search_term type {type(search_term)} is not valid. Either None or a string have to be provided.")
+        if not isinstance(search_term, str):
+            raise ValueError(f"The search_term type {type(search_term)} is not valid. Please use a string type.")
 
-        if by_classes is None:
-            self.logger.friendly("You did not provide any classes to be searched. "
+        if by_class is None:
+            # Trying to infer the class by the search term
+            self.logger.friendly("You did not provide any class to be searched."
                                  "We will try to auto-detect matching rules for the given search term")
             search_matching_rules = self.rules.match_search_term(search_term)
-            self.logger.friendly(f"Discoverx will search your lakehouse using the classes {search_matching_rules}")
-        elif isinstance(by_classes, str):
-            search_matching_rules = [by_classes]
-        elif isinstance(by_classes, list) and all(isinstance(elem, str) for elem in by_classes):
-            search_matching_rules = by_classes
+            if len(search_matching_rules) == 0:
+                raise ValueError(f"Could not infer any class for the given search term. Please specify the by_class parameter.")
+            elif len(search_matching_rules) > 1:
+                raise ValueError(f"Multiple classes {search_matching_rules} match the given search term ({search_term}). Please specify the class to search in with the by_class parameter.")
+            else:
+                by_class = search_matching_rules[0]
+            self.logger.friendly(f"Discoverx will search your lakehouse using the class {by_class}")
+        elif isinstance(by_class, str):
+            search_matching_rules = [by_class]
         else:
-            raise ValueError(f"The provided by_classes {by_classes} have the wrong type. Please provide"
-                             f" either a str or List[str].")
+            raise ValueError(f"The provided by_classes {by_class} must be of string type.")
 
-        sql_filter = [f"[{rule_name}] = '{search_term}'" for rule_name in search_matching_rules]
+        sql_filter = f"[{search_matching_rules[0]}] = '{search_term}'"
         select_statement = "named_struct(" + ', '.join([f"'{rule_name}', named_struct('column', '[{rule_name}]', 'value', [{rule_name}])" for rule_name in search_matching_rules]) + ") AS search_result"
         
         if search_term is None:
             where_statement = ""
         else:
-            where_statement = f"WHERE {' OR '.join(sql_filter)}"
+            where_statement = f"WHERE {sql_filter}"
 
         return self._msql(f"SELECT {select_statement}, to_json(struct(*)) AS row_content FROM {from_tables} {where_statement}")
 
     def select_by_classes(self,
             from_tables: str = "*.*.*",
             by_classes: Optional[Union[List[str], str]] = None):
-        """Selects all columns in the lakehouse that match the given classes
+        """Selects all columns in the lakehouse from tables that match ALL the given classes
         
         Args:
             from_tables (str, optional): The tables to be selected in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".

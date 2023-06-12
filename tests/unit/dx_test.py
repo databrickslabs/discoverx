@@ -66,30 +66,17 @@ def test_search(spark, dx_ip: DX):
     assert result[0].table == 'tb_1'
     assert result[0].search_result.ip_v4.column == 'ip'
 
-    # search all records for specific class
-    result_classes_only = dx_ip.search(by_classes='ip_v4')
-    assert {row.search_result.ip_v4.value for row in result_classes_only.collect()} == {"1.2.3.4", "3.4.5.60"}
-
     # specify catalog, schema and table
-    result_classes_namespace = dx_ip.search(by_classes='ip_v4', from_tables="*.default.tb_*")
-    assert {row.search_result.ip_v4.value for row in result_classes_namespace.collect()} == {"1.2.3.4", "3.4.5.60"}
+    result_classes_namespace = dx_ip.search("1.2.3.4", by_class='ip_v4', from_tables="*.default.tb_*")
+    assert {row.search_result.ip_v4.value for row in result_classes_namespace.collect()} == {"1.2.3.4"}
 
-    # search specific term for list of specified classes
-    result_term_class = dx_ip.search(search_term="3.4.5.60", by_classes=['ip_v4']).collect()
-    assert result_term_class[0].table == 'tb_1'
-    assert result_term_class[0].search_result.ip_v4.value == "3.4.5.60"
-
-    with pytest.raises(ValueError) as no_classes_no_terms_error:
-        dx_ip.search()
-    assert no_classes_no_terms_error.value.args[0] == "Neither search_term nor by_classes have been provided. At least one of them need to be specified."
-
-    with pytest.raises(ValueError) as list_with_ints:
-        dx_ip.search(by_classes=[1, 3, 'ip'])
-    assert list_with_ints.value.args[0] == "The provided by_classes [1, 3, 'ip'] have the wrong type. Please provide either a str or List[str]."
+    with pytest.raises(ValueError) as no_inferred_class_error:
+        dx_ip.search("###")
+    assert no_inferred_class_error.value.args[0] == "Could not infer any class for the given search term. Please specify the by_class parameter."
 
     with pytest.raises(ValueError) as single_bool:
-        dx_ip.search(by_classes=True)
-    assert single_bool.value.args[0] == "The provided by_classes True have the wrong type. Please provide either a str or List[str]."
+        dx_ip.search("", by_class=True)
+    assert single_bool.value.args[0] == "The provided by_class True must be of string type."
 
 def test_select_by_class(spark, dx_ip):
 
