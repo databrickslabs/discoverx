@@ -6,7 +6,6 @@ from typing import Optional
 
 from discoverx import logging
 from discoverx.scanner import Scanner
-from discoverx.inspection import InspectionTool
 
 logger = logging.Logging()
 
@@ -24,7 +23,6 @@ class Classifier:
         self.spark = spark
         self.classification_table_name = classification_table_name
         self.classification_result: Optional[pd.DataFrame] = None
-        self.inspection_tool: Optional[InspectionTool] = None
         self.staged_updates: Optional[pd.DataFrame] = None
 
 
@@ -171,19 +169,9 @@ class Classifier:
 
         self.staged_updates = pd.melt(classification_pdf, id_vars=["table_catalog", "table_schema", "table_name", "column_name"], value_vars=["to_be_unset", "to_be_set", "to_be_kept"], var_name="action", value_name="class_name").explode("class_name").dropna(subset=["class_name"]).reset_index(drop=True)
 
-
-    def inspect(self):
-        
-        self.compute_classification_result()
-        self.inspection_tool = InspectionTool(self.classification_result, self.publish)
-
     def publish(self):
-
-        if self.inspection_tool is not None:
-            self._stage_updates(self.inspection_tool.inspected_table)
-        else:
-            self.compute_classification_result()
-            self._stage_updates(self.classification_result)
+        self.compute_classification_result()
+        self._stage_updates(self.classification_result)
       
         staged_updates_df = self.spark.createDataFrame(
             self.staged_updates,
