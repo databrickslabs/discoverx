@@ -248,7 +248,7 @@ class DX:
         elif isinstance(by_class, str):
             search_matching_rules = [by_class]
         else:
-            raise ValueError(f"The provided by_classes {by_class} must be of string type.")
+            raise ValueError(f"The provided by_class {by_class} must be of string type.")
 
         sql_filter = f"[{search_matching_rules[0]}] = '{search_term}'"
         select_statement = "named_struct(" + ', '.join([f"'{rule_name}', named_struct('column', '[{rule_name}]', 'value', [{rule_name}])" for rule_name in search_matching_rules]) + ") AS search_result"
