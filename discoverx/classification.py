@@ -1,5 +1,4 @@
 from delta.tables import DeltaTable
-from delta.exceptions import AnalysisException
 import pandas as pd
 from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as func
@@ -97,13 +96,13 @@ class Classifier:
     def _get_classification_table_from_delta(self):
         try:
           return DeltaTable.forName(self.spark, self.classification_table_name)
-        except AnalysisException:
+        except Exception:
           return None
         
     def _get_or_create_classification_table_from_delta(self):
         try:
           return DeltaTable.forName(self.spark, self.classification_table_name)
-        except AnalysisException:
+        except Exception:
           logger.friendly(f"The classification table {self.classification_table_name} does not see to exist. Trying to create it ...")
           (catalog, schema, table) = self.classification_table_name.split(".")
           self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
