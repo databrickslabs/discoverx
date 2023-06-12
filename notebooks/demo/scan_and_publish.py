@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # DiscoverX
-# MAGIC This notebook can be used for regular jobs which scan and classify/t the lakehouse content.
+# MAGIC This notebook can be used for regular jobs which scan and classify the lakehouse content.
 
 # COMMAND ----------
 
@@ -9,10 +9,12 @@
 dbutils.widgets.text("catalogs", "*", "Catalogs")
 dbutils.widgets.text("schemas", "*", "Schemas")
 dbutils.widgets.text("tables", "*", "Tables")
+dbutils.widgets.text("classification_table", "_discoverx.classification.classes")
 
 catalogs = dbutils.widgets.get("catalogs")
 schemas = dbutils.widgets.get("schemas")
 tables = dbutils.widgets.get("tables")
+classification_table = dbutils.widgets.get("classification_table")
 
 from_table_statement = ".".join([catalogs, schemas, tables])
 
@@ -20,7 +22,6 @@ from_table_statement = ".".join([catalogs, schemas, tables])
 
 # DBTITLE 1,Define custom rules (if needed)
 from discoverx.rules import RegexRule
-
 
 resource_request_id_rule = {
   'name': 'resource_request_id',
@@ -36,7 +37,7 @@ resource_request_id_rule = RegexRule(**resource_request_id_rule)
 
 # DBTITLE 1,Set up DiscoverX
 from discoverx import DX
-dx = DX(custom_rules=[resource_request_id_rule])
+dx = DX(custom_rules=[resource_request_id_rule], classification_table_name=classification_table)
 
 # COMMAND ----------
 
@@ -47,7 +48,3 @@ dx.scan(from_tables=from_table_statement)
 
 # DBTITLE 1,Publish Classification/Classes
 dx.publish()
-
-# COMMAND ----------
-
-

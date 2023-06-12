@@ -10,16 +10,6 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install pydantic
-# MAGIC %pip install ipydatagrid
-
-# COMMAND ----------
-
-# MAGIC %load_ext autoreload
-# MAGIC %autoreload 2
-
-# COMMAND ----------
-
 # MAGIC %sql
 # MAGIC -- Clean up old demos
 # MAGIC DROP TABLE IF EXISTS _discoverx.classification.classes;
@@ -33,7 +23,7 @@ dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_s
 
 # MAGIC %md
 # MAGIC ## DiscoverX Interaction
-# MAGIC 
+# MAGIC
 # MAGIC In the following we demonstrate how to interact with DiscoverX.
 
 # COMMAND ----------
@@ -63,9 +53,9 @@ dx.inspect()
 
 # MAGIC %md
 # MAGIC ## Search
-# MAGIC 
+# MAGIC
 # MAGIC This command can be used to search inside the content of tables.
-# MAGIC 
+# MAGIC
 # MAGIC If the tables have ben scanned before, the search will restrict the scope to only the columns that could contain the search term based on the avaialble rules.
 
 # COMMAND ----------
@@ -85,7 +75,7 @@ dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"]).display
 
 # MAGIC %md
 # MAGIC ## Select by class with aggregations
-# MAGIC 
+# MAGIC
 # MAGIC The select output can be aggregated like a normal Spark dataframe.
 
 # COMMAND ----------
@@ -126,7 +116,7 @@ dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.
 
 # MAGIC %md
 # MAGIC ## Configuration
-# MAGIC 
+# MAGIC
 # MAGIC This section is optional, and can be used to customize the behaviour of DiscoverX
 
 # COMMAND ----------

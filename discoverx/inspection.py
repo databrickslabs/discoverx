@@ -5,6 +5,9 @@ from typing import Optional
 from ipydatagrid import DataGrid, TextRenderer, VegaExpr
 import ipywidgets as widgets
 import IPython.display as ipython_display
+from discoverx import logging
+
+logger = logging.Logging()
 
 
 class InspectionTool:
@@ -116,16 +119,21 @@ class InspectionTool:
         return button
 
     def _on_button_clicked(self, b):
+        logger.friendly("button clicked - set inspected table attribute")
         self.inspected_table = self.datagrid.data
+        logger.friendly("close datagrid")
         self.datagrid.close()
+        logger.friendly("disable interactions")
         self.published_classes.disabled = True
         self.button.disabled = True
         self.button.button_style = "warning"
         self.button.description = "Publishing ..."
-        self.publish_function(False)
+        logger.friendly("publish results")
+        self.publish_function()
+        logger.friendly("results published")
         self.button.button_style = "success"
         self.button.description = "Published"
-        self.set_button_checked()
+        self.button.icon = "check"
 
 
 # from https://github.com/bloomberg/ipydatagrid/issues/216

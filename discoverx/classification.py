@@ -106,7 +106,7 @@ class Classifier:
         except AnalysisException:
           logger.friendly(f"The classification table {self.classification_table_name} does not see to exist. Trying to create it ...")
           (catalog, schema, table) = self.classification_table_name.split(".")
-          self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+          #self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
           self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
           self.spark.sql(
               f"""

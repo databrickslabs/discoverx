@@ -1,6 +1,6 @@
 -- Databricks notebook source
 -- MAGIC %md
--- MAGIC 
+-- MAGIC
 -- MAGIC # Sample notebook
 
 -- COMMAND ----------
@@ -9,7 +9,7 @@ CREATE WIDGET TEXT discoverx_sample_catalog DEFAULT "discoverx_sample"
 
 -- COMMAND ----------
 
-CREATE CATALOG IF NOT EXISTS ${discoverx_sample_catalog};
+--CREATE CATALOG IF NOT EXISTS ${discoverx_sample_catalog};
 USE CATALOG ${discoverx_sample_catalog};
 
 -- COMMAND ----------
@@ -64,6 +64,20 @@ INSERT OVERWRITE TABLE ${discoverx_sample_catalog}.sample_datasets.cyber_data_2 
   ('1.2.3.5', '10.2.3.4', '{"key": "val_2", "key2": 2}'),
   ('1.2.3.6', '10.2.3.4', '{"key": "val_3", "key2": 3}'),
   ('0.0.0.0', '255.255.255.255', '00:00:00:00:00:00');
+
+-- COMMAND ----------
+
+CREATE TABLE IF NOT EXISTS ${discoverx_sample_catalog}.sample_datasets.fake_resources
+(
+  resource         STRING,
+  resource_request STRING
+);
+
+INSERT OVERWRITE TABLE ${discoverx_sample_catalog}.sample_datasets.fake_resources VALUES
+  ('AAA', 'AR-123456789'),
+  ('BBB', 'AR-234567890'),
+  ('CCC', 'AR-123456789'),
+  ('DDD', 'AR-345678765');
 
 -- COMMAND ----------
 
