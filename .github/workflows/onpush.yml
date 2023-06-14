@@ -51,13 +51,18 @@ jobs:
       - name: Run tests with coverage
         run: |
           coverage run -m pytest tests/unit
-          coverage xml -i
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v2
-        with:
-          name: coverage-report
-          path: coverage.xml
+      - name: Publish test coverage
+          if: startsWith(matrix.os,'ubuntu')
+          uses: codecov/codecov-action@v3
+          with:
+            token: ${{ secrets.CODECOV_TOKEN }}
+            env_vars: OS,PYTHON
+            fail_ci_if_error: true
+            flags: unittests
+            name: codecov-umbrella
+            path_to_write_report: ./coverage/codecov_report.txt
+            verbose: true
 
 
       # TODO: Find an environment with UC enabled to run integration tests
