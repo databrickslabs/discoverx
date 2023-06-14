@@ -348,10 +348,15 @@ class Scanner:
                         column_name,
                         {self.classifier.udf_name}(value) AS classification_result
                         FROM (
+                          SELECT * 
+                          FROM
+                          (
                             SELECT
                                 stack({len(cols)}, {unpivot_columns}) AS (column_name, value)
                             FROM {catalog_str}{table_info.schema}.{table_info.table}
                             TABLESAMPLE ({self.sample_size} ROWS)
+                          )
+                          WHERE value IS NOT NULL
                         )
                     )
                 )
