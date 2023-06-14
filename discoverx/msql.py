@@ -10,6 +10,7 @@ from pyspark.sql import DataFrame, SparkSession
 import re
 import itertools
 
+
 @dataclass
 class SQLRow:
     catalog: str
@@ -17,9 +18,10 @@ class SQLRow:
     table: str
     sql: str
 
+
 class Msql:
     """This class compiles M-SQL expressions into regular SQL"""
-    
+
     from_statement_expr = r"(FROM\s+)(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))"
     from_components_expr = r"^(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))$"
     command_expr = r"^\s*(\w+)\s"
@@ -67,54 +69,58 @@ class Msql:
             for classified_col in classified_cols:
                 temp_sql = temp_sql.replace(f"[{classified_col.class_name}]", classified_col.name)
             sql_statements.append(SQLRow(table_info.catalog, table_info.schema, table_info.table, temp_sql))
-        
+
         return sql_statements
-    
 
     def build(self, classified_result_pdf) -> list[SQLRow]:
 
         """Builds the M-SQL expression into a SQL expression"""
-        
-        classified_cols = classified_result_pdf.copy()
-        classified_cols = classified_cols[classified_cols['class_name'].isin(self.classes)]
-        classified_cols = classified_cols.groupby(['catalog', 'schema', 'table', 'column']).aggregate(lambda x: list(x))[['class_name']].reset_index()
 
-        classified_cols['col_classes'] = classified_cols[['column', 'class_name']].apply(tuple, axis=1)
-        df = classified_cols.groupby(['catalog', 'schema', 'table']).aggregate(lambda x: list(x))[['col_classes']].reset_index()
+        classified_cols = classified_result_pdf.copy()
+        classified_cols = classified_cols[classified_cols["class_name"].isin(self.classes)]
+        classified_cols = (
+            classified_cols.groupby(["catalog", "schema", "table", "column"])
+            .aggregate(lambda x: list(x))[["class_name"]]
+            .reset_index()
+        )
+
+        classified_cols["col_classes"] = classified_cols[["column", "class_name"]].apply(tuple, axis=1)
+        df = (
+            classified_cols.groupby(["catalog", "schema", "table"])
+            .aggregate(lambda x: list(x))[["col_classes"]]
+            .reset_index()
+        )
 
         # Filter tables by matching filter
         filtered_tables = [
             TableInfo(
-                row[0], 
-                row[1], 
-                row[2], 
-                [
-                    ColumnInfo(
-                        col[0], # col name
-                        "", # TODO
-                        None, # TODO
-                        col[1] # Classes
-                    ) for col in row[3]
-                ]
-            ) for _, row in df.iterrows() if fnmatch(row[0], self.catalogs) and fnmatch(row[1], self.schemas) and fnmatch(row[2], self.tables)]
-        
+                row[0],
+                row[1],
+                row[2],
+                [ColumnInfo(col[0], "", None, col[1]) for col in row[3]],  # col name  # TODO  # TODO  # Classes
+            )
+            for _, row in df.iterrows()
+            if fnmatch(row[0], self.catalogs) and fnmatch(row[1], self.schemas) and fnmatch(row[2], self.tables)
+        ]
+
         if len(filtered_tables) == 0:
             raise ValueError(f"No tables found matching filter: {self.catalogs}.{self.schemas}.{self.tables}")
 
         sqls = flat_map(self.compile_msql, filtered_tables)
-        
+
         return sqls
-    
+
     def execute_sql_row(self, sql_row: SQLRow, spark: SparkSession) -> DataFrame:
         """Executes the SQL statement"""
         try:
-            result = (spark
-                .sql(sql_row.sql)
-                .withColumn('catalog', lit(sql_row.catalog))
-                .withColumn('schema', lit(sql_row.schema))
-                .withColumn('table', lit(sql_row.table)))
+            result = (
+                spark.sql(sql_row.sql)
+                .withColumn("catalog", lit(sql_row.catalog))
+                .withColumn("schema", lit(sql_row.schema))
+                .withColumn("table", lit(sql_row.table))
+            )
             if self.command == "DELETE":
-                result = result.withColumn('sql', lit(sql_row.sql))
+                result = result.withColumn("sql", lit(sql_row.sql))
         except Exception as e:
             self.logger.info(f"Unable to execute SQL for {sql_row.catalog}.{sql_row.schema}.{sql_row.table}: {e}")
             result = None
@@ -137,9 +143,9 @@ class Msql:
             replace_with = f"FROM {table_info.catalog}.{table_info.schema}.{table_info.table}"
         else:
             replace_with = f"FROM {table_info.schema}.{table_info.table}"
-        
+
         return re.sub(self.from_statement_expr, replace_with, msql)
-    
+
     def _extract_from_components(self):
         """Extracts the catalog, schema and table name from the FROM statement in the M-SQL expression"""
         matches = re.findall(self.from_statement_expr, self.msql)
@@ -149,7 +155,7 @@ class Msql:
             return (matches[0][2], matches[0][3], matches[0][4])
         else:
             raise ValueError(f"Could not extract table name from M-SQL expression: {self.msql}")
-    
+
     @staticmethod
     def validate_from_components(from_tables: str):
         """Extracts the catalog, schema and table name from the from_table string"""
@@ -157,20 +163,25 @@ class Msql:
         if len(matches) == 1 and len(matches[0]) == 4:
             return (matches[0][1], matches[0][2], matches[0][3])
         else:
-            raise ValueError(f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'catalog.schema.table'. You can use '*' as wildcard.")
-    
+            raise ValueError(
+                f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'catalog.schema.table'. You can use '*' as wildcard."
+            )
+
     def _extract_command(self):
         """Extracts the command from the M-SQL expression"""
         commands = re.findall(self.command_expr, self.msql)
         if len(commands) != 1:
-            raise ValueError(f"Could not extract command from M-SQL expression: {self.msql}. Valid commands are SELECT and DELETE.")
-        
+            raise ValueError(
+                f"Could not extract command from M-SQL expression: {self.msql}. Valid commands are SELECT and DELETE."
+            )
+
         command = commands[0].upper()
         if command not in self.valid_commands:
             raise ValueError(f"Invalid command: {command}. Valid commands are SELECT and DELETE.")
-        
+
         return command
-    
+
+
 def flat_map(f, xs):
     ys = []
     for x in xs:

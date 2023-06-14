@@ -65,9 +65,7 @@ class ScanResult:
 
     @property
     def n_scanned_columns(self) -> int:
-        return len(
-            self.df[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates()
-        )
+        return len(self.df[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates())
 
 
 class Scanner:
@@ -109,9 +107,7 @@ class Scanner:
                 row["table_schema"],
                 row["table_name"],
                 [
-                    ColumnInfo(
-                        col["column_name"], col["data_type"], col["partition_index"], []
-                    )
+                    ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
                     for col in row["table_columns"]
                 ],
             )
@@ -130,9 +126,7 @@ class Scanner:
 
         catalog_sql = f"""AND regexp_like(table_catalog, "^{self.catalogs.replace("*", ".*")}$")"""
         schema_sql = f"""AND regexp_like(table_schema, "^{self.schemas.replace("*", ".*")}$")"""
-        table_sql = (
-            f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
-        )
+        table_sql = f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
 
         sql = f"""
         SELECT 
@@ -161,14 +155,10 @@ class Scanner:
     def scan_table(self, table):
         try:
             if self.what_if:
-                logger.friendly(
-                    f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}'"
-                )
+                logger.friendly(f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}'")
             else:
-                logger.friendly(
-                    f"Scanning table '{table.catalog}.{table.schema}.{table.table}'"
-                )
-            
+                logger.friendly(f"Scanning table '{table.catalog}.{table.schema}.{table.table}'")
+
             # Build rule matching SQL
             sql = self._rule_matching_sql(table)
 
@@ -178,17 +168,12 @@ class Scanner:
                 # Execute SQL and return the result
                 return self.spark.sql(sql).toPandas()
         except Exception as e:
-            logger.error(
-                f"Error while scanning table '{table.catalog}.{table.schema}.{table.table}': {e}"
-            )
+            logger.error(f"Error while scanning table '{table.catalog}.{table.schema}.{table.table}': {e}")
             return None
-
 
     def scan(self):
 
-        logger.friendly(
-            """Ok, I'm going to scan your lakehouse for data that matches your rules."""
-        )
+        logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
         text = f"""
                 This is what you asked for:
 
@@ -245,25 +230,20 @@ class Scanner:
         cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
 
         if not cols:
-            raise Exception(
-                f"There are no columns of type string to be scanned in {table_info.table}"
-            )
+            raise Exception(f"There are no columns of type string to be scanned in {table_info.table}")
 
         if not expressions:
             raise Exception(f"There are no rules to scan for.")
 
         catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
         matching_columns = [
-            f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`"
-            for r in expressions
+            f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`" for r in expressions
         ]
         matching_string = ",\n                    ".join(matching_columns)
 
-        unpivot_expressions = ", ".join(
-            [f"'{r.name}', `{r.name}`" for r in expressions]
-        )
+        unpivot_expressions = ", ".join([f"'{r.name}', `{r.name}`" for r in expressions])
         unpivot_columns = ", ".join([f"'{c.name}', `{c.name}`" for c in cols])
-        
+
         sql = f"""
             SELECT 
                 '{table_info.catalog}' as table_catalog,
