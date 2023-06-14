@@ -189,7 +189,7 @@ class Scanner:
         sql = self._rule_matching_sql(table)
 
         if self.classifier:
-            classifier_sql = self._classifier_sql(table)
+            classifier_sql = self._classification_sql(table)
             sql = f"{sql}\nUNION ALL\n{classifier_sql}"
 
         return sql
@@ -340,6 +340,7 @@ class Scanner:
             (
                 SELECT column_name, class_result.*
                 FROM
+                (
                     SELECT column_name, explode(classification_result) AS class_result
                     FROM 
                     (
