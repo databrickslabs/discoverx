@@ -52,7 +52,12 @@ jobs:
         run: |
           coverage run -m pytest tests/unit
 
+      - name: Print coverage report
+        run: |
+          coverage report
+
       - name: Publish test coverage
+        continue-on-error: true #this will first work once repo is public
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
