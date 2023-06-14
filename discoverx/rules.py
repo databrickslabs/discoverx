@@ -20,6 +20,8 @@ class RuleTypes(str, Enum):
 class Rule(BaseModel):
     type: RuleTypes
 
+
+
 class RegexRule(Rule):
     """Definition of Regex Rule that applies to a column content
     Attributes:

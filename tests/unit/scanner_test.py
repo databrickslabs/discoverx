@@ -57,7 +57,7 @@ expectedsingle = r"""SELECT
     'tb' as table_name,
     column_name,
     class_name,
-    (sum(value) / count(value)) as frequency
+    (sum(value) / count(value)) as score
 FROM
 (
     SELECT column_name, stack(1, 'any_word', `any_word`) as (class_name, value)
@@ -82,7 +82,7 @@ expectedmulti = r"""SELECT
     'tb' as table_name,
     column_name,
     class_name,
-    (sum(value) / count(value)) as frequency
+    (sum(value) / count(value)) as score
 FROM
 (
     SELECT column_name, stack(2, 'any_word', `any_word`, 'any_number', `any_number`) as (class_name, value)
@@ -166,7 +166,7 @@ def test_scan_custom_rules(spark: SparkSession):
             ["None", "default", "tb_1", "description", "any_word", 0.5],
             ["None", "default", "tb_1", "description", "any_number", 0.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "frequency"],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
     )
 
     columns = [
@@ -201,7 +201,7 @@ def test_scan(spark: SparkSession):
             ["None", "default", "tb_1", "description", "ip_v4", 0.0],
             ["None", "default", "tb_1", "description", "ip_v6", 0.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "frequency"],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
     )
 
     rules = Rules()

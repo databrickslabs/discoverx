@@ -3,6 +3,7 @@ import pandas as pd
 import concurrent.futures
 from pyspark.sql import SparkSession
 from typing import Optional, List, Set
+from discoverx.classifiers import ZeroShotClassifier
 
 from discoverx.common.helper import strip_margin, format_regex
 from discoverx import logging
@@ -85,6 +86,7 @@ class Scanner:
         rule_filter: str = "*",
         sample_size: int = 1000,
         what_if: bool = False,
+        classifier: Optional[ZeroShotClassifier] = None,
     ):
         self.spark = spark
         self.rules = rules
@@ -94,6 +96,7 @@ class Scanner:
         self.rules_filter = rule_filter
         self.sample_size = sample_size
         self.what_if = what_if
+        self.classifier = classifier
 
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
@@ -169,8 +172,7 @@ class Scanner:
                     f"Scanning table '{table.catalog}.{table.schema}.{table.table}'"
                 )
             
-            # Build rule matching SQL
-            sql = self._rule_matching_sql(table)
+            sql = self._sql(table)
 
             if self.what_if:
                 logger.friendly(sql)
@@ -183,7 +185,15 @@ class Scanner:
             )
             return None
 
+    def _sql(self, table):
+        sql = self._rule_matching_sql(table)
 
+        if self.classifier:
+            classifier_sql = self._classifier_sql(table)
+            sql = f"{sql}\nUNION ALL\n{classifier_sql}"
+
+        return sql
+    
     def scan(self):
 
         logger.friendly(
@@ -232,7 +242,7 @@ class Scanner:
         Given a table and a set of rules this method will return a
         SQL expression which matches the table's columns against rules.
         If executed on the table using SQL the output will contain a
-        matching frequency (probability) for each column and rule.
+        matching score (probability) for each column and rule.
         Args:
             table_info (TableInfo): Specifies the table to be scanned
 
@@ -271,7 +281,7 @@ class Scanner:
                 '{table_info.table}' as table_name, 
                 column_name,
                 class_name,
-                (sum(value) / count(value)) as frequency
+                (sum(value) / count(value)) as score
             FROM
             (
                 SELECT column_name, stack({len(expressions)}, {unpivot_expressions}) as (class_name, value)
@@ -291,4 +301,61 @@ class Scanner:
             GROUP BY table_catalog, table_schema, table_name, column_name, class_name
         """
 
+        return strip_margin(sql)
+
+
+    def _classification_sql(self, table_info: TableInfo):
+        """
+        Given a table and a set of rules this method will return a
+        SQL expression which matches the table's columns against rules.
+        If executed on the table using SQL the output will contain a
+        matching score (probability) for each column and rule.
+        Args:
+            table_info (TableInfo): Specifies the table to be scanned
+
+        Returns:
+            string: The SQL expression
+
+        """
+        cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
+
+        if not cols:
+            raise Exception(
+                f"There are no columns of type string to be scanned in {table_info.table}"
+            )
+
+        catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
+
+        unpivot_columns = ", ".join([f"'{c.name}', `{c.name}`" for c in cols])
+        
+        sql = f"""
+            SELECT 
+                '{table_info.catalog}' as table_catalog,
+                '{table_info.schema}' as table_schema,
+                '{table_info.table}' as table_name, 
+                column_name,
+                class_name,
+                (avg(score)) as score
+            FROM
+            (
+                SELECT column_name, class_result.*
+                FROM
+                    SELECT column_name, explode(classification_result) AS class_result
+                    FROM 
+                    (
+                        SELECT
+                        column_name,
+                        {self.classifier.udf_name}(value) AS classification_result
+                        FROM (
+                            SELECT
+                                stack({len(cols)}, {unpivot_columns}) AS (column_name, value)
+                            FROM {catalog_str}{table_info.schema}.{table_info.table}
+                            TABLESAMPLE ({self.sample_size} ROWS)
+                        )
+                    )
+                )
+            )
+            GROUP BY table_catalog, table_schema, table_name, column_name, class_name
+        """
+            
         return strip_margin(sql)

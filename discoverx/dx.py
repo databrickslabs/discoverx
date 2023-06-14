@@ -108,7 +108,8 @@ class DX:
         from_tables="*.*.*",
         rules="*",
         sample_size=10000,
-        what_if: bool = False,
+        what_if: bool=False,
+        classifier=None
     ):
         """Scans the lakehouse for columns matching the given rules
         
@@ -129,6 +130,7 @@ class DX:
             rule_filter=rules,
             sample_size=sample_size,
             what_if=what_if,
+            classifier=classifier
         )
 
         self.scanner.scan()
@@ -155,7 +157,7 @@ class DX:
         """Classifies the columns in the lakehouse
         
         Args:
-            classification_threshold (float): The frequency threshold (0 to 1) above which a column will be classified
+            classification_threshold (float): The score threshold (0 to 1) above which a column will be classified
             
         Raises:
             Exception: If the scan has not been run"""

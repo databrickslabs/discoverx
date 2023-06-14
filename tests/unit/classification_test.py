@@ -32,7 +32,7 @@ def test_classifier(spark):
             "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
             "column_name": ["ip", "ip", "ip", "mac", "mac", "mac", "description", "description", "description"],
             "class_name": ["ip_v4", "ip_v6", "mac", "ip_v4", "ip_v6", "mac", "ip_v4", "ip_v6", "mac"],
-            "frequency": [1.0, 0.0, 0.0, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0],
+            "score": [1.0, 0.0, 0.0, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0],
         }
     )
     dummy_scanner.scan_result = ScanResult(df_scan_result)
@@ -75,7 +75,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
             "column_name": ["ip", "ip", "mac", "mac", "description", "description"],
             "class_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
-            "frequency": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "score": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         }
     )
     dummy_scanner.scan_result = ScanResult(df_scan_result)
@@ -130,7 +130,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
             "column_name": ["ip", "ip", "ip6", "ip6", "mac", "mac", "description", "description"],
             "class_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
-            "frequency": [1.0, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0, 0.0],
+            "score": [1.0, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0, 0.0],
         }
     )
 
@@ -170,7 +170,7 @@ def test_merging_scan_results(spark, mock_current_time):
             "table_name": ["tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1", "tb_1"],
             "column_name": ["ip", "ip", "ip6", "ip6", "mac", "mac", "description", "description"],
             "class_name": ["ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6", "ip_v4", "ip_v6"],
-            "frequency": [0.7, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0, 0.0],
+            "score": [0.7, 0.0, 0.0, 0.97, 0.0, 0.0, 0.0, 0.0],
         }
     )
 

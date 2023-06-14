@@ -35,16 +35,16 @@ class Classifier:
             return self.scanner.scan_result.df
         
         return self.scanner.scan_result.df[
-            self.scanner.scan_result.df["frequency"] > self.classification_threshold
+            self.scanner.scan_result.df["score"] > self.classification_threshold
         ]
         
 
     def compute_classification_result(self):
 
         if self.above_threshold.empty:
-            raise Exception(f"No columns with frequency above {self.classification_threshold} threshold.")
+            raise Exception(f"No columns with score above {self.classification_threshold} threshold.")
         
-        classification_result = self.above_threshold.drop(columns=["frequency"])
+        classification_result = self.above_threshold.drop(columns=["score"])
         classification_result["status"] = "detected"
         classification_table = self._get_classification_table_from_delta()
 
@@ -122,10 +122,10 @@ class Classifier:
     @property
     def rule_match_str(self) -> str:
         rule_match_counts = []
-        df_summary = self.above_threshold.groupby(["class_name"]).agg({"frequency": "count"})
+        df_summary = self.above_threshold.groupby(["class_name"]).agg({"score": "count"})
         df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
         for _, row in df_summary.iterrows():
-            rule_match_counts.append(f"            <li>{row['frequency']} {row['class_name']} columns</li>")
+            rule_match_counts.append(f"            <li>{row['score']} {row['class_name']} columns</li>")
         return "\n".join(rule_match_counts)
 
     @property
@@ -135,7 +135,7 @@ class Classifier:
         classified_cols.index = pd.MultiIndex.from_frame(
             classified_cols[["table_catalog", "table_schema", "table_name", "column_name"]]
         )
-        summary_html_table = classified_cols[["class_name", "frequency"]].to_html()
+        summary_html_table = classified_cols[["class_name", "score"]].to_html()
 
         return f"""
         <h2>Result summary</h2>

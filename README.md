@@ -51,7 +51,7 @@ dx.scan(from_tables="*.*.*")
 
 Check out the [scan parameters](#scan-parameters).
 
-The result is a dataset with a `frequency` column, which defines the fraction of matched records against the total records scanned for each rule.
+The result is a dataset with a `score` column, which defines the fraction of matched records against the total records scanned for each rule.
 
 ## Publish the classificaiton
 
