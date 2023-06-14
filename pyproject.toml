@@ -32,4 +32,4 @@ omit = [
 ]
 
 [tool.coverage.html]
-directory = coverage_html_report
+directory = "coverage_html_report"
