@@ -3,12 +3,10 @@ from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
 from discoverx import logging
-from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner
 from discoverx.classification import Classifier
-import ipywidgets as widgets
 
 
 class DX:
@@ -60,7 +58,6 @@ class DX:
         self.classifier: Optional[Classifier] = None
 
         self.intro()
-        self.out = widgets.Output()
 
     def intro(self):
         # TODO: Decide on how to do the introduction
