@@ -5,8 +5,8 @@ import sys
 
 
 def strip_margin(text):
-    """ Trim margin in strings
-    
+    """Trim margin in strings
+
     Args:
         text (string): The string
 
@@ -38,6 +38,6 @@ def strip_margin(text):
     # Return a single string:
     return "\n".join(trimmed)
 
+
 def format_regex(expression):
     return expression.replace("\\", r"\\")
-

@@ -104,8 +104,6 @@ def spark() -> SparkSession:
         shutil.rmtree(warehouse_dir)
 
 
-    
-
 @pytest.fixture(autouse=True, scope="module")
 def sample_datasets(spark: SparkSession, request):
     """
@@ -131,24 +129,27 @@ def sample_datasets(spark: SparkSession, request):
 
     # tb_1
     test_file_path = module_path.parent / "data/tb_1.csv"
-    (spark
-        .read
-        .option("header", True)
+    (
+        spark.read.option("header", True)
         .schema("id integer,ip string,mac string,description string")
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("view_tb_1")
-    spark.sql(f"CREATE TABLE IF NOT EXISTS default.tb_1 USING delta LOCATION '{warehouse_dir}/tb_1' AS SELECT * FROM view_tb_1 ")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.tb_1 USING delta LOCATION '{warehouse_dir}/tb_1' AS SELECT * FROM view_tb_1 "
+    )
 
     # columns_mock
     test_file_path = module_path.parent / "data/columns_mock.csv"
-    (spark
-        .read
-        .option("header", True)
-        .schema("table_catalog string,table_schema string,table_name string,column_name string,data_type string,partition_index int")
+    (
+        spark.read.option("header", True)
+        .schema(
+            "table_catalog string,table_schema string,table_name string,column_name string,data_type string,partition_index int"
+        )
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("view_columns_mock")
-    spark.sql(f"CREATE TABLE IF NOT EXISTS default.columns_mock USING delta LOCATION '{warehouse_dir}/columns_mock' AS SELECT * FROM view_columns_mock")
-    
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.columns_mock USING delta LOCATION '{warehouse_dir}/columns_mock' AS SELECT * FROM view_columns_mock"
+    )
 
     logging.info("Sample datasets created")
 
@@ -160,6 +161,7 @@ def sample_datasets(spark: SparkSession, request):
     spark.sql("DROP TABLE IF EXISTS default.columns_mock")
     if Path(warehouse_dir).exists():
         shutil.rmtree(warehouse_dir)
+
 
 @pytest.fixture(scope="session", autouse=True)
 def mlflow_local():
@@ -225,15 +227,17 @@ def mock_uc_functionality(spark, monkeymodule):
         )
         return DeltaTable.forName(self.spark, self.classification_table_name)
 
-    monkeymodule.setattr(Classifier, "_get_or_create_classification_table_from_delta", get_or_create_classification_table_mock)
+    monkeymodule.setattr(
+        Classifier, "_get_or_create_classification_table_from_delta", get_or_create_classification_table_mock
+    )
 
     # mock UC's tag functionality
     def set_uc_classes(self, series):
-        if (series.action == "to_be_set"):
+        if series.action == "to_be_set":
             logging.debug(
                 f"Set tag {series.class_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
             )
-        if (series.action == "to_be_unset"):
+        if series.action == "to_be_unset":
             logging.debug(
                 f"Unset tag {series.class_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
             )
