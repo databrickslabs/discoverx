@@ -17,14 +17,8 @@ Copyright 2018 Databricks, Inc.  All rights reserved.
 
 This Software contains code from the following open source projects, licensed under the BSD 3-Clause license:
 
-scikit-learn/scikit-learn -  https://github.com/scikit-learn/scikit-learn
-Copyright 2007 David Cournapeau and contributors. 
-
 pandas-dev/pandas - https://github.com/pandas-dev/pandas
 Copyright (c) 2008-2011, AQR Capital Management, LLC, Lambda Foundry, Inc. and PyData Development Team. All rights reserved.
-
-bloomberg/ipydatagrid - https://github.com/bloomberg/ipydatagrid
-Copyright (c) 2019 Bloomberg. All rights reserved.
 —--
 
 This Software contains code from the following open source projects, licensed under the MIT license:
