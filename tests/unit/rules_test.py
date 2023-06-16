@@ -10,6 +10,7 @@ def test_ruleslist():
     rules_list = RulesList(global_rules)
     assert rules_list.rules_info.startswith("<li>credit_card_expiration_date - Credit Card Expiration Date</li>\n")
 
+
 def test_localized_rules():
     rules_us = Rules(locale="US")
     assert len(rules_us.get_rules(rule_filter="*")) == 16
@@ -17,6 +18,7 @@ def test_localized_rules():
     # test fails if locale is not supported
     with pytest.raises(ValueError):
         Rules(locale="xx")
+
 
 def test_rules():
     # test builtin rules first

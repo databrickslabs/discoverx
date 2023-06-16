@@ -25,8 +25,8 @@ LOCAL_REQUIREMENTS = [
     "pyspark>=3.3.0",
     "delta-spark>=2.2.0",
     "scikit-learn",
-    "pandas<2.0.0", # From 2.0.0 onwards, pandas does not support iteritems() anymore, spark.createDataFrame will fail
-    "numpy<1.24", # From 1.24 onwards, module 'numpy' has no attribute 'bool'.
+    "pandas<2.0.0",  # From 2.0.0 onwards, pandas does not support iteritems() anymore, spark.createDataFrame will fail
+    "numpy<1.24",  # From 1.24 onwards, module 'numpy' has no attribute 'bool'.
     "mlflow",
     "ipydatagrid",
     "ipykernel",
@@ -58,7 +58,7 @@ setup(
     version=version_string,
     description="DiscoverX allows you to map and search your lakehouse",
     long_description="DiscoverX allows you to map and search your lakehouse",
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     author="Erni Durdevic, David Tempelmann",
-    license_files=('LICENSE',),
+    license_files=("LICENSE",),
 )

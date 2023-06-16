@@ -27,18 +27,19 @@
 # COMMAND ----------
 
 # Generate sample data
-dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample"} )
+dbutils.notebook.run("./sample_data", timeout_seconds=0, arguments={"discoverx_sample_catalog": "discoverx_sample"})
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## DiscoverX Interaction
-# MAGIC 
+# MAGIC
 # MAGIC In the following we demonstrate how to interact with DiscoverX.
 
 # COMMAND ----------
 
 from discoverx import DX
+
 dx = DX(locale="US")
 
 # COMMAND ----------
@@ -58,14 +59,14 @@ dx.scan(from_tables="discoverx*.*.*")
 
 # MAGIC %md
 # MAGIC ## Search
-# MAGIC 
+# MAGIC
 # MAGIC This command can be used to search inside the content of tables.
-# MAGIC 
+# MAGIC
 # MAGIC If the tables have ben scanned before, the search will restrict the scope to only the columns that could contain the search term based on the avaialble rules.
 
 # COMMAND ----------
 
-dx.search(search_term='1.2.3.4', from_tables="*.*.*").display()
+dx.search(search_term="1.2.3.4", from_tables="*.*.*").display()
 
 # COMMAND ----------
 
@@ -80,7 +81,7 @@ dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"]).display
 
 # MAGIC %md
 # MAGIC ## Select by class with aggregations
-# MAGIC 
+# MAGIC
 # MAGIC The select output can be aggregated like a normal Spark dataframe.
 
 # COMMAND ----------
@@ -88,10 +89,10 @@ dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"]).display
 import pyspark.sql.functions as func
 
 # Count the occurrences of each IP address per table per IP column
-(dx
-  .select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"])
-  .groupby(["catalog", "schema", "table", "classified_columns.ip_v4.column", "classified_columns.ip_v4.value"])
-  .agg(func.count("classified_columns.ip_v4.value").alias("count"))  
+(
+    dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"])
+    .groupby(["catalog", "schema", "table", "classified_columns.ip_v4.column", "classified_columns.ip_v4.value"])
+    .agg(func.count("classified_columns.ip_v4.value").alias("count"))
 ).display()
 
 # COMMAND ----------
@@ -106,7 +107,7 @@ import pyspark.sql.functions as func
 
 # COMMAND ----------
 
-dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=False)
+dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.0.0", "0.0.0.1"], yes_i_am_sure=False)
 
 # COMMAND ----------
 
@@ -115,13 +116,15 @@ dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.
 
 # COMMAND ----------
 
-dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=['0.0.0.0', '0.0.0.1'], yes_i_am_sure=True).display()
+dx.delete_by_class(
+    from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.0.0", "0.0.0.1"], yes_i_am_sure=True
+).display()
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Configuration
-# MAGIC 
+# MAGIC
 # MAGIC This section is optional, and can be used to customize the behaviour of DiscoverX
 
 # COMMAND ----------
@@ -144,11 +147,11 @@ from discoverx.rules import RegexRule
 
 
 resource_request_id_rule = {
-  'name': 'resource_request_id',
-  'description': 'Resource request ID',
-  'definition': r'^AR-\d{9}$',
-  'match_example': ['AR-123456789'],
-  'nomatch_example': ['R-123']
+    "name": "resource_request_id",
+    "description": "Resource request ID",
+    "definition": r"^AR-\d{9}$",
+    "match_example": ["AR-123456789"],
+    "nomatch_example": ["R-123"],
 }
 
 resource_request_id_rule = RegexRule(**resource_request_id_rule)
@@ -171,5 +174,3 @@ dx.scan(from_tables="discoverx*.*.*", sample_size=1000)
 help(DX)
 
 # COMMAND ----------
-
-
