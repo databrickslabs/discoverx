@@ -43,7 +43,7 @@ TEST_REQUIREMENTS = [
     "black",
     "coverage[toml]",
     "pytest-cov",
-    "dbx>=0.7,<0.8",
+    "dbx>=0.7,<0.9",
 ]
 
 setup(
