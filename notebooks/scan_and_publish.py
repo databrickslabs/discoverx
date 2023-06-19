@@ -23,11 +23,11 @@ from discoverx.rules import RegexRule
 
 
 resource_request_id_rule = {
-  'name': 'resource_request_id',
-  'description': 'Resource request ID',
-  'definition': r'^AR-\d{9}$',
-  'match_example': ['AR-123456789'],
-  'nomatch_example': ['R-123']
+    "name": "resource_request_id",
+    "description": "Resource request ID",
+    "definition": r"^AR-\d{9}$",
+    "match_example": ["AR-123456789"],
+    "nomatch_example": ["R-123"],
 }
 
 resource_request_id_rule = RegexRule(**resource_request_id_rule)
@@ -36,6 +36,7 @@ resource_request_id_rule = RegexRule(**resource_request_id_rule)
 
 # DBTITLE 1,Set up DiscoverX
 from discoverx import DX
+
 dx = DX(custom_rules=[resource_request_id_rule])
 
 # COMMAND ----------
@@ -49,5 +50,3 @@ dx.scan(from_tables=from_table_statement)
 dx.publish()
 
 # COMMAND ----------
-
-

@@ -5,7 +5,15 @@ Please follow the `entry_points` documentation for more details on how to config
 * https://setuptools.pypa.io/en/latest/userguide/entry_point.html
 """
 import re
+from os import path
 from setuptools import find_packages, setup
+
+
+DESCRIPTION = "DiscoverX - Map and Search your Lakehouse"
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
+    LONG_DESCRIPTION = f.read()
 
 # import version
 VERSIONFILE = "discoverx/version.py"
@@ -24,13 +32,8 @@ PACKAGE_REQUIREMENTS = ["pyyaml", "pydantic"]
 LOCAL_REQUIREMENTS = [
     "pyspark>=3.3.0",
     "delta-spark>=2.2.0",
-    "scikit-learn",
-    "pandas<2.0.0", # From 2.0.0 onwards, pandas does not support iteritems() anymore, spark.createDataFrame will fail
-    "numpy<1.24", # From 1.24 onwards, module 'numpy' has no attribute 'bool'.
-    "mlflow",
-    "ipydatagrid",
-    "ipykernel",
-    "ipywidgets",
+    "pandas<2.0.0",  # From 2.0.0 onwards, pandas does not support iteritems() anymore, spark.createDataFrame will fail
+    "numpy<1.24",  # From 1.24 onwards, module 'numpy' has no attribute 'bool'.
 ]
 
 TEST_REQUIREMENTS = [
@@ -44,21 +47,22 @@ TEST_REQUIREMENTS = [
 ]
 
 setup(
-    name="discoverx",
+    name="dbl_discoverx",
     packages=find_packages(exclude=["tests", "tests.*"]),
     setup_requires=["setuptools", "wheel"],
     install_requires=PACKAGE_REQUIREMENTS,
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: Other/Proprietary License",
+        "Operating System :: OS Independent",
+    ],
     extras_require={"local": LOCAL_REQUIREMENTS, "test": TEST_REQUIREMENTS},
-    entry_points={
-        "console_scripts": [
-            "etl = discoverx.tasks.sample_etl_task:entrypoint",
-            "ml = discoverx.tasks.sample_ml_task:entrypoint",
-        ]
-    },
     version=version_string,
-    description="DiscoverX allows you to map and search your lakehouse",
-    long_description="DiscoverX allows you to map and search your lakehouse",
-    long_description_content_type='text/markdown',
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type="text/markdown",
+    url="https://databricks.com/learn/labs",
     author="Erni Durdevic, David Tempelmann",
-    license_files=('LICENSE',),
+    author_email="labs@databricks.com",
+    license_files=("LICENSE",),
 )
