@@ -9,7 +9,7 @@ logger = logging.Logging()
 def scan_ip_in_tb1(spark, mock_uc_functionality):
     dx = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx.scan(from_tables="*.*.tb_1", rules="ip_*")
-    dx.publish()
+    dx.save()
     yield dx
 
     spark.sql("DROP TABLE IF EXISTS _discoverx.classes")

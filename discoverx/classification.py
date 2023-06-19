@@ -60,13 +60,13 @@ class Classifier:
         def aggregate_updates(pdf):
             current_classes = sorted(pdf.loc[pdf["status"] == "current", "class_name"].tolist())
             detected_classes = sorted(pdf.loc[pdf["status"] == "detected", "class_name"].tolist())
-            published_classes = sorted(pdf.loc[:, "class_name"].unique().tolist())
-            changed = current_classes != published_classes
+            saved_classes = sorted(pdf.loc[:, "class_name"].unique().tolist())
+            changed = current_classes != saved_classes
 
             output = {
                 "Current Classes": [current_classes],
                 "Detected Classes": [detected_classes],
-                "Classes to be published": [published_classes],
+                "Classes to be saved": [saved_classes],
                 "Classes changed": [changed],
             }
 
@@ -81,7 +81,7 @@ class Classifier:
                     "column_name",
                     "Current Classes",
                     "Detected Classes",
-                    "Classes to be published",
+                    "Classes to be saved",
                     "Classes changed",
                 ]
             )
@@ -176,13 +176,13 @@ class Classifier:
         classification_pdf = input_classification_pdf.copy()
 
         classification_pdf["to_be_unset"] = classification_pdf.apply(
-            lambda x: list(set(x["Current Classes"]) - set(x["Classes to be published"])), axis=1
+            lambda x: list(set(x["Current Classes"]) - set(x["Classes to be saved"])), axis=1
         )
         classification_pdf["to_be_set"] = classification_pdf.apply(
-            lambda x: list(set(x["Classes to be published"]) - set(x["Current Classes"])), axis=1
+            lambda x: list(set(x["Classes to be saved"]) - set(x["Current Classes"])), axis=1
         )
         classification_pdf["to_be_kept"] = classification_pdf.apply(
-            lambda x: list(set(x["Classes to be published"]) & set(x["Current Classes"])), axis=1
+            lambda x: list(set(x["Classes to be saved"]) & set(x["Current Classes"])), axis=1
         )
 
         self.staged_updates = (
@@ -198,7 +198,7 @@ class Classifier:
             .reset_index(drop=True)
         )
 
-    def publish(self):
+    def save(self):
         self.compute_classification_result()
         self._stage_updates(self.classification_result)
 
