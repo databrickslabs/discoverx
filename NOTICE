@@ -1,6 +1,34 @@
-DiscoverX
-
-Copyright (2023) Databricks, Inc.
-
+Copyright (2022) Databricks, Inc.
 
 This Software includes software developed at Databricks (https://www.databricks.com/) and its use is subject to the included LICENSE file.
+—--
+
+This Software contains code from the following open source projects, licensed under the Apache 2.0 license:
+
+spark/python/pyspark - https://github.com/apache/spark/tree/master/python/pyspark
+Copyright 2014 and onwards The Apache Software Foundation.
+
+Delta-io/delta - https://github.com/delta-io/delta
+Copyright (2021) The Delta Lake Project Authors.
+—--
+
+This Software contains code from the following open source projects, licensed under the BSD 3-Clause license:
+
+pandas-dev/pandas - https://github.com/pandas-dev/pandas
+Copyright (c) 2008-2011, AQR Capital Management, LLC, Lambda Foundry, Inc. and PyData Development Team. All rights reserved.
+—--
+
+This Software contains code from the following open source projects, licensed under the MIT license:
+
+yaml/pyyaml - https://github.com/yaml/pyyaml
+Copyright (c) 2017-2021 Ingy döt Net
+Copyright (c) 2006-2016 Kirill Simonov
+
+pydantic/pydantic - https://github.com/pydantic/pydantic
+Copyright (c) 2017 - 2022 Samuel Colvin and other contributors
+—--
+
+This Software contains code from the following open source projects, licensed under the DB license:
+
+databricks labs/dbx - https://github.com/databrickslabs/dbx
+Copyright (2021) Databricks, Inc.
