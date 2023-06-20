@@ -12,7 +12,7 @@ Scan, Classify, and Discover the content of your Lakehouse
 Install DiscoverX, in Databricks notebook type
 
 ```
-%pip install discoverx
+%pip install dbl-discoverx
 ```
 
 Get started
