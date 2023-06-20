@@ -115,8 +115,16 @@ class Classifier:
                 f"The classification table {self.classification_table_name} does not see to exist. Trying to create it ..."
             )
             (catalog, schema, table) = self.classification_table_name.split(".")
-            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
-            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+            try:
+                self.spark.sql(f"DESCRIBE CATALOG {catalog}")
+            except AnalysisException:
+                self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+
+            try:
+                self.spark.sql(f"DESCRIBE DATABASE {catalog + '.' + schema}")
+            except AnalysisException:
+                self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+            
             self.spark.sql(
                 f"""
             CREATE TABLE IF NOT EXISTS {self.classification_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp)
