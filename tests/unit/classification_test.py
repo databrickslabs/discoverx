@@ -50,7 +50,7 @@ def test_classifier(spark):
                 "column_name": ["ip", "mac"],
                 "Current Classes": [[], []],
                 "Detected Classes": [["ip_v4"], ["mac"]],
-                "Classes to be published": [["ip_v4"], ["mac"]],
+                "Classes to be saved": [["ip_v4"], ["mac"]],
                 "Classes changed": [True, True],
             }
         ),
@@ -82,7 +82,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx.scanner = dummy_scanner
     dx._classify(classification_threshold=0.95)
-    dx.publish()
+    dx.save()
 
     expected_df = pd.DataFrame(
         {
@@ -104,7 +104,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx2 = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx2.scanner = dummy_scanner
     dx2._classify(classification_threshold=0.95)
-    dx2.publish()
+    dx2.save()
 
     expected_df = pd.DataFrame(
         {
@@ -138,7 +138,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner.scan_result = ScanResult(df_scan_result3)
     dx3.scanner = dummy_scanner
     dx3._classify(classification_threshold=0.95)
-    dx3.publish()
+    dx3.save()
 
     current_time = pd.Timestamp(2023, 1, 1, 0)
     expected3_df = pd.DataFrame(
@@ -178,7 +178,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner.scan_result = ScanResult(df_scan_result5)
     dx5.scanner = dummy_scanner
     dx5._classify(classification_threshold=0.95)
-    dx5.publish()
+    dx5.save()
 
     expected5_df = pd.DataFrame(
         {
