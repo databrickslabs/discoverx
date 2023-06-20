@@ -191,13 +191,117 @@ class Scanner:
 
         logger.debug("Launching lakehouse scanning task\n")
 
+        self.scan_result = self.do_scan(self.scan_table)
+
+
+    def scan_table_history(self, table):
+
+        try:
+            if self.what_if:
+                logger.friendly(f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}'")
+            else:
+                logger.friendly(f"Checking history for table '{table.catalog}.{table.schema}.{table.table}'")
+
+            frequency = "1 day"
+            # Build rule matching SQL
+            # TODO: Add more metrics https://docs.delta.io/latest/delta-utility.html#operation-metrics-keys
+            sql = f"""
+              WITH 
+
+              all_dates AS (
+                SELECT explode(sequence(to_date(date_sub(now(), 90)), to_date(now()), interval {frequency})) as date
+              ),
+
+              table_metrics AS (
+                SELECT w.start, w.end, *
+                FROM
+                (
+                  SELECT *
+                  FROM
+                  (
+                    SELECT window(timestamp, '{frequency}') AS w, metric, sum(value) AS value
+                    FROM (
+                      SELECT timestamp, explode(operationMetrics) AS (metric, value)
+                      FROM (
+                        DESCRIBE HISTORY {table.catalog}.{table.schema}.{table.table}
+                      )
+                    )
+                    GROUP BY window(timestamp, '{frequency}'), metric
+                  )
+                  PIVOT (
+                      SUM(value) AS val
+                      FOR (metric) IN (
+                        
+                        'numAddedBytes' AS numAddedBytes,
+                        'numOutputBytes' AS numOutputBytes,
+                        'numRemovedBytes' AS numRemovedBytes,
+                        
+                        'numFiles' AS numFiles,
+                        'numAddedFiles' AS numAddedFiles,
+                        'numAddedChangeFiles' AS numAddedChangeFiles,
+                        'numRemovedFiles' AS numRemovedFiles,
+
+                        'numOutputRows' AS numOutputRows,
+                        'numCopiedRows' AS numCopiedRows,
+                        'numDeletedRows' AS numDeletedRows,
+                        
+                        'numDeletionVectorsAdded' AS numDeletionVectorsAdded,
+                        'numDeletionVectorsRemoved' AS numDeletionVectorsRemoved,
+
+                        'executionTimeMs' AS executionTimeMs,
+                        'scanTimeMs' AS scanTimeMs,
+                        'rewriteTimeMs' AS rewriteTimeMs
+                      )
+                  )
+                )
+              )
+
+
+              SELECT 
+                '{table.catalog}' as table_catalog,
+                '{table.schema}' as table_schema,
+                '{table.table}' as table_name, 
+                * 
+              FROM table_metrics
+            """
+
+            if self.what_if:
+                logger.friendly(sql)
+            else:
+                # Execute SQL and return the result
+                return self.spark.sql(sql).toPandas()
+        except Exception as e:
+            logger.error(f"Error while scanning table history '{table.catalog}.{table.schema}.{table.table}': {e}")
+            return None
+
+    def scan_history(self):
+
+        logger.friendly("""Ok, I'm going to scan your lakehouse data history.""")
+        text = f"""
+                This is what you asked for:
+
+                    catalogs ({self.content.n_catalogs}) = {self.catalogs}
+                    schemas ({self.content.n_schemas}) = {self.schemas}
+                    tables ({self.content.n_tables}) = {self.tables}
+                    
+                This may take a while, so please be patient. I'll let you know when I'm done.
+                ...
+                """
+
+        logger.friendly(strip_margin(text))
+
+        logger.debug("Launching lakehouse history scanning task\n")
+
+        return self.do_scan(self.scan_table_history)
+
+    def do_scan(self, f): 
         if len(self.content.table_list) == 0:
             raise Exception("No tables found matching your filters")
 
         dfs = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
             # Submit tasks to the thread pool
-            futures = [executor.submit(self.scan_table, table) for table in self.content.table_list]
+            futures = [executor.submit(f, table) for table in self.content.table_list]
 
             # Process completed tasks
             for future in concurrent.futures.as_completed(futures):
@@ -208,7 +312,7 @@ class Scanner:
         logger.debug("Finished lakehouse scanning task")
 
         if dfs:
-            self.scan_result = ScanResult(df=pd.concat(dfs))
+            return ScanResult(df=pd.concat(dfs))
         else:
             raise Exception("No tables were scanned successfully.")
 

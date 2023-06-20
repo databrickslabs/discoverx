@@ -44,6 +44,14 @@ dx = DX(locale="US")
 
 # COMMAND ----------
 
+df = dx.table_freshness(from_tables="discoverx*.*.*", what_if=False)
+
+# COMMAND ----------
+
+display(df.df)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ### Scan
 # MAGIC This section demonstrates a typical DiscoverX workflow which consists of the following steps:
@@ -174,3 +182,79 @@ dx.scan(from_tables="discoverx*.*.*", sample_size=1000)
 help(DX)
 
 # COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC
+# MAGIC
+# MAGIC WITH 
+# MAGIC
+# MAGIC all_dates AS (
+# MAGIC   SELECT explode(sequence(to_date(date_sub(now(), 90)), to_date(now()), interval 1 day)) as date
+# MAGIC ),
+# MAGIC
+# MAGIC table_metrics AS (
+# MAGIC   SELECT w.start, w.end, *
+# MAGIC   FROM
+# MAGIC   (
+# MAGIC     SELECT *
+# MAGIC     FROM
+# MAGIC     (
+# MAGIC       SELECT window(timestamp, '1 day') AS w, metric, sum(value) AS value
+# MAGIC       FROM (
+# MAGIC         SELECT timestamp, explode(operationMetrics) AS (metric, value)
+# MAGIC         FROM (
+# MAGIC           DESCRIBE HISTORY discoverx_sample.sample_datasets.cyber_data
+# MAGIC         )
+# MAGIC       )
+# MAGIC       GROUP BY window(timestamp, '1 day'), metric
+# MAGIC     )
+# MAGIC     PIVOT (
+# MAGIC         SUM(value) AS val
+# MAGIC         FOR (metric) IN (
+# MAGIC           -- TODO: add metrics https://docs.delta.io/latest/delta-utility.html#operation-metrics-keys
+# MAGIC           'numAddedBytes' AS numAddedBytes,
+# MAGIC           'numOutputBytes' AS numOutputBytes,
+# MAGIC           'numRemovedBytes' AS numRemovedBytes,
+# MAGIC           
+# MAGIC           'numFiles' AS numFiles,
+# MAGIC           'numAddedFiles' AS numAddedFiles,
+# MAGIC           'numAddedChangeFiles' AS numAddedChangeFiles,
+# MAGIC           'numRemovedFiles' AS numRemovedFiles,
+# MAGIC
+# MAGIC           'numOutputRows' AS numOutputRows,
+# MAGIC           'numCopiedRows' AS numCopiedRows,
+# MAGIC           'numDeletedRows' AS numDeletedRows,
+# MAGIC           
+# MAGIC           'numDeletionVectorsAdded' AS numDeletionVectorsAdded,
+# MAGIC           'numDeletionVectorsRemoved' AS numDeletionVectorsRemoved,
+# MAGIC
+# MAGIC           'executionTimeMs' AS executionTimeMs,
+# MAGIC           'scanTimeMs' AS scanTimeMs,
+# MAGIC           'rewriteTimeMs' AS rewriteTimeMs
+# MAGIC         )
+# MAGIC     )
+# MAGIC   )
+# MAGIC )
+# MAGIC
+# MAGIC
+# MAGIC SELECT 'cyber_data' AS table_name, * 
+# MAGIC FROM all_dates
+# MAGIC LEFT OUTER JOIN table_metrics
+# MAGIC ON date = to_date(w.end)
+
+# COMMAND ----------
+
+dx._msql(
+  "SELECT * FROM (DESCRIBE HISTORY *.*.*)",
+  what_if=True)
+
+# COMMAND ----------
+
+

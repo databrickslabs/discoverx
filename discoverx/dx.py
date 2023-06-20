@@ -137,6 +137,30 @@ class DX:
 
         return self.scanner.scan_result.df
 
+    def table_freshness(
+        self,
+        from_tables="*.*.*",
+        what_if: bool = False,
+    ):
+        """Scans the lakehouse for columns matching the given rules
+
+        Args:
+            from_tables (str, optional): The tables to be scanned in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            what_if (bool, optional): Whether to run the scan in what-if mode and print the SQL commands instead of executing them. Defaults to False.
+        """
+        catalogs, schemas, tables = Msql.validate_from_components(from_tables)
+
+        self.scanner = Scanner(
+            self.spark,
+            self.rules,
+            catalogs=catalogs,
+            schemas=schemas,
+            tables=tables,
+            what_if=what_if,
+        )
+
+        return self.scanner.scan_history()
+        
     def _classify(self, classification_threshold: float):
         """Classifies the columns in the lakehouse
 
