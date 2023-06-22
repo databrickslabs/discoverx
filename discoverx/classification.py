@@ -34,15 +34,11 @@ class Classifier:
         if self.scanner.scan_result.is_empty:
             return self.scanner.scan_result.df
 
-        return self.scanner.scan_result.df[
-            self.scanner.scan_result.df["frequency"] > self.classification_threshold
-        ]
+        return self.scanner.scan_result.df[self.scanner.scan_result.df["frequency"] > self.classification_threshold]
 
     def compute_classification_result(self):
         if self.above_threshold.empty:
-            raise Exception(
-                f"No columns with frequency above {self.classification_threshold} threshold."
-            )
+            raise Exception(f"No columns with frequency above {self.classification_threshold} threshold.")
 
         classification_result = self.above_threshold.drop(columns=["frequency"])
         classification_result["status"] = "detected"
@@ -62,12 +58,8 @@ class Classifier:
             all_classes = pd.concat([classification_result, current_classes])
 
         def aggregate_updates(pdf):
-            current_classes = sorted(
-                pdf.loc[pdf["status"] == "current", "class_name"].tolist()
-            )
-            detected_classes = sorted(
-                pdf.loc[pdf["status"] == "detected", "class_name"].tolist()
-            )
+            current_classes = sorted(pdf.loc[pdf["status"] == "current", "class_name"].tolist())
+            detected_classes = sorted(pdf.loc[pdf["status"] == "detected", "class_name"].tolist())
             saved_classes = sorted(pdf.loc[:, "class_name"].unique().tolist())
             changed = current_classes != saved_classes
 
@@ -106,13 +98,9 @@ class Classifier:
             )
         # when testing we don't have a 3-level namespace but we need
         # to make sure we get None instead of NaN
-        self.classification_result.table_catalog = (
-            self.classification_result.table_catalog.astype(object)
-        )
-        self.classification_result.table_catalog = (
-            self.classification_result.table_catalog.where(
-                pd.notnull(self.classification_result.table_catalog), None
-            )
+        self.classification_result.table_catalog = self.classification_result.table_catalog.astype(object)
+        self.classification_result.table_catalog = self.classification_result.table_catalog.where(
+            pd.notnull(self.classification_result.table_catalog), None
         )
 
     def _get_classification_table_from_delta(self):
@@ -137,41 +125,29 @@ class Classifier:
             try:
                 self.spark.sql(f"DESCRIBE DATABASE {catalog + '.' + schema}")
             except AnalysisException:
-                self.spark.sql(
-                    f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}"
-                )
+                self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
 
             self.spark.sql(
                 f"""
             CREATE TABLE IF NOT EXISTS {self.classification_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp)
             """
             )
-            logger.friendly(
-                f"The classification table {self.classification_table_name} has been created."
-            )
+            logger.friendly(f"The classification table {self.classification_table_name} has been created.")
             return DeltaTable.forName(self.spark, self.classification_table_name)
 
     @property
     def n_classified_columns(self) -> int:
         return len(
-            self.above_threshold[
-                ["table_catalog", "table_schema", "table_name", "column_name"]
-            ].drop_duplicates()
+            self.above_threshold[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates()
         )
 
     @property
     def rule_match_str(self) -> str:
         rule_match_counts = []
-        df_summary = self.above_threshold.groupby(["class_name"]).agg(
-            {"frequency": "count"}
-        )
-        df_summary = (
-            df_summary.reset_index()
-        )  # make sure indexes pair with number of rows
+        df_summary = self.above_threshold.groupby(["class_name"]).agg({"frequency": "count"})
+        df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
         for _, row in df_summary.iterrows():
-            rule_match_counts.append(
-                f"            <li>{row['frequency']} {row['class_name']} columns</li>"
-            )
+            rule_match_counts.append(f"            <li>{row['frequency']} {row['class_name']} columns</li>")
         return "\n".join(rule_match_counts)
 
     @property
@@ -179,9 +155,7 @@ class Classifier:
         # Summary
         classified_cols = self.above_threshold.copy()
         classified_cols.index = pd.MultiIndex.from_frame(
-            classified_cols[
-                ["table_catalog", "table_schema", "table_name", "column_name"]
-            ]
+            classified_cols[["table_catalog", "table_schema", "table_name", "column_name"]]
         )
         summary_html_table = classified_cols[["class_name", "frequency"]].to_html()
 
