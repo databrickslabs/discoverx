@@ -109,6 +109,17 @@ class Classifier:
         except Exception:
             return None
 
+    def _create_database_if_not_exists(self, catalog, schema):
+        try:
+            self.spark.sql(f"DESCRIBE CATALOG {catalog}")
+        except AnalysisException:
+            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+
+        try:
+            self.spark.sql(f"DESCRIBE DATABASE {catalog + '.' + schema}")
+        except AnalysisException:
+            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+
     def _get_or_create_classification_table_from_delta(self):
         try:
             return DeltaTable.forName(self.spark, self.classification_table_name)
@@ -117,15 +128,7 @@ class Classifier:
                 f"The classification table {self.classification_table_name} does not see to exist. Trying to create it ..."
             )
             (catalog, schema, table) = self.classification_table_name.split(".")
-            try:
-                self.spark.sql(f"DESCRIBE CATALOG {catalog}")
-            except AnalysisException:
-                self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
-
-            try:
-                self.spark.sql(f"DESCRIBE DATABASE {catalog + '.' + schema}")
-            except AnalysisException:
-                self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+            self._create_databes_if_not_exists(catalog, schema)
 
             self.spark.sql(
                 f"""
