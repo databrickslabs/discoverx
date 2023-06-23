@@ -161,7 +161,7 @@ class DX:
         self.logger.friendlyHTML(self.classifier.summary_html)
 
     def save(self):
-        """Publishes the classification results to the lakehouse
+        """Saves the classification results to the lakehouse
 
         Raises:
             Exception: If the classification has not been run
