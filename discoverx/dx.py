@@ -1,8 +1,8 @@
-from functools import wraps
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
 from discoverx import logging
+from discoverx.constants import COLUMNS_TABLE_NAME
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner
@@ -52,13 +52,23 @@ class DX:
         self.classification_threshold = self._validate_classification_threshold(classification_threshold)
         self.classification_table_name = classification_table_name
 
-        self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false")
+        self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
+        self.can_read_columns_table = self.can_read_columns_table(spark=self.spark)
 
         self.scanner: Optional[Scanner] = None
         self.classifier: Optional[Classifier] = None
 
         self.intro()
 
+    
+    def can_read_columns_table(self) -> bool:
+        try:
+            self.spark.sql(f"SELECT * FROM {COLUMNS_TABLE_NAME} LIMIT 1")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error while reading table {COLUMNS_TABLE_NAME}: {e}")
+            return False
+        
     def intro(self):
         # TODO: Decide on how to do the introduction
         intro_text = """
@@ -83,10 +93,24 @@ class DX:
         </p>
         """
 
-        if self.uc_enabled == "true":
-            self.logger.friendlyHTML(intro_text)
-        else:
+        missing_access_to_columns_table_text = """
+        <h1 style="color: red">DiscoverX needs access to the system tables `system.information_schema.columns`</h1>
+        
+        <p>
+            Please make sure you have access to the system tables `system.information_schema.columns` and that you are running a Cluster that supports Unity Catalog.
+            To grant access to the system tables, execute the following commands:<br />
+            <code>GRANT USE CATALOG ON CATALOG system TO `account users`;</code><br /> 
+            <code>GRANT USE SCHEMA ON CATALOG system TO `account users`;</code><br />
+            <code>GRANT SELECT ON CATALOG system TO `account users`;</code>
+        </p>
+        """
+
+        if not self.uc_enabled:
             self.logger.friendlyHTML(missing_uc_text)
+        if not self.can_read_columns_table:
+            self.logger.friendlyHTML(missing_access_to_columns_table_text)
+        else:
+            self.logger.friendlyHTML(intro_text)
 
     def display_rules(self):
         """Displays the available rules in a friendly HTML format"""
