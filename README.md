@@ -19,7 +19,7 @@ Get started
 
 ```
 from discoverx import DX
-dx = DX()
+dx = DX(locale="US")
 ```
 
 ## Scan & classify
@@ -53,7 +53,7 @@ Check out the [scan parameters](#scan-parameters).
 
 The result is a dataset with a `frequency` column, which defines the fraction of matched records against the total records scanned for each rule.
 
-## Publish the classificaiton
+## Save the classificaiton
 
 After a `scan` you can save the classificaiton results in a delta table (by default the table is `_discoverx.classification.classes`).
 
