@@ -230,7 +230,7 @@ def test_get_or_create_classification_table_from_delta_no_catalog(spark_session)
     
     spark_session.sql = MagicMock()
     spark_session.sql.side_effect = [
-        AnalysisException("", ""),
+        AnalysisException(""),
         MagicMock(),
         MagicMock()
         ]
@@ -254,7 +254,7 @@ def test_get_or_create_classification_table_from_delta_no_schema(spark_session):
     spark_session.sql = MagicMock()
     spark_session.sql.side_effect = [
         MagicMock(), 
-        AnalysisException("", ""), 
+        AnalysisException(""), 
         MagicMock()]
 
     classifier = Classifier(
