@@ -6,7 +6,7 @@ from typing import Optional, List, Set
 
 from discoverx.common.helper import strip_margin, format_regex
 from discoverx import logging
-from discoverx.constants import MAX_WORKERS, COLUMNS_TABLE_NAME
+from discoverx.constants import Conf
 from discoverx.rules import Rules, RuleTypes
 
 logger = logging.Logging()
@@ -132,7 +132,7 @@ class Scanner:
             table_schema, 
             table_name, 
             collect_list(struct(column_name, data_type, partition_index)) as table_columns
-        FROM {COLUMNS_TABLE_NAME}
+        FROM {Conf.COLUMNS_TABLE_NAME}
         WHERE 
             table_schema != "information_schema" 
             {catalog_sql if self.catalogs != "*" else ""}
@@ -193,7 +193,7 @@ class Scanner:
             raise Exception("No tables found matching your filters")
 
         dfs = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=Conf.MAX_WORKERS) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(self.scan_table, table) for table in self.content.table_list]
 

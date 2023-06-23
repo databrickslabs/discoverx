@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
 from discoverx import logging
-from discoverx.constants import COLUMNS_TABLE_NAME
+from discoverx.constants import Conf
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner
@@ -53,7 +53,7 @@ class DX:
         self.classification_table_name = classification_table_name
 
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
-        self.can_read_columns_table = self.can_read_columns_table(spark=self.spark)
+        self.can_read_columns_table = self.can_read_columns_table()
 
         self.scanner: Optional[Scanner] = None
         self.classifier: Optional[Classifier] = None
@@ -63,10 +63,10 @@ class DX:
     
     def can_read_columns_table(self) -> bool:
         try:
-            self.spark.sql(f"SELECT * FROM {COLUMNS_TABLE_NAME} LIMIT 1")
+            self.spark.sql(f"SELECT * FROM {Conf.COLUMNS_TABLE_NAME} LIMIT 1")
             return True
         except Exception as e:
-            self.logger.error(f"Error while reading table {COLUMNS_TABLE_NAME}: {e}")
+            self.logger.error(f"Error while reading table {Conf.COLUMNS_TABLE_NAME}: {e}")
             return False
         
     def intro(self):
