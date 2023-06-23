@@ -203,70 +203,55 @@ def test_merging_scan_results(spark, mock_current_time):
         expected5_df.reset_index(drop=True),
     )
 
+
 @pytest.fixture
 def spark_session():
     # Mock the SparkSession class
     spark = MagicMock(spec="pyspark.sql.SparkSession")
-    
+
     return spark
 
+
 def test_get_or_create_classification_table_from_delta(spark_session):
-    
+
     spark_session.sql = MagicMock(spec="pyspark.sql.DataFrame")
 
     classifier = Classifier(
-        classification_threshold=0.5,
-        scanner=None,
-        spark=spark_session,
-        classification_table_name="existing.table"
+        classification_threshold=0.5, scanner=None, spark=spark_session, classification_table_name="existing.table"
     )
 
     result = classifier._create_database_if_not_exists("a", "b")
 
-    spark_session.sql.assert_has_calls([call("DESCRIBE CATALOG a"), call("DESCRIBE DATABASE a.b")])    
+    spark_session.sql.assert_has_calls([call("DESCRIBE CATALOG a"), call("DESCRIBE DATABASE a.b")])
 
 
 def test_get_or_create_classification_table_from_delta_no_catalog(spark_session):
-    
+
     spark_session.sql = MagicMock()
-    spark_session.sql.side_effect = [
-        AnalysisException(""),
-        MagicMock(),
-        MagicMock()
-        ]
+    spark_session.sql.side_effect = [AnalysisException(""), MagicMock(), MagicMock()]
 
     classifier = Classifier(
-        classification_threshold=0.5,
-        scanner=None,
-        spark=spark_session,
-        classification_table_name="existing.table"
+        classification_threshold=0.5, scanner=None, spark=spark_session, classification_table_name="existing.table"
     )
 
     result = classifier._create_database_if_not_exists("a", "b")
 
-    spark_session.sql.assert_has_calls([call("DESCRIBE CATALOG a"), 
-                                        call("CREATE CATALOG IF NOT EXISTS a"), 
-                                        call("DESCRIBE DATABASE a.b")])
+    spark_session.sql.assert_has_calls(
+        [call("DESCRIBE CATALOG a"), call("CREATE CATALOG IF NOT EXISTS a"), call("DESCRIBE DATABASE a.b")]
+    )
 
 
 def test_get_or_create_classification_table_from_delta_no_schema(spark_session):
-    
+
     spark_session.sql = MagicMock()
-    spark_session.sql.side_effect = [
-        MagicMock(), 
-        AnalysisException(""), 
-        MagicMock()]
+    spark_session.sql.side_effect = [MagicMock(), AnalysisException(""), MagicMock()]
 
     classifier = Classifier(
-        classification_threshold=0.5,
-        scanner=None,
-        spark=spark_session,
-        classification_table_name="existing.table"
+        classification_threshold=0.5, scanner=None, spark=spark_session, classification_table_name="existing.table"
     )
 
     result = classifier._create_database_if_not_exists("a", "b")
 
-    spark_session.sql.assert_has_calls([call("DESCRIBE CATALOG a"),
-                                        call("DESCRIBE DATABASE a.b"),
-                                        call("CREATE DATABASE IF NOT EXISTS a.b")
-                                        ])
+    spark_session.sql.assert_has_calls(
+        [call("DESCRIBE CATALOG a"), call("DESCRIBE DATABASE a.b"), call("CREATE DATABASE IF NOT EXISTS a.b")]
+    )
