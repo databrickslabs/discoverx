@@ -48,7 +48,7 @@ dx = DX(locale="US")
 # MAGIC ### Scan
 # MAGIC This section demonstrates a typical DiscoverX workflow which consists of the following steps:
 # MAGIC - `dx.scan()`: Scan the lakehouse including catalogs with names starting with `discoverx`
-# MAGIC - `dx.publish()`: Publish the classification result which save/merge the result to a system table maintained by DiscoverX
+# MAGIC - `dx.save()`: Publish the classification result which save/merge the result to a system table maintained by DiscoverX
 # MAGIC - `dx.search()`: Search your across your previously classified lakehouse for specific records or general classifications/classes
 
 # COMMAND ----------

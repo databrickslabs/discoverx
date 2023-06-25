@@ -1,6 +1,7 @@
 from delta.tables import DeltaTable
 import pandas as pd
-from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql import SparkSession
+from pyspark.sql.utils import AnalysisException
 import pyspark.sql.functions as func
 from typing import Optional
 
@@ -36,7 +37,6 @@ class Classifier:
         return self.scanner.scan_result.df[self.scanner.scan_result.df["frequency"] > self.classification_threshold]
 
     def compute_classification_result(self):
-
         if self.above_threshold.empty:
             raise Exception(f"No columns with frequency above {self.classification_threshold} threshold.")
 
@@ -60,13 +60,13 @@ class Classifier:
         def aggregate_updates(pdf):
             current_classes = sorted(pdf.loc[pdf["status"] == "current", "class_name"].tolist())
             detected_classes = sorted(pdf.loc[pdf["status"] == "detected", "class_name"].tolist())
-            published_classes = sorted(pdf.loc[:, "class_name"].unique().tolist())
-            changed = current_classes != published_classes
+            saved_classes = sorted(pdf.loc[:, "class_name"].unique().tolist())
+            changed = current_classes != saved_classes
 
             output = {
                 "Current Classes": [current_classes],
                 "Detected Classes": [detected_classes],
-                "Classes to be published": [published_classes],
+                "Classes to be saved": [saved_classes],
                 "Classes changed": [changed],
             }
 
@@ -81,14 +81,16 @@ class Classifier:
                     "column_name",
                     "Current Classes",
                     "Detected Classes",
-                    "Classes to be published",
+                    "Classes to be saved",
                     "Classes changed",
                 ]
             )
         else:
             self.classification_result = (
                 all_classes.groupby(
-                    ["table_catalog", "table_schema", "table_name", "column_name"], dropna=False, group_keys=True
+                    ["table_catalog", "table_schema", "table_name", "column_name"],
+                    dropna=False,
+                    group_keys=True,
                 )
                 .apply(aggregate_updates)
                 .reset_index()
@@ -107,6 +109,17 @@ class Classifier:
         except Exception:
             return None
 
+    def _create_database_if_not_exists(self, catalog, schema):
+        try:
+            self.spark.sql(f"DESCRIBE CATALOG {catalog}")
+        except AnalysisException:
+            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+
+        try:
+            self.spark.sql(f"DESCRIBE DATABASE {catalog + '.' + schema}")
+        except AnalysisException:
+            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+
     def _get_or_create_classification_table_from_delta(self):
         try:
             return DeltaTable.forName(self.spark, self.classification_table_name)
@@ -115,8 +128,8 @@ class Classifier:
                 f"The classification table {self.classification_table_name} does not see to exist. Trying to create it ..."
             )
             (catalog, schema, table) = self.classification_table_name.split(".")
-            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
-            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+            self._create_databes_if_not_exists(catalog, schema)
+
             self.spark.sql(
                 f"""
             CREATE TABLE IF NOT EXISTS {self.classification_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp)
@@ -172,17 +185,19 @@ class Classifier:
         """
 
     def _stage_updates(self, input_classification_pdf: pd.DataFrame):
-
         classification_pdf = input_classification_pdf.copy()
 
         classification_pdf["to_be_unset"] = classification_pdf.apply(
-            lambda x: list(set(x["Current Classes"]) - set(x["Classes to be published"])), axis=1
+            lambda x: list(set(x["Current Classes"]) - set(x["Classes to be saved"])),
+            axis=1,
         )
         classification_pdf["to_be_set"] = classification_pdf.apply(
-            lambda x: list(set(x["Classes to be published"]) - set(x["Current Classes"])), axis=1
+            lambda x: list(set(x["Classes to be saved"]) - set(x["Current Classes"])),
+            axis=1,
         )
         classification_pdf["to_be_kept"] = classification_pdf.apply(
-            lambda x: list(set(x["Classes to be published"]) & set(x["Current Classes"])), axis=1
+            lambda x: list(set(x["Classes to be saved"]) & set(x["Current Classes"])),
+            axis=1,
         )
 
         self.staged_updates = (
@@ -198,7 +213,7 @@ class Classifier:
             .reset_index(drop=True)
         )
 
-    def publish(self):
+    def save(self):
         self.compute_classification_result()
         self._stage_updates(self.classification_result)
 

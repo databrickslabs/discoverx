@@ -12,7 +12,7 @@ Scan, Classify, and Discover the content of your Lakehouse
 Install DiscoverX, in Databricks notebook type
 
 ```
-%pip install discoverx
+%pip install dbl-discoverx
 ```
 
 Get started
@@ -55,15 +55,15 @@ The result is a dataset with a `frequency` column, which defines the fraction of
 
 ## Publish the classificaiton
 
-After a `scan` you can publish the classificaiton results in a delta table (by default the table is `_discoverx.classification.classes`).
+After a `scan` you can save the classificaiton results in a delta table (by default the table is `_discoverx.classification.classes`).
 
 ```
-dx.publish()
+dx.save()
 ```
 
 ## Cross-table queries
 
-After a `publish` you can leverage the classified column classes to run cross-table `search`, `delete_by_class` and `select_by_classes` actions.
+After a `save` you can leverage the classified column classes to run cross-table `search`, `delete_by_class` and `select_by_classes` actions.
 
 
 ### Search

@@ -1,13 +1,15 @@
 import pandas as pd
-from pandas.testing import assert_frame_equal
 import pytest
-import numpy as np
+from pandas.testing import assert_frame_equal
+from unittest.mock import MagicMock, call
+from pyspark.sql.utils import AnalysisException
 
-from discoverx.dx import DX
-from discoverx.dx import Scanner
-from discoverx.scanner import ScanResult
-from discoverx.rules import Rules
 from discoverx import logging
+from discoverx.classification import Classifier
+from discoverx.dx import DX, Scanner
+from discoverx.rules import Rules
+from discoverx.scanner import ScanResult
+
 
 logger = logging.Logging()
 
@@ -50,7 +52,7 @@ def test_classifier(spark):
                 "column_name": ["ip", "mac"],
                 "Current Classes": [[], []],
                 "Detected Classes": [["ip_v4"], ["mac"]],
-                "Classes to be published": [["ip_v4"], ["mac"]],
+                "Classes to be saved": [["ip_v4"], ["mac"]],
                 "Classes changed": [True, True],
             }
         ),
@@ -82,7 +84,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx.scanner = dummy_scanner
     dx._classify(classification_threshold=0.95)
-    dx.publish()
+    dx.save()
 
     expected_df = pd.DataFrame(
         {
@@ -104,7 +106,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dx2 = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx2.scanner = dummy_scanner
     dx2._classify(classification_threshold=0.95)
-    dx2.publish()
+    dx2.save()
 
     expected_df = pd.DataFrame(
         {
@@ -138,7 +140,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner.scan_result = ScanResult(df_scan_result3)
     dx3.scanner = dummy_scanner
     dx3._classify(classification_threshold=0.95)
-    dx3.publish()
+    dx3.save()
 
     current_time = pd.Timestamp(2023, 1, 1, 0)
     expected3_df = pd.DataFrame(
@@ -178,7 +180,7 @@ def test_merging_scan_results(spark, mock_current_time):
     dummy_scanner.scan_result = ScanResult(df_scan_result5)
     dx5.scanner = dummy_scanner
     dx5._classify(classification_threshold=0.95)
-    dx5.publish()
+    dx5.save()
 
     expected5_df = pd.DataFrame(
         {
@@ -199,4 +201,57 @@ def test_merging_scan_results(spark, mock_current_time):
         .sort_values(by=["table_catalog", "table_schema", "table_name", "column_name"])
         .reset_index(drop=True),
         expected5_df.reset_index(drop=True),
+    )
+
+
+@pytest.fixture
+def spark_session():
+    # Mock the SparkSession class
+    spark = MagicMock(spec="pyspark.sql.SparkSession")
+
+    return spark
+
+
+def test_get_or_create_classification_table_from_delta(spark_session):
+
+    spark_session.sql = MagicMock(spec="pyspark.sql.DataFrame")
+
+    classifier = Classifier(
+        classification_threshold=0.5, scanner=None, spark=spark_session, classification_table_name="existing.table"
+    )
+
+    result = classifier._create_database_if_not_exists("a", "b")
+
+    spark_session.sql.assert_has_calls([call("DESCRIBE CATALOG a"), call("DESCRIBE DATABASE a.b")])
+
+
+def test_get_or_create_classification_table_from_delta_no_catalog(spark_session):
+
+    spark_session.sql = MagicMock()
+    spark_session.sql.side_effect = [AnalysisException(""), MagicMock(), MagicMock()]
+
+    classifier = Classifier(
+        classification_threshold=0.5, scanner=None, spark=spark_session, classification_table_name="existing.table"
+    )
+
+    result = classifier._create_database_if_not_exists("a", "b")
+
+    spark_session.sql.assert_has_calls(
+        [call("DESCRIBE CATALOG a"), call("CREATE CATALOG IF NOT EXISTS a"), call("DESCRIBE DATABASE a.b")]
+    )
+
+
+def test_get_or_create_classification_table_from_delta_no_schema(spark_session):
+
+    spark_session.sql = MagicMock()
+    spark_session.sql.side_effect = [MagicMock(), AnalysisException(""), MagicMock()]
+
+    classifier = Classifier(
+        classification_threshold=0.5, scanner=None, spark=spark_session, classification_table_name="existing.table"
+    )
+
+    result = classifier._create_database_if_not_exists("a", "b")
+
+    spark_session.sql.assert_has_calls(
+        [call("DESCRIBE CATALOG a"), call("DESCRIBE DATABASE a.b"), call("CREATE DATABASE IF NOT EXISTS a.b")]
     )

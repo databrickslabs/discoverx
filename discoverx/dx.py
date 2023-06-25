@@ -160,7 +160,7 @@ class DX:
 
         self.logger.friendlyHTML(self.classifier.summary_html)
 
-    def publish(self):
+    def save(self):
         """Publishes the classification results to the lakehouse
 
         Raises:
@@ -169,7 +169,7 @@ class DX:
         """
 
         # save classes
-        self.classifier.publish()
+        self.classifier.save()
 
     def search(self, search_term: str, from_tables: str = "*.*.*", by_class: Optional[str] = None):
         """Searches your lakehouse for columns matching the given search term
