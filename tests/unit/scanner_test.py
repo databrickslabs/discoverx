@@ -40,7 +40,14 @@ def test_get_table_list(spark):
 
     rules = Rules()
     scanner = Scanner(
-        spark, rules=rules, catalogs="*", schemas="*", tables="*_all_types", rule_filter="*", sample_size=100, columns_table_name="default.columns_mock"
+        spark,
+        rules=rules,
+        catalogs="*",
+        schemas="*",
+        tables="*_all_types",
+        rule_filter="*",
+        sample_size=100,
+        columns_table_name="default.columns_mock",
     )
     actual = scanner._get_list_of_tables()
 
@@ -120,8 +127,10 @@ def test_generate_sql(spark, rules_input, expected):
     rules = rules_input
 
     rules = Rules(custom_rules=rules)
-    scanner = Scanner(spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns_mock")
-    
+    scanner = Scanner(
+        spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns_mock"
+    )
+
     actual = scanner._rule_matching_sql(table_info)
     logging.info("Generated SQL is: \n%s", actual)
 
@@ -141,7 +150,9 @@ def test_sql_runs(spark):
     ]
 
     rules = Rules(custom_rules=rules)
-    scanner = Scanner(spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name = "default.columns_mock")
+    scanner = Scanner(
+        spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns_mock"
+    )
     actual = scanner._rule_matching_sql(table_info)
 
     logging.info("Generated SQL is: \n%s", actual)
@@ -176,7 +187,14 @@ def test_scan_custom_rules(spark: SparkSession):
     ]
 
     rules = Rules(custom_rules=rules)
-    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="any_*", sample_size=100, columns_table_name = "default.columns_mock")
+    scanner = Scanner(
+        spark,
+        rules=rules,
+        tables="tb_1",
+        rule_filter="any_*",
+        sample_size=100,
+        columns_table_name="default.columns_mock",
+    )
     scanner.scan()
 
     logging.info("Scan result is: \n%s", scanner.scan_result.df)
@@ -198,7 +216,7 @@ def test_scan(spark: SparkSession):
     )
 
     rules = Rules()
-    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name = "default.columns_mock")
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
     scanner.scan()
 
     assert scanner.scan_result.df.equals(expected)

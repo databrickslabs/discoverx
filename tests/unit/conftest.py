@@ -21,6 +21,7 @@ from discoverx.classification import func
 from discoverx.dx import Scanner
 from discoverx.constants import Conf
 
+
 @dataclass
 class FileInfoFixture:
     """
@@ -215,7 +216,6 @@ def mock_uc_functionality(spark, monkeymodule):
     # apply the monkeypatch for the columns_table_name
     monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns_mock")
 
-    
     # mock classifier method _get_classification_table_from_delta as we don't
     # have catalogs in open source spark
     def get_or_create_classification_table_mock(self):

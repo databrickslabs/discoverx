@@ -63,7 +63,6 @@ class DX:
 
         self.intro()
 
-    
     def can_read_columns_table(self) -> bool:
         try:
             self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} LIMIT 1")
@@ -71,7 +70,7 @@ class DX:
         except Exception as e:
             self.logger.error(f"Error while reading table {self.COLUMNS_TABLE_NAME}: {e}")
             return False
-        
+
     def intro(self):
         # TODO: Decide on how to do the introduction
         intro_text = """

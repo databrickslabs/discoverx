@@ -70,7 +70,6 @@ class ScanResult:
 
 
 class Scanner:
-
     def __init__(
         self,
         spark: SparkSession,
@@ -81,7 +80,7 @@ class Scanner:
         rule_filter: str = "*",
         sample_size: int = 1000,
         what_if: bool = False,
-        columns_table_name: str = ""
+        columns_table_name: str = "",
     ):
         self.spark = spark
         self.rules = rules
