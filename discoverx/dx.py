@@ -144,6 +144,7 @@ class DX:
             rule_filter=rules,
             sample_size=sample_size,
             what_if=what_if,
+            columns_table_name=self.COLUMNS_TABLE_NAME,
         )
 
         self.scanner.scan()
