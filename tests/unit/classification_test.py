@@ -14,7 +14,7 @@ logger = logging.Logging()
 
 def test_classifier(spark):
 
-    dummy_scanner = Scanner(spark, Rules())
+    dummy_scanner = Scanner(spark, Rules(), columns_table_name="default.columns_mock")
     df_scan_result = pd.DataFrame(
         {
             "table_catalog": [None, None, None, None, None, None, None, None, None],
@@ -67,7 +67,7 @@ def test_classifier(spark):
 def test_merging_scan_results(spark, mock_current_time):
 
     # start with adding one classified ip column to the classification table
-    dummy_scanner = Scanner(spark, Rules())
+    dummy_scanner = Scanner(spark, Rules(), columns_table_name="default.columns_mock")
     df_scan_result = pd.DataFrame(
         {
             "table_catalog": [None, None, None, None, None, None],
