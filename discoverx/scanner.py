@@ -288,6 +288,16 @@ class Scanner:
 
         scan_result_df.write.format("delta").mode("overwrite").saveAsTable(scan_table_name)
 
+    def load(self, scan_table_name: str):
+
+        try:
+            scan_result_df = DeltaTable.forName(self.spark, scan_table_name).toDF()
+        except Exception as e:
+            logger.friendly(f"The specified scan result table {scan_table_name} does not exist.")
+            raise e
+
+        self.scan_result = ScanResult(df=scan_result_df.toPandas())
+
     def _get_or_create_result_table_from_delta(self, scan_table_name: str):
         try:
             DeltaTable.forName(self.spark, scan_table_name)
