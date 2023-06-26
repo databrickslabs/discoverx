@@ -80,6 +80,7 @@ class Scanner:
         sample_size: int = 1000,
         what_if: bool = False,
         columns_table_name: str = "",
+        max_workers: int = 10,
     ):
         self.spark = spark
         self.rules = rules
@@ -90,6 +91,7 @@ class Scanner:
         self.sample_size = sample_size
         self.what_if = what_if
         self.columns_table_name = columns_table_name
+        self.max_workers = max_workers
 
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
@@ -193,7 +195,7 @@ class Scanner:
             raise Exception("No tables found matching your filters")
 
         dfs = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=Conf.MAX_WORKERS) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(self.scan_table, table) for table in self.content.table_list]
 
