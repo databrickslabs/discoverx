@@ -55,14 +55,13 @@ class DX:
         self.classification_table_name = classification_table_name
 
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
-        self.can_read_columns_table = self.can_read_columns_table()
 
         self.scanner: Optional[Scanner] = None
         self.classifier: Optional[Classifier] = None
 
         self.intro()
 
-    def can_read_columns_table(self) -> bool:
+    def _can_read_columns_table(self) -> bool:
         try:
             self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} LIMIT 1")
             return True
@@ -108,7 +107,7 @@ class DX:
 
         if not self.uc_enabled:
             self.logger.friendlyHTML(missing_uc_text)
-        if not self.can_read_columns_table:
+        if not self._can_read_columns_table():
             self.logger.friendlyHTML(missing_access_to_columns_table_text)
         else:
             self.logger.friendlyHTML(intro_text)
@@ -354,9 +353,14 @@ class DX:
                 f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True."
             )
 
-        return self._msql(
+        delete_result = self._msql(
             f"DELETE FROM {from_tables} WHERE [{by_class}] IN ({value_string})", what_if=(not yes_i_am_sure)
         )
+
+        if delete_result is not None:
+            delete_result = delete_result.toPandas()
+            self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
+            return delete_result
 
     def _msql(self, msql: str, what_if: bool = False):
 

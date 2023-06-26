@@ -18,7 +18,6 @@ from pyspark.sql import SparkSession
 from discoverx.classification import DeltaTable
 from discoverx.dx import DX, Scanner
 from discoverx.classification import func
-#from discoverx.dx import Scanner
 
 
 @dataclass
