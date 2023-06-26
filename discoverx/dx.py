@@ -359,7 +359,7 @@ class DX:
         )
 
         if delete_result is not None:
-            self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
+            self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.toPandas().to_html()}")
 
     def _msql(self, msql: str, what_if: bool = False):
 

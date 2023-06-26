@@ -17,6 +17,7 @@ def scan_ip_in_tb1(spark, mock_uc_functionality):
 def test_can_read_columns_table(spark):
     dx = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx.COLUMNS_TABLE_NAME = "db.non_existent_table"
+    dx.intro()
     assert dx.can_read_columns_table() == False
 
 def test_scan_without_classification_table(spark, mock_uc_functionality):
