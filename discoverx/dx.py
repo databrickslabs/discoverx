@@ -55,7 +55,7 @@ class DX:
         self.classification_table_name = classification_table_name
 
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
-        
+
         self.scanner: Optional[Scanner] = None
         self.classifier: Optional[Classifier] = None
 
