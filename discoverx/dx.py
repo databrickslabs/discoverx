@@ -79,7 +79,7 @@ class DX:
           I'm here to help you discover data in your lakehouse.<br />
           You can scan your lakehouse by using
         </p>
-        <pre><code>dx.scan()</code></pre>
+        <pre><code>dx.scan(from_tables="*.*.*")</code></pre>
         <p>
           For more detailed instructions, check out the <a href="https://github.com/databrickslabs/discoverx">readme</a> or use
         </p>
