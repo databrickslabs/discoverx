@@ -18,7 +18,7 @@ def test_can_read_columns_table(spark):
     dx = DX(spark=spark, classification_table_name="_discoverx.classes")
     dx.COLUMNS_TABLE_NAME = "db.non_existent_table"
     dx.intro()
-    assert dx.can_read_columns_table() == False
+    assert dx._can_read_columns_table() == False
 
 def test_scan_without_classification_table(spark, mock_uc_functionality):
     dx = DX(spark=spark, classification_table_name="_discoverx.non_existent_classes_table")
@@ -129,8 +129,8 @@ def test_delete_by_class(spark, dx_ip):
 
     result = dx_ip.delete_by_class(
         from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9", yes_i_am_sure=True
-    ).collect()
-    assert result[0].table == "tb_1"
+    )
+    assert result["table"][0] == "tb_1"
 
     with pytest.raises(ValueError):
         dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="x")
