@@ -354,9 +354,12 @@ class DX:
                 f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True."
             )
 
-        return self._msql(
+        delete_result = self._msql(
             f"DELETE FROM {from_tables} WHERE [{by_class}] IN ({value_string})", what_if=(not yes_i_am_sure)
         )
+
+        if delete_result is not None:
+            self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
 
     def _msql(self, msql: str, what_if: bool = False):
 

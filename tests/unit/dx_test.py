@@ -14,6 +14,10 @@ def scan_ip_in_tb1(spark, mock_uc_functionality):
 
     spark.sql("DROP TABLE IF EXISTS _discoverx.classes")
 
+def test_can_read_columns_table(spark):
+    dx = DX(spark=spark, classification_table_name="_discoverx.classes")
+    dx.COLUMNS_TABLE_NAME = "db.non_existent_table"
+    assert dx.can_read_columns_table() == False
 
 def test_scan_without_classification_table(spark, mock_uc_functionality):
     dx = DX(spark=spark, classification_table_name="_discoverx.non_existent_classes_table")
