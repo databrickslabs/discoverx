@@ -281,7 +281,7 @@ class Scanner:
 
         scan_result_df = self.spark.createDataFrame(
             self.scan_result.df,
-            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: string",
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double",
         ).withColumn("effective_timestamp", func.current_timestamp())
 
         logger.friendly(f"Overwrite scan result table {scan_table_name}")
@@ -298,7 +298,7 @@ class Scanner:
             self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
             self.spark.sql(
                 f"""
-            CREATE TABLE IF NOT EXISTS {scan_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score string, effective_timestamp timestamp)
+            CREATE TABLE IF NOT EXISTS {scan_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp)
             """
             )
             logger.friendly(f"The scan result table {scan_table_name} has been created.")

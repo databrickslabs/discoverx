@@ -220,3 +220,25 @@ def test_scan(spark: SparkSession):
     scanner.scan()
 
     assert scanner.scan_result.df.equals(expected)
+
+
+def test_save_scan(spark: SparkSession):
+
+    rules = Rules()
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
+    scanner.scan()
+    scanner.save(scan_table_name="_discoverx.scan_result_test")
+
+    result = spark.sql("select * from _discoverx.scan_result_test").toPandas().drop('effective_timestamp', axis=1).sort_values(by=["column_name", "class_name"])
+    expected = pd.DataFrame(
+        [
+            ["None", "default", "tb_1", "description", "ip_v4", 0.0],
+            ["None", "default", "tb_1", "description", "ip_v6", 0.0],
+            ["None", "default", "tb_1", "ip", "ip_v4", 1.0],
+            ["None", "default", "tb_1", "ip", "ip_v6", 0.0],
+            ["None", "default", "tb_1", "mac", "ip_v4", 0.0],
+            ["None", "default", "tb_1", "mac", "ip_v6", 0.0],
+        ],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
+    )
+    assert result.reset_index(drop=True).equals(expected)
