@@ -33,6 +33,9 @@ class DX:
             Defaults to None.
     """
 
+    COLUMNS_TABLE_NAME = "system.information_schema.columns"
+    MAX_WORKERS = 10
+
     def __init__(
         self,
         custom_rules: Optional[List[Rule]] = None,
@@ -63,10 +66,10 @@ class DX:
     
     def can_read_columns_table(self) -> bool:
         try:
-            self.spark.sql(f"SELECT * FROM {Conf.COLUMNS_TABLE_NAME} LIMIT 1")
+            self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} LIMIT 1")
             return True
         except Exception as e:
-            self.logger.error(f"Error while reading table {Conf.COLUMNS_TABLE_NAME}: {e}")
+            self.logger.error(f"Error while reading table {self.COLUMNS_TABLE_NAME}: {e}")
             return False
         
     def intro(self):
@@ -184,9 +187,11 @@ class DX:
 
         self.logger.friendlyHTML(self.classifier.summary_html)
 
-    def save(self):
+    def save(self, full_table_name: str = None):
         """Saves the classification results to the lakehouse
 
+        Args:
+            full_table_name (str, optional): The full table name to be used to save the classification results. Defaults to None.
         Raises:
             Exception: If the classification has not been run
 

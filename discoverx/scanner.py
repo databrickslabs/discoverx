@@ -81,6 +81,7 @@ class Scanner:
         rule_filter: str = "*",
         sample_size: int = 1000,
         what_if: bool = False,
+        columns_table_name: str = ""
     ):
         self.spark = spark
         self.rules = rules
@@ -90,6 +91,7 @@ class Scanner:
         self.rules_filter = rule_filter
         self.sample_size = sample_size
         self.what_if = what_if
+        self.columns_table_name = columns_table_name
 
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
@@ -132,7 +134,7 @@ class Scanner:
             table_schema, 
             table_name, 
             collect_list(struct(column_name, data_type, partition_index)) as table_columns
-        FROM {Conf.COLUMNS_TABLE_NAME}
+        FROM {self.columns_table_name}
         WHERE 
             table_schema != "information_schema" 
             {catalog_sql if self.catalogs != "*" else ""}
