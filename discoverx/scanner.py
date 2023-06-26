@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from delta.tables import DeltaTable
 import pandas as pd
 import concurrent.futures
 from pyspark.sql import SparkSession
+import pyspark.sql.functions as func
 from typing import Optional, List, Set
 
 from discoverx.common.helper import strip_margin, format_regex
@@ -270,3 +272,31 @@ class Scanner:
         """
 
         return strip_margin(sql)
+
+    def save(self, scan_table_name: str):
+
+        self._get_or_create_result_table_from_delta(scan_table_name)
+
+        scan_result_df = self.spark.createDataFrame(
+            self.scan_result.df,
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: string",
+        ).withColumn("effective_timestamp", func.current_timestamp())
+
+        logger.friendly(f"Overwrite scan result table {scan_table_name}")
+
+        scan_result_df.write.format("delta").mode("overwrite").saveAsTable(scan_table_name)
+
+    def _get_or_create_result_table_from_delta(self, scan_table_name: str):
+        try:
+            DeltaTable.forName(self.spark, scan_table_name)
+        except Exception:
+            logger.friendly(f"The scan result table {scan_table_name} does not seem to exist. Trying to create it ...")
+            (catalog, schema, table) = scan_table_name.split(".")
+            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+            self.spark.sql(
+                f"""
+            CREATE TABLE IF NOT EXISTS {scan_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score string, effective_timestamp timestamp)
+            """
+            )
+            logger.friendly(f"The scan result table {scan_table_name} has been created.")

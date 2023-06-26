@@ -148,7 +148,6 @@ class DX:
         )
 
         self.scanner.scan()
-        self._classify(self.classification_threshold)
 
     def scan_result(self):
         """Returns the scan results as a pandas DataFrame
@@ -186,18 +185,19 @@ class DX:
 
         self.logger.friendlyHTML(self.classifier.summary_html)
 
-    def save(self, full_table_name: str = None):
-        """Saves the classification results to the lakehouse
+    def save(self, full_table_name: str):
+        """Saves the scan results to the lakehouse
 
         Args:
-            full_table_name (str, optional): The full table name to be used to save the classification results. Defaults to None.
+            full_table_name (str, optional): The full table name to be
+                used to save the scan results.
         Raises:
-            Exception: If the classification has not been run
+            Exception: If the scan has not been run
 
         """
 
         # save classes
-        self.classifier.save()
+        self.scanner.save()
 
     def search(self, search_term: str, from_tables: str = "*.*.*", by_class: Optional[str] = None):
         """Searches your lakehouse for columns matching the given search term
