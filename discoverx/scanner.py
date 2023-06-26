@@ -6,7 +6,6 @@ from typing import Optional, List, Set
 
 from discoverx.common.helper import strip_margin, format_regex
 from discoverx import logging
-from discoverx.constants import Conf
 from discoverx.rules import Rules, RuleTypes
 
 logger = logging.Logging()

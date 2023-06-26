@@ -19,7 +19,6 @@ from discoverx.classification import DeltaTable
 from discoverx.dx import DX, Classifier
 from discoverx.classification import func
 from discoverx.dx import Scanner
-from discoverx.constants import Conf
 
 
 @dataclass

@@ -2,7 +2,6 @@ from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
 from discoverx import logging
-from discoverx.constants import Conf
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner
