@@ -16,7 +16,7 @@ import pytest
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
 from discoverx.classification import DeltaTable
-from discoverx.dx import Classifier
+from discoverx.dx import DX, Classifier
 from discoverx.classification import func
 from discoverx.dx import Scanner
 
@@ -213,7 +213,7 @@ def mock_vacuum(spark, monkeymodule):
 @pytest.fixture(autouse=True, scope="module")
 def mock_uc_functionality(spark, monkeymodule):
     # apply the monkeypatch for the columns_table_name
-    monkeymodule.setattr(Scanner, "COLUMNS_TABLE_NAME", "default.columns_mock")
+    monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns_mock")
 
     # mock classifier method _get_classification_table_from_delta as we don't
     # have catalogs in open source spark

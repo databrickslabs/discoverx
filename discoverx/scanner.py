@@ -69,10 +69,6 @@ class ScanResult:
 
 
 class Scanner:
-
-    COLUMNS_TABLE_NAME = "system.information_schema.columns"
-    MAX_WORKERS = 10
-
     def __init__(
         self,
         spark: SparkSession,
@@ -83,6 +79,8 @@ class Scanner:
         rule_filter: str = "*",
         sample_size: int = 1000,
         what_if: bool = False,
+        columns_table_name: str = "",
+        max_workers: int = 10,
     ):
         self.spark = spark
         self.rules = rules
@@ -92,6 +90,8 @@ class Scanner:
         self.rules_filter = rule_filter
         self.sample_size = sample_size
         self.what_if = what_if
+        self.columns_table_name = columns_table_name
+        self.max_workers = max_workers
 
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
@@ -134,7 +134,7 @@ class Scanner:
             table_schema, 
             table_name, 
             collect_list(struct(column_name, data_type, partition_index)) as table_columns
-        FROM {self.COLUMNS_TABLE_NAME}
+        FROM {self.columns_table_name}
         WHERE 
             table_schema != "information_schema" 
             {catalog_sql if self.catalogs != "*" else ""}
@@ -195,7 +195,7 @@ class Scanner:
             raise Exception("No tables found matching your filters")
 
         dfs = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(self.scan_table, table) for table in self.content.table_list]
 

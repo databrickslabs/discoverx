@@ -1,4 +1,3 @@
-from functools import wraps
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
@@ -33,6 +32,9 @@ class DX:
             Defaults to None.
     """
 
+    COLUMNS_TABLE_NAME = "system.information_schema.columns"
+    MAX_WORKERS = 10
+
     def __init__(
         self,
         custom_rules: Optional[List[Rule]] = None,
@@ -52,12 +54,20 @@ class DX:
         self.classification_threshold = self._validate_classification_threshold(classification_threshold)
         self.classification_table_name = classification_table_name
 
-        self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false")
+        self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
 
         self.scanner: Optional[Scanner] = None
         self.classifier: Optional[Classifier] = None
 
         self.intro()
+
+    def _can_read_columns_table(self) -> bool:
+        try:
+            self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} LIMIT 1")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error while reading table {self.COLUMNS_TABLE_NAME}: {e}")
+            return False
 
     def intro(self):
         # TODO: Decide on how to do the introduction
@@ -68,7 +78,7 @@ class DX:
           I'm here to help you discover data in your lakehouse.<br />
           You can scan your lakehouse by using
         </p>
-        <pre><code>dx.scan()</code></pre>
+        <pre><code>dx.scan(from_tables="*.*.*")</code></pre>
         <p>
           For more detailed instructions, check out the <a href="https://github.com/databrickslabs/discoverx">readme</a> or use
         </p>
@@ -83,10 +93,24 @@ class DX:
         </p>
         """
 
-        if self.uc_enabled == "true":
-            self.logger.friendlyHTML(intro_text)
-        else:
+        missing_access_to_columns_table_text = """
+        <h1 style="color: red">DiscoverX needs access to the system tables `system.information_schema.columns`</h1>
+        
+        <p>
+            Please make sure you have access to the system tables `system.information_schema.columns` and that you are running a Cluster that supports Unity Catalog.
+            To grant access to the system tables, execute the following commands:<br />
+            <code>GRANT USE CATALOG ON CATALOG system TO `account users`;</code><br /> 
+            <code>GRANT USE SCHEMA ON CATALOG system TO `account users`;</code><br />
+            <code>GRANT SELECT ON CATALOG system TO `account users`;</code>
+        </p>
+        """
+
+        if not self.uc_enabled:
             self.logger.friendlyHTML(missing_uc_text)
+        if not self._can_read_columns_table():
+            self.logger.friendlyHTML(missing_access_to_columns_table_text)
+        else:
+            self.logger.friendlyHTML(intro_text)
 
     def display_rules(self):
         """Displays the available rules in a friendly HTML format"""
@@ -119,6 +143,8 @@ class DX:
             rule_filter=rules,
             sample_size=sample_size,
             what_if=what_if,
+            columns_table_name=self.COLUMNS_TABLE_NAME,
+            max_workers=self.MAX_WORKERS,
         )
 
         self.scanner.scan()
@@ -160,9 +186,11 @@ class DX:
 
         self.logger.friendlyHTML(self.classifier.summary_html)
 
-    def save(self):
-        """Publishes the classification results to the lakehouse
+    def save(self, full_table_name: str = None):
+        """Saves the classification results to the lakehouse
 
+        Args:
+            full_table_name (str, optional): The full table name to be used to save the classification results. Defaults to None.
         Raises:
             Exception: If the classification has not been run
 
@@ -325,9 +353,14 @@ class DX:
                 f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True."
             )
 
-        return self._msql(
+        delete_result = self._msql(
             f"DELETE FROM {from_tables} WHERE [{by_class}] IN ({value_string})", what_if=(not yes_i_am_sure)
         )
+
+        if delete_result is not None:
+            delete_result = delete_result.toPandas()
+            self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
+            return delete_result
 
     def _msql(self, msql: str, what_if: bool = False):
 
