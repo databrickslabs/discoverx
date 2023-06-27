@@ -112,11 +112,11 @@ def test_select_by_class(spark, dx_ip):
 # @pytest.mark.skip(reason="Delete is only working with v2 tables. Needs investigation")
 def test_delete_by_class(spark, dx_ip):
     # search a specific term and auto-detect matching classes/rules
-    result = dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
-    assert result is None  # Nothing should be executed
+    dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
+    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {'1.2.3.4', '3.4.5.60'}
 
-    result = dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9", yes_i_am_sure=True)
-    assert result["table_name"][0] == "tb_1"
+    dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="1.2.3.4", yes_i_am_sure=True)
+    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {'3.4.5.60'}
 
     with pytest.raises(ValueError):
         dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="x")

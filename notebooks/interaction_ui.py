@@ -91,10 +91,10 @@ import pyspark.sql.functions as func
     dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"])
     .groupby(
         [
-            "catalog",
-            "schema",
-            "table",
-            "classified_columns.ip_v4.column",
+            "table_catalog",
+            "table_schema",
+            "table_name",
+            "classified_columns.ip_v4.column_name",
             "classified_columns.ip_v4.value",
         ]
     )
@@ -185,3 +185,7 @@ dx_new.search(search_term="1.2.3.4", from_tables="*.*.*").display()
 # COMMAND ----------
 
 help(DX)
+
+# COMMAND ----------
+
+
