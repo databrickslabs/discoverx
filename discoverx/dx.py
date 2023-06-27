@@ -6,7 +6,7 @@ from typing import List, Optional, Union
 from discoverx import logging
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
-from discoverx.scanner import Scanner
+from discoverx.scanner import Scanner, ScanResult
 
 
 class DX:
@@ -51,7 +51,7 @@ class DX:
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
 
         self.scanner: Optional[Scanner] = None
-        self._scan_result: Optional[pd.DataFrame] = None
+        self._scan_result: Optional[ScanResult] = None
 
         self.intro()
 
@@ -154,7 +154,7 @@ class DX:
         if self._scan_result is None:
             raise Exception("You first need to scan your lakehouse using Scanner.scan()")
 
-        return self.scanner.scan_result.df
+        return self._scan_result.df
 
     def save(self, full_table_name: str):
         """Saves the scan results to the lakehouse
@@ -185,7 +185,7 @@ class DX:
             self.logger.error(f"Error while reading the scan result table {self.COLUMNS_TABLE_NAME}: {e}")
             raise e
 
-        self._scan_result = scan_result_df.drop("effective_timestamp").toPandas()
+        self._scan_result = ScanResult(scan_result_df.drop("effective_timestamp").toPandas())
 
     def search(self, search_term: str, from_tables: str = "*.*.*", by_class: Optional[str] = None):
         """Searches your lakehouse for columns matching the given search term

@@ -74,7 +74,7 @@ class ScanResult:
         return len(df[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates())
 
     def n_classified_columns(self, min_score: Optional[float]) -> int:
-        return len(ScanResult.count_distinct_cols(self.get_classes(min_score)))
+        return ScanResult.count_distinct_cols(self.get_classes(min_score))
 
     def get_classes(self, min_score: Optional[float]):
         try:
@@ -238,7 +238,7 @@ class Scanner:
 
         if dfs:
             self.scan_result = ScanResult(df=pd.concat(dfs))
-            return self.scan_result.df
+            return self.scan_result
         else:
             raise Exception("No tables were scanned successfully.")
 
