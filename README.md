@@ -38,7 +38,7 @@ dx.display_rules()
 
 You can also provide your [custom matching rules](#custom-rules).
 
-The scan will automatically classify columns where the number of matching records exceeds a [classification threshold](#classification-threshold) (95% by default).
+The scan will automatically classify columns.
 
 
 ### Example
@@ -52,18 +52,29 @@ dx.scan(from_tables="*.*.*")
 Check out the [scan parameters](#scan-parameters).
 
 The result is a dataset with a `score` column, which defines the fraction of matched records against the total records scanned for each rule.
-
-## Save the classificaiton
-
-After a `scan` you can save the classificaiton results in a delta table (by default the table is `_discoverx.classification.classes`).
+The full scan result can be displayed using
 
 ```
-dx.save()
+dx.scan_result
+```
+
+## Save & Load the Scan Results
+
+After a `scan` you can save the scan results in a delta table of your choice.
+
+```
+dx.save(full_table_name=<your-table-name>)
+```
+
+To load the saved results at a later time or in a different session use
+
+```
+dx.load(full_table_name=<your-table-name>)
 ```
 
 ## Cross-table queries
 
-After a `save` you can leverage the classified column classes to run cross-table `search`, `delete_by_class` and `select_by_classes` actions.
+After a `scan` you can leverage the classified column classes to run cross-table `search`, `delete_by_class` and `select_by_classes` actions.
 
 
 ### Search
@@ -82,28 +93,38 @@ You can also specify the classes where the search should be performed explicitly
 dx.search("example_email@databricks.com", from_tables="*.*.*", by_classes=["dx_email"])
 ```
 
+If you want to limit the search to columns with a specific classification score
+you need to provide it as parameter, i.e.
+
+```
+dx.search("example_email@databricks.com", from_tables="*.*.*", min_score=0.95)
+```
+
+The score refers to the frequency of matching rules during the scan for
+the respective column.
+
 ### Delete
 
 Delete 
 
 Preview delete statements
 ```
-dx.delete_by_class(from_tables="*.*.*", by_class="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=False)
+dx.delete_by_class(from_tables="*.*.*", by_class="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=False, min_score=0.95)
 ```
 
 Execute delete statements
 ```
-dx.delete_by_class(from_tables="*.*.*", by_class="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=True)
+dx.delete_by_class(from_tables="*.*.*", by_class="dx_email", values=['example_email@databricks.com'], yes_i_am_sure=True, min_score=0.95)
 ```
 
-Note: You need to regularely [vacuum](https://docs.delta.io/latest/delta-utility.html#remove-files-no-longer-referenced-by-a-delta-table) all your delta tables to remove all traces of your deleted rows. 
+Note: You need to regularly [vacuum](https://docs.delta.io/latest/delta-utility.html#remove-files-no-longer-referenced-by-a-delta-table) all your delta tables to remove all traces of your deleted rows. 
 
 ### Select
 
 Select all columns classified with specified classes from multiple tables
 
 ```
-dx.select_by_classes(from_tables="*.*.*", by_classes=["dx_iso_date", "dx_email"])
+dx.select_by_classes(from_tables="*.*.*", by_classes=["dx_iso_date", "dx_email"], min_score=None)
 ```
 
 You can apply further transformations to build your summary tables. 
@@ -156,14 +177,6 @@ You should now see your rules added to the default ones with
 
 ```
 dx.display_rules()
-```
-
-### Classification threshold
-
-You can customize the classification threshold with
-
-```
-dx = DX(classification_threshold=0.99)
 ```
 
 ## Project Support
