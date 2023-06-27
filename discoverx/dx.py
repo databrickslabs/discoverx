@@ -1,3 +1,5 @@
+from delta.tables import DeltaTable
+import pandas as pd
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
@@ -5,7 +7,6 @@ from discoverx import logging
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner
-from discoverx.classification import Classifier
 
 
 class DX:
@@ -50,7 +51,7 @@ class DX:
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
 
         self.scanner: Optional[Scanner] = None
-        self.classifier: Optional[Classifier] = None
+        self._scan_result: Optional[pd.DataFrame] = None
 
         self.intro()
 
@@ -140,20 +141,18 @@ class DX:
             max_workers=self.MAX_WORKERS,
         )
 
-        self.scanner.scan()
-        # TODO: Enable this once we have a summary
-        # self.logger.friendlyHTML(self.scanner.summary_html)
+        self._scan_result = self.scanner.scan()
+        self.logger.friendlyHTML(self.scanner.summary_html)
 
+    @property
     def scan_result(self):
         """Returns the scan results as a pandas DataFrame
 
         Raises:
             Exception: If the scan has not been run
         """
-        if self.scanner is None:
+        if self._scan_result is None:
             raise Exception("You first need to scan your lakehouse using Scanner.scan()")
-        if self.scanner.scan_result is None:
-            raise Exception("Your scan did not finish successfully. Please consider rerunning Scanner.scan()")
 
         return self.scanner.scan_result.df
 
@@ -169,7 +168,24 @@ class DX:
         """
 
         # save classes
-        self.scanner.save(full_table_name)
+        self.scanner.save()
+
+    def load(self, full_table_name: str):
+        """Loads previously saved scan results from a table
+
+        Args:
+            full_table_name (str, optional): The full table name to be
+                used to load the scan results.
+        Raises:
+            Exception: If the table to be loaded does not exist
+        """
+        try:
+            scan_result_df = DeltaTable.forName(self.spark, full_table_name).toDF()
+        except Exception as e:
+            self.logger.error(f"Error while reading the scan result table {self.COLUMNS_TABLE_NAME}: {e}")
+            raise e
+
+        self._scan_result = scan_result_df.drop("effective_timestamp").toPandas()
 
     def search(self, search_term: str, from_tables: str = "*.*.*", by_class: Optional[str] = None):
         """Searches your lakehouse for columns matching the given search term

@@ -224,6 +224,7 @@ def test_scan(spark: SparkSession):
 
 def test_save_scan(spark: SparkSession):
 
+    # save scan result
     rules = Rules()
     scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
     scanner.scan()
