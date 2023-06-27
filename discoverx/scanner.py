@@ -211,6 +211,7 @@ class Scanner:
 
         if dfs:
             self.scan_result = ScanResult(df=pd.concat(dfs))
+            return self.scan_result.df
         else:
             raise Exception("No tables were scanned successfully.")
 
@@ -293,7 +294,7 @@ class Scanner:
         try:
             scan_result_df = DeltaTable.forName(self.spark, scan_table_name).toDF()
         except Exception as e:
-            logger.friendly(f"The specified scan result table {scan_table_name} does not exist.")
+            logger.error(f"Error while reading the scan result table {self.COLUMNS_TABLE_NAME}: {e}")
             raise e
 
         self.scan_result = ScanResult(df=scan_result_df.toPandas())
