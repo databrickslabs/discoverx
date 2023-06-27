@@ -3,7 +3,7 @@ import pandas as pd
 from pyspark.sql import SparkSession
 import pytest
 
-from discoverx.scanner import Scanner, ColumnInfo, TableInfo
+from discoverx.scanner import ScanResult, Scanner, ColumnInfo, TableInfo
 from discoverx.rules import RegexRule, Rules
 
 
@@ -247,3 +247,25 @@ def test_save_scan(spark: SparkSession):
         columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
     )
     assert result.reset_index(drop=True).equals(expected)
+
+
+def test_get_classes_should_fail_if_no_scan():
+    scan_result = ScanResult(pd.DataFrame())
+    with pytest.raises(Exception):
+        scan_result.get_classes()
+
+
+def test_get_classes(spark):
+    scan_result_df = pd.DataFrame(
+        [
+            ["None", "default", "tb_1", "ip", "any_word", 0.0],
+            ["None", "default", "tb_1", "ip", "any_number", 0.1],
+            ["None", "default", "tb_1", "mac", "any_word", 1.0],
+        ],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
+    )
+    scan_result = ScanResult(scan_result_df)
+    assert len(scan_result.get_classes(min_score=None)) == 2
+    assert len(scan_result.get_classes(min_score=0.0)) == 3
+    assert len(scan_result.get_classes(min_score=0.1)) == 2
+    assert len(scan_result.get_classes(min_score=1.0)) == 1

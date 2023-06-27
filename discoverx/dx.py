@@ -357,7 +357,7 @@ class DX:
 
         # check if classification is available
         # Check for more specific exception
-        classification_result_pdf = self._get_classes(min_score)
+        classification_result_pdf = self.scan_result.get_classes(min_score)
         sql_rows = msql_builder.build(classification_result_pdf)
 
         if what_if:

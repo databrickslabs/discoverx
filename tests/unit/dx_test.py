@@ -145,29 +145,6 @@ def test_scan_results_before_scan_should_fail(spark):
         dx.scan_result()
 
 
-def test_get_classes_should_fail_if_no_scan(spark):
-    dx = DX(spark=spark)
-    with pytest.raises(Exception):
-        dx._get_classes()
-
-
-def test_get_classes(spark):
-    scan_result = pd.DataFrame(
-        [
-            ["None", "default", "tb_1", "ip", "any_word", 0.0],
-            ["None", "default", "tb_1", "ip", "any_number", 0.1],
-            ["None", "default", "tb_1", "mac", "any_word", 1.0],
-        ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
-    )
-    dx = DX(spark=spark)
-    dx._scan_result = scan_result
-    assert len(dx._get_classes(min_score=None)) == 2
-    assert len(dx._get_classes(min_score=0.0)) == 3
-    assert len(dx._get_classes(min_score=0.1)) == 2
-    assert len(dx._get_classes(min_score=1.0)) == 1
-
-
 def test_save_and_load_scan_result(spark, dx_ip):
     scan_result_table = "_discoverx.classes_save_test"
     dx_ip.save(full_table_name=scan_result_table)
