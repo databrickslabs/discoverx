@@ -38,22 +38,15 @@ class DX:
     def __init__(
         self,
         custom_rules: Optional[List[Rule]] = None,
-        classification_threshold: float = 0.95,
         spark: Optional[SparkSession] = None,
         locale: str = None,
-        classification_table_name: str = "_discoverx.classification.classes",
     ):
-
         if spark is None:
             spark = SparkSession.getActiveSession()
         self.spark = spark
         self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules, locale=locale)
-
-        self.classification_threshold = self._validate_classification_threshold(classification_threshold)
-        self.classification_table_name = classification_table_name
-
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
 
         self.scanner: Optional[Scanner] = None
@@ -148,6 +141,8 @@ class DX:
         )
 
         self.scanner.scan()
+        # TODO: Enable this once we have a summary
+        # self.logger.friendlyHTML(self.scanner.summary_html)
 
     def scan_result(self):
         """Returns the scan results as a pandas DataFrame
@@ -162,34 +157,11 @@ class DX:
 
         return self.scanner.scan_result.df
 
-    def _classify(self, classification_threshold: float):
-        """Classifies the columns in the lakehouse
-
-        Args:
-            classification_threshold (float): The frequency threshold (0 to 1) above which a column will be classified
-
-        Raises:
-            Exception: If the scan has not been run"""
-
-        if self.scanner is None:
-            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
-        if self.scanner.scan_result is None:
-            raise Exception("Your scan did not finish successfully. Please consider rerunning Scanner.scan()")
-
-        self.classifier = Classifier(
-            classification_threshold,
-            self.scanner,
-            self.spark,
-            self.classification_table_name,
-        )
-
-        self.logger.friendlyHTML(self.classifier.summary_html)
-
     def save(self, full_table_name: str):
         """Saves the scan results to the lakehouse
 
         Args:
-            full_table_name (str, optional): The full table name to be
+            full_table_name (str): The full table name to be
                 used to save the scan results.
         Raises:
             Exception: If the scan has not been run
@@ -197,7 +169,7 @@ class DX:
         """
 
         # save classes
-        self.scanner.save()
+        self.scanner.save(full_table_name)
 
     def search(self, search_term: str, from_tables: str = "*.*.*", by_class: Optional[str] = None):
         """Searches your lakehouse for columns matching the given search term
@@ -362,30 +334,27 @@ class DX:
             self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
             return delete_result
 
-    def _msql(self, msql: str, what_if: bool = False):
+    def _get_classes(self, min_score: Optional[float]):
+        try:
+            if min_score is None:
+                return self.scan_result[self.scan_result["score"] > 0]
+            elif min_score >= 0 and min_score <= 1:
+                return self.scan_result[self.scan_result["score"] >= min_score]
+            else:
+                error_msg = f"min_score has to be either None or in interval [0,1]. Given value is {min_score}"
+                self.logger.error(error_msg)
+                raise ValueError(error_msg)
+        except Exception:
+            raise Exception("No scan result available. Please run dx.scan() or dx.load() first.")
 
+    def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")
 
         msql_builder = Msql(msql)
 
         # check if classification is available
         # Check for more specific exception
-        try:
-            classification_result_pdf = (
-                self.spark.sql(f"SELECT * FROM {self.classification_table_name}")
-                .filter(func.col("current") == True)
-                .select(
-                    func.col("table_catalog").alias("catalog"),
-                    func.col("table_schema").alias("schema"),
-                    func.col("table_name").alias("table"),
-                    func.col("column_name").alias("column"),
-                    "class_name",
-                )
-                .toPandas()
-            )
-        except Exception:
-            raise Exception("Classification is not available")
-
+        classification_result_pdf = self._get_classes(min_score)
         sql_rows = msql_builder.build(classification_result_pdf)
 
         if what_if:
@@ -398,16 +367,3 @@ class DX:
         else:
             self.logger.debug(f"Executing SQL:\n{sql_rows}")
             return msql_builder.execute_sql_rows(sql_rows, self.spark)
-
-    def _validate_classification_threshold(self, threshold) -> float:
-        """Validate that threshold is in interval [0,1]
-        Args:
-            threshold (float): The threshold value to be validated
-        Returns:
-            float: The validated threshold value
-        """
-        if (threshold < 0) or (threshold > 1):
-            error_msg = f"classification_threshold has to be in interval [0,1]. Given value is {threshold}"
-            self.logger.error(error_msg)
-            raise ValueError(error_msg)
-        return threshold

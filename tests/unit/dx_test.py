@@ -1,6 +1,7 @@
 import pytest
 from discoverx.dx import DX
 from discoverx import logging
+import pandas as pd
 
 logger = logging.Logging()
 
@@ -37,7 +38,6 @@ def test_scan_withno_results(spark, mock_uc_functionality):
 
 
 def test_dx_instantiation(spark):
-
     dx = DX(spark=spark)
     assert dx.classification_threshold == 0.95
 
@@ -72,7 +72,6 @@ def test_scan_and_msql(spark, dx_ip):
 
 
 def test_search(spark, dx_ip: DX):
-
     # search a specific term and auto-detect matching classes/rules
     result = dx_ip.search("1.2.3.4").collect()
     assert result[0].table == "tb_1"
@@ -99,7 +98,6 @@ def test_search(spark, dx_ip: DX):
 
 
 def test_select_by_class(spark, dx_ip):
-
     # search a specific term and auto-detect matching classes/rules
     result = dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes="ip_v4").collect()
     assert result[0].table == "tb_1"
@@ -124,7 +122,6 @@ def test_select_by_class(spark, dx_ip):
 
 # @pytest.mark.skip(reason="Delete is only working with v2 tables. Needs investigation")
 def test_delete_by_class(spark, dx_ip):
-
     # search a specific term and auto-detect matching classes/rules
     result = dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
     assert result is None  # Nothing should be executed
@@ -156,3 +153,26 @@ def test_scan_results_before_scan_should_fail(spark):
     dx = DX(spark=spark)
     with pytest.raises(Exception):
         dx.scan_result()
+
+
+def test_get_classes_should_fail_if_no_scan(spark):
+    dx = DX(spark=spark)
+    with pytest.raises(Exception):
+        dx._get_classes()
+
+
+def test_get_classes(spark):
+    scan_result = pd.DataFrame(
+        [
+            ["None", "default", "tb_1", "ip", "any_word", 0.0],
+            ["None", "default", "tb_1", "ip", "any_number", 0.1],
+            ["None", "default", "tb_1", "mac", "any_word", 1.0],
+        ],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "frequency"],
+    )
+    dx = DX(spark=spark)
+    dx.scan_result = scan_result
+    assert len(dx._get_classes(min_score=None)) == 2
+    assert len(dx._get_classes(min_score=0.0)) == 3
+    assert len(dx._get_classes(min_score=0.1)) == 2
+    assert len(dx._get_classes(min_score=1.0)) == 1
