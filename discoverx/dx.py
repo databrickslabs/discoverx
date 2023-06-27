@@ -19,13 +19,6 @@ class DX:
         custom_rules (List[Rule], Optional): Custom rules which will be
             used to detect columns with corresponding patterns in your
             data
-        classification_threshold (float, optional):
-            The threshold which will associate a column with a specific
-            rule and classify accordingly. The minimum and maximum
-            threshold values which can be specified are 0 and 1
-            respectively. The former corresponds to none of the records
-            for that column conforming to the given rule while the
-            latter means that all records conform.
         spark (SparkSession, optional): The SparkSession which will be
             used to scan your data. Defaults to None.
         locale (str, optional): The two-letter country code which will be
@@ -185,13 +178,26 @@ class DX:
         self._scan_result = ScanResult(df=pd.DataFrame(), spark=self.spark)
         self._scan_result.load(full_table_name)
 
-    def search(self, search_term: str, from_tables: str = "*.*.*", by_class: Optional[str] = None):
+    def search(
+        self,
+        search_term: str,
+        from_tables: str = "*.*.*",
+        by_class: Optional[str] = None,
+        min_score: Optional[float] = None,
+    ):
         """Searches your lakehouse for columns matching the given search term
 
         Args:
             search_term (str): The search term to be used to search for columns.
-            from_tables (str, optional): The tables to be searched in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_class (str, optional): The class to be used to search for columns. Defaults to None.
+            from_tables (str, optional): The tables to be searched in format
+                "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_class (str, optional): The class to be used to search for columns.
+                Defaults to None.
+            min_score (float, optional): Defines the classification score or frequency
+                threshold for columns to be considered during the scan. Defaults to None
+                which means that all columns where at least one record matched the
+                respective rule during the scan will be included. Has to be either None
+                or between 0 and 1.
 
         Raises:
             ValueError: If search_term is not provided
@@ -251,15 +257,28 @@ class DX:
             where_statement = f"WHERE {sql_filter}"
 
         return self._msql(
-            f"SELECT {select_statement}, to_json(struct(*)) AS row_content FROM {from_tables} {where_statement}"
+            f"SELECT {select_statement}, to_json(struct(*)) AS row_content FROM {from_tables} {where_statement}",
+            min_score=min_score,
         )
 
-    def select_by_classes(self, from_tables: str = "*.*.*", by_classes: Optional[Union[List[str], str]] = None):
+    def select_by_classes(
+        self,
+        from_tables: str = "*.*.*",
+        by_classes: Optional[Union[List[str], str]] = None,
+        min_score: Optional[float] = None,
+    ):
         """Selects all columns in the lakehouse from tables that match ALL the given classes
 
         Args:
-            from_tables (str, optional): The tables to be selected in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_classes (Union[List[str], str], optional): The classes to be used to search for columns. Defaults to None.
+            from_tables (str, optional): The tables to be selected in format
+                "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_classes (Union[List[str], str], optional): The classes to be used to
+                search for columns. Defaults to None.
+            min_score (float, optional): Defines the classification score or frequency
+                threshold for columns to be considered during the scan. Defaults to None
+                which means that all columns where at least one record matched the
+                respective rule during the scan will be included. Has to be either None
+                or between 0 and 1.
 
         Raises:
             ValueError: If the by_classes type is not valid
@@ -290,7 +309,9 @@ class DX:
             + ") AS classified_columns"
         )
 
-        return self._msql(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}")
+        return self._msql(
+            f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}", min_score=min_score
+        )
 
     def delete_by_class(
         self,
@@ -298,14 +319,24 @@ class DX:
         by_class: str = None,
         values: Optional[Union[List[str], str]] = None,
         yes_i_am_sure: bool = False,
+        min_score: Optional[float] = None,
     ):
         """Deletes all rows in the lakehouse that match any of the provided values in a column classified with the given class
 
         Args:
-            from_tables (str, optional): The tables to delete from in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_class (str, optional): The class to be used to search for columns. Defaults to None.
-            values (Union[List[str], str], optional): The values to be deleted. Defaults to None.
-            yes_i_am_sure (bool, optional): Whether you are sure that you want to delete the data. If False prints the SQL statements instead of executing them. Defaults to False.
+            from_tables (str, optional): The tables to delete from in format
+                "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_class (str, optional): The class to be used to search for columns.
+                Defaults to None.
+            values (Union[List[str], str], optional): The values to be deleted.
+                Defaults to None.
+            yes_i_am_sure (bool, optional): Whether you are sure that you want to delete
+                the data. If False prints the SQL statements instead of executing them. Defaults to False.
+            min_score (float, optional): Defines the classification score or frequency
+                threshold for columns to be considered during the scan. Defaults to None
+                which means that all columns where at least one record matched the
+                respective rule during the scan will be included. Has to be either None
+                or between 0 and 1.
 
         Raises:
             ValueError: If the from_tables is not valid
@@ -340,7 +371,9 @@ class DX:
             )
 
         delete_result = self._msql(
-            f"DELETE FROM {from_tables} WHERE [{by_class}] IN ({value_string})", what_if=(not yes_i_am_sure)
+            f"DELETE FROM {from_tables} WHERE [{by_class}] IN ({value_string})",
+            what_if=(not yes_i_am_sure),
+            min_score=min_score,
         )
 
         if delete_result is not None:
