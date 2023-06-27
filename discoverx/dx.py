@@ -379,7 +379,6 @@ class DX:
         if delete_result is not None:
             delete_result = delete_result.toPandas()
             self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
-            return delete_result
 
     def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")
