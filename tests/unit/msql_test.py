@@ -29,7 +29,7 @@ def classification_df(spark) -> pd.DataFrame:
             ["c", "m_db", "tb1", "email_4", "dx_email"],  # schema does not match
             ["c", "db", "m_tb1", "email_5", "dx_email"],  # table does not match
         ],
-        columns=["catalog", "schema", "table", "column", "class_name"],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name"],
     )
 
 
