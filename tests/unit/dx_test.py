@@ -2,7 +2,6 @@ import pandas as pd
 import pytest
 from discoverx.dx import DX
 from discoverx import logging
-import pandas as pd
 
 logger = logging.Logging()
 
@@ -64,8 +63,8 @@ def test_scan_and_msql(spark, dx_ip):
 def test_search(spark, dx_ip: DX):
     # search a specific term and auto-detect matching classes/rules
     result = dx_ip.search("1.2.3.4").collect()
-    assert result[0].table == "tb_1"
-    assert result[0].search_result.ip_v4.column == "ip"
+    assert result[0].table_name == "tb_1"
+    assert result[0].search_result.ip_v4.column_name == "ip"
 
     # specify catalog, schema and table
     result_classes_namespace = dx_ip.search("1.2.3.4", by_class="ip_v4", from_tables="*.default.tb_*")
@@ -90,12 +89,12 @@ def test_search(spark, dx_ip: DX):
 def test_select_by_class(spark, dx_ip):
     # search a specific term and auto-detect matching classes/rules
     result = dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes="ip_v4").collect()
-    assert result[0].table == "tb_1"
-    assert result[0].classified_columns.ip_v4.column == "ip"
+    assert result[0].table_name == "tb_1"
+    assert result[0].classified_columns.ip_v4.column_name == "ip"
 
     result = dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes=["ip_v4"]).collect()
-    assert result[0].table == "tb_1"
-    assert result[0].classified_columns.ip_v4.column == "ip"
+    assert result[0].table_name == "tb_1"
+    assert result[0].classified_columns.ip_v4.column_name == "ip"
 
     with pytest.raises(ValueError):
         dx_ip.select_by_classes(from_tables="*.default.tb_*")
@@ -117,7 +116,7 @@ def test_delete_by_class(spark, dx_ip):
     assert result is None  # Nothing should be executed
 
     result = dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9", yes_i_am_sure=True)
-    assert result["table"][0] == "tb_1"
+    assert result["table_name"][0] == "tb_1"
 
     with pytest.raises(ValueError):
         dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="x")

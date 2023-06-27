@@ -114,12 +114,17 @@ class Msql:
         try:
             result = (
                 spark.sql(sql_row.sql)
-                .withColumn("catalog", lit(sql_row.catalog))
-                .withColumn("schema", lit(sql_row.schema))
-                .withColumn("table", lit(sql_row.table))
+                .withColumn("table_catalog", lit(sql_row.catalog))
+                .withColumn("table_schema", lit(sql_row.schema))
+                .withColumn("table_name", lit(sql_row.table))
             )
             if self.command == "DELETE":
                 result = result.withColumn("sql", lit(sql_row.sql))
+
+            table_info_cols = ["table_catalog", "table_schema", "table_name"]
+            select_cols = table_info_cols + [col for col in result.columns if col not in table_info_cols]
+            result = result.select(*select_cols)
+
         except Exception as e:
             self.logger.info(f"Unable to execute SQL for {sql_row.catalog}.{sql_row.schema}.{sql_row.table}: {e}")
             result = None
@@ -163,7 +168,7 @@ class Msql:
             return (matches[0][1], matches[0][2], matches[0][3])
         else:
             raise ValueError(
-                f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'catalog.schema.table'. You can use '*' as wildcard."
+                f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'table_catalog.table_schema.table_name'. You can use '*' as wildcard."
             )
 
     def _extract_command(self):
