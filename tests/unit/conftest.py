@@ -15,7 +15,7 @@ import mlflow
 import pytest
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
-from discoverx.dx import DX, Scanner
+from discoverx.dx import DX, Scanner, ScanResult
 from discoverx.scanner import DeltaTable
 
 
@@ -201,7 +201,7 @@ def monkeymodule():
 
 
 @pytest.fixture(autouse=True, scope="module")
-def mock_uc_functionality(spark, monkeymodule):
+def mock_uc_functionality(monkeymodule):
     # apply the monkeypatch for the columns_table_name
     monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns_mock")
 
@@ -217,8 +217,4 @@ def mock_uc_functionality(spark, monkeymodule):
         )
         return DeltaTable.forName(self.spark, scan_table_name)
 
-    monkeymodule.setattr(Scanner, "_get_or_create_result_table_from_delta", get_or_create_classification_table_mock)
-
-    yield
-
-    spark.sql("DROP TABLE IF EXISTS _discoverx.classes")
+    monkeymodule.setattr(ScanResult, "_get_or_create_result_table_from_delta", get_or_create_classification_table_mock)

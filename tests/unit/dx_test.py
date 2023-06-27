@@ -174,3 +174,5 @@ def test_save_and_load_scan_result(spark, dx_ip):
 
     with pytest.raises(Exception):
         dx.load(full_table_name="xxx")
+
+    spark.sql(f"DROP TABLE IF EXISTS {scan_result_table}")

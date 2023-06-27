@@ -144,6 +144,10 @@ class DX:
         self._scan_result = self.scanner.scan()
         self.logger.friendlyHTML(self.scanner.summary_html)
 
+    def _check_scan_result(self):
+        if self._scan_result is None:
+            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
+
     @property
     def scan_result(self):
         """Returns the scan results as a pandas DataFrame
@@ -151,8 +155,7 @@ class DX:
         Raises:
             Exception: If the scan has not been run
         """
-        if self._scan_result is None:
-            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
+        self._check_scan_result()
 
         return self._scan_result.df
 
@@ -166,9 +169,9 @@ class DX:
             Exception: If the scan has not been run
 
         """
-
+        self._check_scan_result()
         # save classes
-        self.scanner.save(full_table_name)
+        self._scan_result.save(full_table_name)
 
     def load(self, full_table_name: str):
         """Loads previously saved scan results from a table
@@ -179,13 +182,8 @@ class DX:
         Raises:
             Exception: If the table to be loaded does not exist
         """
-        try:
-            scan_result_df = DeltaTable.forName(self.spark, full_table_name).toDF()
-        except Exception as e:
-            self.logger.error(f"Error while reading the scan result table {self.COLUMNS_TABLE_NAME}: {e}")
-            raise e
-
-        self._scan_result = ScanResult(scan_result_df.drop("effective_timestamp").toPandas())
+        self._scan_result = ScanResult(df=pd.DataFrame(), spark=self.spark)
+        self._scan_result.load(full_table_name)
 
     def search(self, search_term: str, from_tables: str = "*.*.*", by_class: Optional[str] = None):
         """Searches your lakehouse for columns matching the given search term

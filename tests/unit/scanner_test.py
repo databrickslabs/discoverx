@@ -227,10 +227,11 @@ def test_save_scan(spark: SparkSession):
     rules = Rules()
     scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
     scanner.scan()
-    scanner.save(scan_table_name="_discoverx.scan_result_test")
+    scan_table_name = "_discoverx.scan_result_test"
+    scanner.scan_result.save(scan_table_name=scan_table_name)
 
     result = (
-        spark.sql("select * from _discoverx.scan_result_test")
+        spark.sql(f"select * from {scan_table_name}")
         .toPandas()
         .drop("effective_timestamp", axis=1)
         .sort_values(by=["column_name", "class_name"])
@@ -248,9 +249,16 @@ def test_save_scan(spark: SparkSession):
     )
     assert result.reset_index(drop=True).equals(expected)
 
+    # now load the saved results
+    scan_result = ScanResult(df=pd.DataFrame(), spark=spark)
+    scan_result.load(scan_table_name=scan_table_name)
+    assert scan_result.df.sort_values(by=["column_name", "class_name"]).reset_index(drop=True).equals(expected)
 
-def test_get_classes_should_fail_if_no_scan():
-    scan_result = ScanResult(pd.DataFrame())
+    spark.sql(f"DROP TABLE IF EXISTS {scan_table_name}")
+
+
+def test_get_classes_should_fail_if_no_scan(spark):
+    scan_result = ScanResult(df=pd.DataFrame(), spark=spark)
     with pytest.raises(Exception):
         scan_result.get_classes()
 
@@ -264,7 +272,7 @@ def test_get_classes(spark):
         ],
         columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
     )
-    scan_result = ScanResult(scan_result_df)
+    scan_result = ScanResult(df=scan_result_df, spark=spark)
     assert len(scan_result.get_classes(min_score=None)) == 2
     assert len(scan_result.get_classes(min_score=0.0)) == 3
     assert len(scan_result.get_classes(min_score=0.1)) == 2

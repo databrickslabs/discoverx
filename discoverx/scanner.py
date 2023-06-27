@@ -60,6 +60,7 @@ class ScanContent:
 @dataclass
 class ScanResult:
     df: pd.DataFrame
+    spark: SparkSession
 
     @property
     def is_empty(self) -> bool:
@@ -67,7 +68,7 @@ class ScanResult:
 
     @property
     def n_scanned_columns(self) -> int:
-        ScanResult.count_distinct_cols(self.df)
+        return ScanResult.count_distinct_cols(self.df)
 
     @staticmethod
     def count_distinct_cols(df: pd.DataFrame) -> int:
@@ -80,11 +81,11 @@ class ScanResult:
         try:
             if min_score is None:
                 return self.df[self.df["score"] > 0]
-            elif min_score >= 0 and min_score <= 1:
+            elif (min_score >= 0) and (min_score <= 1):
                 return self.df[self.df["score"] >= min_score]
             else:
                 error_msg = f"min_score has to be either None or in interval [0,1]. Given value is {min_score}"
-                self.logger.error(error_msg)
+                logger.error(error_msg)
                 raise ValueError(error_msg)
         except Exception:
             raise Exception("No scan result available. Please run dx.scan() or dx.load() first.")
@@ -96,6 +97,40 @@ class ScanResult:
         for _, row in df_summary.iterrows():
             rule_match_counts.append(f"            <li>{row['score']} {row['class_name']} columns</li>")
         return "\n".join(rule_match_counts)
+
+    def _get_or_create_result_table_from_delta(self, scan_table_name: str):
+        try:
+            DeltaTable.forName(self.spark, scan_table_name)
+        except Exception:
+            logger.friendly(f"The scan result table {scan_table_name} does not seem to exist. Trying to create it ...")
+            (catalog, schema, table) = scan_table_name.split(".")
+            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+            self.spark.sql(
+                f"""
+            CREATE TABLE IF NOT EXISTS {scan_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp)
+            """
+            )
+            logger.friendly(f"The scan result table {scan_table_name} has been created.")
+
+    def save(self, scan_table_name: str):
+        self._get_or_create_result_table_from_delta(scan_table_name)
+
+        scan_result_df = self.spark.createDataFrame(
+            self.df,
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double",
+        ).withColumn("effective_timestamp", func.current_timestamp())
+
+        logger.friendly(f"Overwrite scan result table {scan_table_name}")
+
+        scan_result_df.write.format("delta").mode("overwrite").saveAsTable(scan_table_name)
+
+    def load(self, scan_table_name: str):
+        try:
+            self.df = DeltaTable.forName(self.spark, scan_table_name).toDF().drop("effective_timestamp").toPandas()
+        except Exception as e:
+            logger.error(f"Error while reading the scan result table {scan_table_name}: {e}")
+            raise e
 
 
 class Scanner:
@@ -237,7 +272,7 @@ class Scanner:
         logger.debug("Finished lakehouse scanning task")
 
         if dfs:
-            self.scan_result = ScanResult(df=pd.concat(dfs))
+            self.scan_result = ScanResult(df=pd.concat(dfs), spark=self.spark)
             return self.scan_result
         else:
             raise Exception("No tables were scanned successfully.")
@@ -302,42 +337,6 @@ class Scanner:
         """
 
         return strip_margin(sql)
-
-    def save(self, scan_table_name: str):
-        self._get_or_create_result_table_from_delta(scan_table_name)
-
-        scan_result_df = self.spark.createDataFrame(
-            self.scan_result.df,
-            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double",
-        ).withColumn("effective_timestamp", func.current_timestamp())
-
-        logger.friendly(f"Overwrite scan result table {scan_table_name}")
-
-        scan_result_df.write.format("delta").mode("overwrite").saveAsTable(scan_table_name)
-
-    def load(self, scan_table_name: str):
-        try:
-            scan_result_df = DeltaTable.forName(self.spark, scan_table_name).toDF()
-        except Exception as e:
-            logger.error(f"Error while reading the scan result table {self.COLUMNS_TABLE_NAME}: {e}")
-            raise e
-
-        self.scan_result = ScanResult(df=scan_result_df.toPandas())
-
-    def _get_or_create_result_table_from_delta(self, scan_table_name: str):
-        try:
-            DeltaTable.forName(self.spark, scan_table_name)
-        except Exception:
-            logger.friendly(f"The scan result table {scan_table_name} does not seem to exist. Trying to create it ...")
-            (catalog, schema, table) = scan_table_name.split(".")
-            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
-            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
-            self.spark.sql(
-                f"""
-            CREATE TABLE IF NOT EXISTS {scan_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp)
-            """
-            )
-            logger.friendly(f"The scan result table {scan_table_name} has been created.")
 
     @property
     def summary_html(self) -> str:
