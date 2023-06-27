@@ -10,8 +10,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install pydantic
-# MAGIC %pip install ipydatagrid
+# MAGIC %pip install dbl-discoverx
 
 # COMMAND ----------
 
@@ -48,7 +47,6 @@ dx = DX(locale="US")
 # MAGIC ### Scan
 # MAGIC This section demonstrates a typical DiscoverX workflow which consists of the following steps:
 # MAGIC - `dx.scan()`: Scan the lakehouse including catalogs with names starting with `discoverx`
-# MAGIC - `dx.save()`: Publish the classification result which save/merge the result to a system table maintained by DiscoverX
 # MAGIC - `dx.search()`: Search your across your previously classified lakehouse for specific records or general classifications/classes
 
 # COMMAND ----------
@@ -93,9 +91,9 @@ import pyspark.sql.functions as func
     dx.select_by_classes(from_tables="discoverx*.*.*", by_classes=["ip_v4"])
     .groupby(
         [
-            "table_catalog",
-            "table_schema",
-            "table_name",
+            "catalog",
+            "schema",
+            "table",
             "classified_columns.ip_v4.column",
             "classified_columns.ip_v4.value",
         ]
@@ -126,19 +124,7 @@ dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.
 
 dx.delete_by_class(
     from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.0.0", "0.0.0.1"], yes_i_am_sure=True
-).display()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Configuration
-# MAGIC
-# MAGIC This section is optional, and can be used to customize the behaviour of DiscoverX
-
-# COMMAND ----------
-
-# You can change the classificaiton threshold with
-dx = DX(classification_threshold=0.95)
+)
 
 # COMMAND ----------
 
@@ -175,10 +161,27 @@ dx.scan(from_tables="discoverx*.*.*", sample_size=1000)
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Save & Load
+# MAGIC If you are performing scheduled scans you might want to save your results and load them later for interactive cross-table queries or dashboards.
+
+# COMMAND ----------
+
+dx.save(full_table_name="_discoverx.classification.scan_result")
+
+# COMMAND ----------
+
+dx_new = DX()
+dx_new.load(full_table_name="_discoverx.classification.scan_result")
+
+# COMMAND ----------
+
+dx_new.search(search_term="1.2.3.4", from_tables="*.*.*").display()
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Help
 
 # COMMAND ----------
 
 help(DX)
-
-# COMMAND ----------
