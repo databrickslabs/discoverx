@@ -1,11 +1,12 @@
+from delta.tables import DeltaTable
+import pandas as pd
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
 from discoverx import logging
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
-from discoverx.scanner import Scanner
-from discoverx.classification import Classifier
+from discoverx.scanner import Scanner, ScanResult
 
 
 class DX:
@@ -18,13 +19,6 @@ class DX:
         custom_rules (List[Rule], Optional): Custom rules which will be
             used to detect columns with corresponding patterns in your
             data
-        classification_threshold (float, optional):
-            The threshold which will associate a column with a specific
-            rule and classify accordingly. The minimum and maximum
-            threshold values which can be specified are 0 and 1
-            respectively. The former corresponds to none of the records
-            for that column conforming to the given rule while the
-            latter means that all records conform.
         spark (SparkSession, optional): The SparkSession which will be
             used to scan your data. Defaults to None.
         locale (str, optional): The two-letter country code which will be
@@ -38,26 +32,19 @@ class DX:
     def __init__(
         self,
         custom_rules: Optional[List[Rule]] = None,
-        classification_threshold: float = 0.95,
         spark: Optional[SparkSession] = None,
         locale: str = None,
-        classification_table_name: str = "_discoverx.classification.classes",
     ):
-
         if spark is None:
             spark = SparkSession.getActiveSession()
         self.spark = spark
         self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules, locale=locale)
-
-        self.classification_threshold = self._validate_classification_threshold(classification_threshold)
-        self.classification_table_name = classification_table_name
-
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
 
         self.scanner: Optional[Scanner] = None
-        self.classifier: Optional[Classifier] = None
+        self._scan_result: Optional[ScanResult] = None
 
         self.intro()
 
@@ -147,65 +134,70 @@ class DX:
             max_workers=self.MAX_WORKERS,
         )
 
-        self.scanner.scan()
-        self._classify(self.classification_threshold)
+        self._scan_result = self.scanner.scan()
+        self.logger.friendlyHTML(self.scanner.summary_html)
 
+    def _check_scan_result(self):
+        if self._scan_result is None:
+            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
+
+    @property
     def scan_result(self):
         """Returns the scan results as a pandas DataFrame
 
         Raises:
             Exception: If the scan has not been run
         """
-        if self.scanner is None:
-            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
-        if self.scanner.scan_result is None:
-            raise Exception("Your scan did not finish successfully. Please consider rerunning Scanner.scan()")
+        self._check_scan_result()
 
-        return self.scanner.scan_result.df
+        return self._scan_result.df
 
-    def _classify(self, classification_threshold: float):
-        """Classifies the columns in the lakehouse
+    def save(self, full_table_name: str):
+        """Saves the scan results to the lakehouse
 
         Args:
-            classification_threshold (float): The frequency threshold (0 to 1) above which a column will be classified
-
+            full_table_name (str): The full table name to be
+                used to save the scan results.
         Raises:
-            Exception: If the scan has not been run"""
-
-        if self.scanner is None:
-            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
-        if self.scanner.scan_result is None:
-            raise Exception("Your scan did not finish successfully. Please consider rerunning Scanner.scan()")
-
-        self.classifier = Classifier(
-            classification_threshold,
-            self.scanner,
-            self.spark,
-            self.classification_table_name,
-        )
-
-        self.logger.friendlyHTML(self.classifier.summary_html)
-
-    def save(self, full_table_name: str = None):
-        """Saves the classification results to the lakehouse
-
-        Args:
-            full_table_name (str, optional): The full table name to be used to save the classification results. Defaults to None.
-        Raises:
-            Exception: If the classification has not been run
+            Exception: If the scan has not been run
 
         """
-
+        self._check_scan_result()
         # save classes
-        self.classifier.save()
+        self._scan_result.save(full_table_name)
 
-    def search(self, search_term: str, from_tables: str = "*.*.*", by_class: Optional[str] = None):
+    def load(self, full_table_name: str):
+        """Loads previously saved scan results from a table
+
+        Args:
+            full_table_name (str, optional): The full table name to be
+                used to load the scan results.
+        Raises:
+            Exception: If the table to be loaded does not exist
+        """
+        self._scan_result = ScanResult(df=pd.DataFrame(), spark=self.spark)
+        self._scan_result.load(full_table_name)
+
+    def search(
+        self,
+        search_term: str,
+        from_tables: str = "*.*.*",
+        by_class: Optional[str] = None,
+        min_score: Optional[float] = None,
+    ):
         """Searches your lakehouse for columns matching the given search term
 
         Args:
             search_term (str): The search term to be used to search for columns.
-            from_tables (str, optional): The tables to be searched in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_class (str, optional): The class to be used to search for columns. Defaults to None.
+            from_tables (str, optional): The tables to be searched in format
+                "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_class (str, optional): The class to be used to search for columns.
+                Defaults to None.
+            min_score (float, optional): Defines the classification score or frequency
+                threshold for columns to be considered during the scan. Defaults to None
+                which means that all columns where at least one record matched the
+                respective rule during the scan will be included. Has to be either None
+                or between 0 and 1.
 
         Raises:
             ValueError: If search_term is not provided
@@ -252,7 +244,7 @@ class DX:
             "named_struct("
             + ", ".join(
                 [
-                    f"'{rule_name}', named_struct('column', '[{rule_name}]', 'value', [{rule_name}])"
+                    f"'{rule_name}', named_struct('column_name', '[{rule_name}]', 'value', [{rule_name}])"
                     for rule_name in search_matching_rules
                 ]
             )
@@ -265,15 +257,28 @@ class DX:
             where_statement = f"WHERE {sql_filter}"
 
         return self._msql(
-            f"SELECT {select_statement}, to_json(struct(*)) AS row_content FROM {from_tables} {where_statement}"
+            f"SELECT {select_statement}, to_json(struct(*)) AS row_content FROM {from_tables} {where_statement}",
+            min_score=min_score,
         )
 
-    def select_by_classes(self, from_tables: str = "*.*.*", by_classes: Optional[Union[List[str], str]] = None):
+    def select_by_classes(
+        self,
+        from_tables: str = "*.*.*",
+        by_classes: Optional[Union[List[str], str]] = None,
+        min_score: Optional[float] = None,
+    ):
         """Selects all columns in the lakehouse from tables that match ALL the given classes
 
         Args:
-            from_tables (str, optional): The tables to be selected in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_classes (Union[List[str], str], optional): The classes to be used to search for columns. Defaults to None.
+            from_tables (str, optional): The tables to be selected in format
+                "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_classes (Union[List[str], str], optional): The classes to be used to
+                search for columns. Defaults to None.
+            min_score (float, optional): Defines the classification score or frequency
+                threshold for columns to be considered during the scan. Defaults to None
+                which means that all columns where at least one record matched the
+                respective rule during the scan will be included. Has to be either None
+                or between 0 and 1.
 
         Raises:
             ValueError: If the by_classes type is not valid
@@ -297,14 +302,16 @@ class DX:
             "named_struct("
             + ", ".join(
                 [
-                    f"'{class_name}', named_struct('column', '[{class_name}]', 'value', [{class_name}])"
+                    f"'{class_name}', named_struct('column_name', '[{class_name}]', 'value', [{class_name}])"
                     for class_name in by_classes
                 ]
             )
             + ") AS classified_columns"
         )
 
-        return self._msql(f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}")
+        return self._msql(
+            f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}", min_score=min_score
+        )
 
     def delete_by_class(
         self,
@@ -312,14 +319,24 @@ class DX:
         by_class: str = None,
         values: Optional[Union[List[str], str]] = None,
         yes_i_am_sure: bool = False,
+        min_score: Optional[float] = None,
     ):
         """Deletes all rows in the lakehouse that match any of the provided values in a column classified with the given class
 
         Args:
-            from_tables (str, optional): The tables to delete from in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-            by_class (str, optional): The class to be used to search for columns. Defaults to None.
-            values (Union[List[str], str], optional): The values to be deleted. Defaults to None.
-            yes_i_am_sure (bool, optional): Whether you are sure that you want to delete the data. If False prints the SQL statements instead of executing them. Defaults to False.
+            from_tables (str, optional): The tables to delete from in format
+                "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+            by_class (str, optional): The class to be used to search for columns.
+                Defaults to None.
+            values (Union[List[str], str], optional): The values to be deleted.
+                Defaults to None.
+            yes_i_am_sure (bool, optional): Whether you are sure that you want to delete
+                the data. If False prints the SQL statements instead of executing them. Defaults to False.
+            min_score (float, optional): Defines the classification score or frequency
+                threshold for columns to be considered during the scan. Defaults to None
+                which means that all columns where at least one record matched the
+                respective rule during the scan will be included. Has to be either None
+                or between 0 and 1.
 
         Raises:
             ValueError: If the from_tables is not valid
@@ -354,7 +371,9 @@ class DX:
             )
 
         delete_result = self._msql(
-            f"DELETE FROM {from_tables} WHERE [{by_class}] IN ({value_string})", what_if=(not yes_i_am_sure)
+            f"DELETE FROM {from_tables} WHERE [{by_class}] IN ({value_string})",
+            what_if=(not yes_i_am_sure),
+            min_score=min_score,
         )
 
         if delete_result is not None:
@@ -362,30 +381,14 @@ class DX:
             self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
             return delete_result
 
-    def _msql(self, msql: str, what_if: bool = False):
-
+    def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")
 
         msql_builder = Msql(msql)
 
         # check if classification is available
         # Check for more specific exception
-        try:
-            classification_result_pdf = (
-                self.spark.sql(f"SELECT * FROM {self.classification_table_name}")
-                .filter(func.col("current") == True)
-                .select(
-                    func.col("table_catalog").alias("catalog"),
-                    func.col("table_schema").alias("schema"),
-                    func.col("table_name").alias("table"),
-                    func.col("column_name").alias("column"),
-                    "class_name",
-                )
-                .toPandas()
-            )
-        except Exception:
-            raise Exception("Classification is not available")
-
+        classification_result_pdf = self._scan_result.get_classes(min_score)
         sql_rows = msql_builder.build(classification_result_pdf)
 
         if what_if:
@@ -398,16 +401,3 @@ class DX:
         else:
             self.logger.debug(f"Executing SQL:\n{sql_rows}")
             return msql_builder.execute_sql_rows(sql_rows, self.spark)
-
-    def _validate_classification_threshold(self, threshold) -> float:
-        """Validate that threshold is in interval [0,1]
-        Args:
-            threshold (float): The threshold value to be validated
-        Returns:
-            float: The validated threshold value
-        """
-        if (threshold < 0) or (threshold > 1):
-            error_msg = f"classification_threshold has to be in interval [0,1]. Given value is {threshold}"
-            self.logger.error(error_msg)
-            raise ValueError(error_msg)
-        return threshold
