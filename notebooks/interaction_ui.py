@@ -124,7 +124,7 @@ dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.
 
 dx.delete_by_class(
     from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.0.0", "0.0.0.1"], yes_i_am_sure=True
-).display()
+)
 
 # COMMAND ----------
 
