@@ -73,20 +73,19 @@ class Msql:
         return sql_statements
 
     def build(self, classified_result_pdf) -> list[SQLRow]:
-
         """Builds the M-SQL expression into a SQL expression"""
 
         classified_cols = classified_result_pdf.copy()
         classified_cols = classified_cols[classified_cols["class_name"].isin(self.classes)]
         classified_cols = (
-            classified_cols.groupby(["catalog", "schema", "table", "column"])
+            classified_cols.groupby(["table_catalog", "table_schema", "table_name", "column_name"])
             .aggregate(lambda x: list(x))[["class_name"]]
             .reset_index()
         )
 
-        classified_cols["col_classes"] = classified_cols[["column", "class_name"]].apply(tuple, axis=1)
+        classified_cols["col_classes"] = classified_cols[["column_name", "class_name"]].apply(tuple, axis=1)
         df = (
-            classified_cols.groupby(["catalog", "schema", "table"])
+            classified_cols.groupby(["table_catalog", "table_schema", "table_name"])
             .aggregate(lambda x: list(x))[["col_classes"]]
             .reset_index()
         )

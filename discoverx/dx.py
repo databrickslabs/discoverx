@@ -168,7 +168,7 @@ class DX:
         """
 
         # save classes
-        self.scanner.save()
+        self.scanner.save(full_table_name)
 
     def load(self, full_table_name: str):
         """Loads previously saved scan results from a table

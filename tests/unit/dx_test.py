@@ -136,7 +136,7 @@ def test_delete_by_class(spark, dx_ip):
 
 
 def test_scan_result(dx_ip):
-    assert not dx_ip.scan_result().empty
+    assert not dx_ip.scan_result.empty
 
 
 def test_scan_results_before_scan_should_fail(spark):

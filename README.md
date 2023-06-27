@@ -111,7 +111,7 @@ Eg. Count the occurrence of each IP address per day across multiple tables and c
 
 ```
 df = (dx.select_by_classes(from_tables="*.*.*", by_classes=["dx_iso_date", "dx_ip_v4"])
-    .groupby(["catalog", "schema", "table", "classified_columns.dx_iso_date.column", "classified_columns.dx_iso_date.value", "classified_columns.dx_ip_v4.column"])
+    .groupby(["table_catalog", "table_schema", "table_name", "classified_columns.dx_iso_date.column", "classified_columns.dx_iso_date.value", "classified_columns.dx_ip_v4.column"])
     .agg(func.count("classified_columns.dx_ip_v4.value").alias("count"))
 )
 ```
