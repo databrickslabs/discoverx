@@ -1,4 +1,5 @@
 import logging
+from unittest.mock import MagicMock, call
 import pandas as pd
 from pyspark.sql import SparkSession
 import pytest
@@ -277,3 +278,33 @@ def test_get_classes(spark):
     assert len(scan_result.get_classes(min_score=0.0)) == 3
     assert len(scan_result.get_classes(min_score=0.1)) == 2
     assert len(scan_result.get_classes(min_score=1.0)) == 1
+    with pytest.raises(ValueError):
+        scan_result.get_classes(min_score=-1)
+    with pytest.raises(ValueError):
+        scan_result.get_classes(min_score=2)
+
+
+@pytest.fixture
+def spark_mock():
+    # Mock the SparkSession class
+    spark = MagicMock(spec="pyspark.sql.SparkSession")
+
+    return spark
+
+
+def test_get_or_create_classification_table_from_delta(spark_mock):
+    spark_mock.sql = MagicMock(spec="pyspark.sql.DataFrame")
+
+    scan_result = ScanResult(df=pd.DataFrame(), spark=spark_mock)
+
+    result = scan_result._create_databes_if_not_exists("a.b.c")
+
+    spark_mock.sql.assert_has_calls(
+        [
+            call("DESCRIBE CATALOG a"),
+            call("DESCRIBE DATABASE a.b"),
+            call(
+                "CREATE TABLE IF NOT EXISTS a.b.c (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp)"
+            ),
+        ]
+    )

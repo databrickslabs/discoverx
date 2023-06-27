@@ -5,6 +5,7 @@ import concurrent.futures
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import Optional, List, Set
+from pyspark.sql.utils import AnalysisException
 
 from discoverx.common.helper import strip_margin, format_regex
 from discoverx import logging
@@ -78,17 +79,17 @@ class ScanResult:
         return ScanResult.count_distinct_cols(self.get_classes(min_score))
 
     def get_classes(self, min_score: Optional[float]):
-        try:
-            if min_score is None:
-                return self.df[self.df["score"] > 0]
-            elif (min_score >= 0) and (min_score <= 1):
-                return self.df[self.df["score"] >= min_score]
-            else:
-                error_msg = f"min_score has to be either None or in interval [0,1]. Given value is {min_score}"
-                logger.error(error_msg)
-                raise ValueError(error_msg)
-        except Exception:
+        if self.df is None or self.df.empty:
             raise Exception("No scan result available. Please run dx.scan() or dx.load() first.")
+
+        if min_score is None:
+            return self.df[self.df["score"] > 0]
+        elif (min_score >= 0) and (min_score <= 1):
+            return self.df[self.df["score"] >= min_score]
+        else:
+            error_msg = f"min_score has to be either None or in interval [0,1]. Given value is {min_score}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
     def rule_match_str(self, min_score) -> str:
         rule_match_counts = []
@@ -98,20 +99,29 @@ class ScanResult:
             rule_match_counts.append(f"            <li>{row['score']} {row['class_name']} columns</li>")
         return "\n".join(rule_match_counts)
 
+    def _create_databes_if_not_exists(self, scan_table_name: str):
+        logger.friendly(f"The scan result table {scan_table_name} does not seem to exist. Trying to create it ...")
+        (catalog, schema, table) = scan_table_name.split(".")
+        try:
+            self.spark.sql(f"DESCRIBE CATALOG {catalog}")
+        except AnalysisException:
+            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+
+        try:
+            self.spark.sql(f"DESCRIBE DATABASE {catalog + '.' + schema}")
+        except AnalysisException:
+            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
+
+        self.spark.sql(
+            f"CREATE TABLE IF NOT EXISTS {scan_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp)"
+        )
+        logger.friendly(f"The scan result table {scan_table_name} has been created.")
+
     def _get_or_create_result_table_from_delta(self, scan_table_name: str):
         try:
             DeltaTable.forName(self.spark, scan_table_name)
         except Exception:
-            logger.friendly(f"The scan result table {scan_table_name} does not seem to exist. Trying to create it ...")
-            (catalog, schema, table) = scan_table_name.split(".")
-            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
-            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {catalog + '.' + schema}")
-            self.spark.sql(
-                f"""
-            CREATE TABLE IF NOT EXISTS {scan_table_name} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp)
-            """
-            )
-            logger.friendly(f"The scan result table {scan_table_name} has been created.")
+            self._create_databes_if_not_exists(scan_table_name)
 
     def save(self, scan_table_name: str):
         self._get_or_create_result_table_from_delta(scan_table_name)
