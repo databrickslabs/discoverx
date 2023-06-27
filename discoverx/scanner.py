@@ -67,7 +67,35 @@ class ScanResult:
 
     @property
     def n_scanned_columns(self) -> int:
-        return len(self.df[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates())
+        ScanResult.count_distinct_cols(self.df)
+
+    @staticmethod
+    def count_distinct_cols(df: pd.DataFrame) -> int:
+        return len(df[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates())
+
+    def n_classified_columns(self, min_score: Optional[float]) -> int:
+        return len(ScanResult.count_distinct_cols(self.get_classes(min_score)))
+
+    def get_classes(self, min_score: Optional[float]):
+        try:
+            if min_score is None:
+                return self.df[self.df["score"] > 0]
+            elif min_score >= 0 and min_score <= 1:
+                return self.df[self.df["score"] >= min_score]
+            else:
+                error_msg = f"min_score has to be either None or in interval [0,1]. Given value is {min_score}"
+                self.logger.error(error_msg)
+                raise ValueError(error_msg)
+        except Exception:
+            raise Exception("No scan result available. Please run dx.scan() or dx.load() first.")
+
+    def rule_match_str(self, min_score) -> str:
+        rule_match_counts = []
+        df_summary = self.get_classes(min_score=min_score).groupby(["class_name"]).agg({"score": "count"})
+        df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
+        for _, row in df_summary.iterrows():
+            rule_match_counts.append(f"            <li>{row['score']} {row['class_name']} columns</li>")
+        return "\n".join(rule_match_counts)
 
 
 class Scanner:
@@ -174,7 +202,6 @@ class Scanner:
             return None
 
     def scan(self):
-
         logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
         text = f"""
                 This is what you asked for:
@@ -220,7 +247,7 @@ class Scanner:
         Given a table and a set of rules this method will return a
         SQL expression which matches the table's columns against rules.
         If executed on the table using SQL the output will contain a
-        matching frequency (probability) for each column and rule.
+        matching score (probability) for each column and rule.
         Args:
             table_info (TableInfo): Specifies the table to be scanned
 
@@ -254,7 +281,7 @@ class Scanner:
                 '{table_info.table}' as table_name, 
                 column_name,
                 class_name,
-                (sum(value) / count(value)) as frequency
+                (sum(value) / count(value)) as score
             FROM
             (
                 SELECT column_name, stack({len(expressions)}, {unpivot_expressions}) as (class_name, value)
@@ -277,7 +304,6 @@ class Scanner:
         return strip_margin(sql)
 
     def save(self, scan_table_name: str):
-
         self._get_or_create_result_table_from_delta(scan_table_name)
 
         scan_result_df = self.spark.createDataFrame(
@@ -290,7 +316,6 @@ class Scanner:
         scan_result_df.write.format("delta").mode("overwrite").saveAsTable(scan_table_name)
 
     def load(self, scan_table_name: str):
-
         try:
             scan_result_df = DeltaTable.forName(self.spark, scan_table_name).toDF()
         except Exception as e:
@@ -313,3 +338,34 @@ class Scanner:
             """
             )
             logger.friendly(f"The scan result table {scan_table_name} has been created.")
+
+    @property
+    def summary_html(self) -> str:
+        # Summary
+        classified_cols = self.scan_result.get_classes(min_score=None)
+        classified_cols.index = pd.MultiIndex.from_frame(
+            classified_cols[["table_catalog", "table_schema", "table_name", "column_name"]]
+        )
+        summary_html_table = classified_cols[["class_name", "score"]].to_html()
+
+        return f"""
+        <h2>Result summary</h2>
+        <p>
+          I've been able to classify {self.scan_result.n_classified_columns(min_score=None)} out of {self.scan_result.n_scanned_columns} columns.
+        </p>
+        <p>
+          I've found:
+          <ul>
+            {self.scan_result.rule_match_str(min_score=None)}
+          </ul>
+        </p>
+        <p>
+          To be more precise:
+        </p>
+        {summary_html_table}
+        <p>
+          You can see the full classification output with 'dx.scan_result()'.
+        </p>
+
+
+        """

@@ -25,26 +25,18 @@ def test_scan_without_classification_table(spark, mock_uc_functionality):
     dx = DX(spark=spark)
     dx.scan(from_tables="*.*.tb_1", rules="ip_*")
 
-    assert len(dx.scan_result()) > 0
+    assert len(dx.scan_result) > 0
 
 
 def test_scan_withno_results(spark, mock_uc_functionality):
     dx = DX(spark=spark)
     dx.scan(from_tables="*.*.tb_1", rules="credit_card_number")
 
-    assert len(dx.scan_result()) > 0
+    assert len(dx.scan_result) > 0
 
 
 def test_dx_instantiation(spark):
     dx = DX(spark=spark)
-    assert dx.classification_threshold == 0.95
-
-    # The validation should fail if threshold is outside of [0,1]
-    with pytest.raises(ValueError) as e_threshold_error_plus:
-        dx = DX(classification_threshold=1.4, spark=spark)
-
-    with pytest.raises(ValueError) as e_threshold_error_minus:
-        dx = DX(classification_threshold=-1.0, spark=spark)
 
     # simple test for displaying rules
     try:
@@ -166,10 +158,10 @@ def test_get_classes(spark):
             ["None", "default", "tb_1", "ip", "any_number", 0.1],
             ["None", "default", "tb_1", "mac", "any_word", 1.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "frequency"],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
     )
     dx = DX(spark=spark)
-    dx.scan_result = scan_result
+    dx._scan_result = scan_result
     assert len(dx._get_classes(min_score=None)) == 2
     assert len(dx._get_classes(min_score=0.0)) == 3
     assert len(dx._get_classes(min_score=0.1)) == 2

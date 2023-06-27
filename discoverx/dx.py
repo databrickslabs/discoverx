@@ -350,19 +350,6 @@ class DX:
             self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
             return delete_result
 
-    def _get_classes(self, min_score: Optional[float]):
-        try:
-            if min_score is None:
-                return self.scan_result[self.scan_result["score"] > 0]
-            elif min_score >= 0 and min_score <= 1:
-                return self.scan_result[self.scan_result["score"] >= min_score]
-            else:
-                error_msg = f"min_score has to be either None or in interval [0,1]. Given value is {min_score}"
-                self.logger.error(error_msg)
-                raise ValueError(error_msg)
-        except Exception:
-            raise Exception("No scan result available. Please run dx.scan() or dx.load() first.")
-
     def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")
 

@@ -16,6 +16,7 @@ import pytest
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
 from discoverx.dx import DX, Scanner
+from discoverx.scanner import DeltaTable
 
 
 @dataclass
@@ -197,3 +198,27 @@ def monkeymodule():
     """
     with pytest.MonkeyPatch.context() as mp:
         yield mp
+
+
+@pytest.fixture(autouse=True, scope="module")
+def mock_uc_functionality(spark, monkeymodule):
+    # apply the monkeypatch for the columns_table_name
+    monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns_mock")
+
+    # mock classifier method _get_classification_table_from_delta as we don't
+    # have catalogs in open source spark
+    def get_or_create_classification_table_mock(self, scan_table_name: str):
+        (schema, table) = scan_table_name.split(".")
+        self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {schema}")
+        self.spark.sql(
+            f"""
+                CREATE TABLE IF NOT EXISTS {schema + '.' + table} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp) USING DELTA
+                """
+        )
+        return DeltaTable.forName(self.spark, scan_table_name)
+
+    monkeymodule.setattr(Scanner, "_get_or_create_result_table_from_delta", get_or_create_classification_table_mock)
+
+    yield
+
+    spark.sql("DROP TABLE IF EXISTS _discoverx.classes")
