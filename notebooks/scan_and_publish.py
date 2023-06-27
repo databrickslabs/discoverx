@@ -46,7 +46,7 @@ dx.scan(from_tables=from_table_statement)
 
 # COMMAND ----------
 
-# DBTITLE 1,Publish Classification/Classes
+# DBTITLE 1,Save Classification/Classes
 dx.save()
 
 # COMMAND ----------

@@ -1,9 +1,10 @@
 import logging
+from unittest.mock import MagicMock, call
 import pandas as pd
 from pyspark.sql import SparkSession
 import pytest
 
-from discoverx.scanner import Scanner, ColumnInfo, TableInfo
+from discoverx.scanner import ScanResult, Scanner, ColumnInfo, TableInfo
 from discoverx.rules import RegexRule, Rules
 
 
@@ -39,10 +40,15 @@ def test_get_table_list(spark):
     ]
 
     rules = Rules()
-    MockedScanner = Scanner
-    MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
-    scanner = MockedScanner(
-        spark, rules=rules, catalogs="*", schemas="*", tables="*_all_types", rule_filter="*", sample_size=100
+    scanner = Scanner(
+        spark,
+        rules=rules,
+        catalogs="*",
+        schemas="*",
+        tables="*_all_types",
+        rule_filter="*",
+        sample_size=100,
+        columns_table_name="default.columns_mock",
     )
     actual = scanner._get_list_of_tables()
 
@@ -57,7 +63,7 @@ expectedsingle = r"""SELECT
     'tb' as table_name,
     column_name,
     class_name,
-    (sum(value) / count(value)) as frequency
+    (sum(value) / count(value)) as score
 FROM
 (
     SELECT column_name, stack(1, 'any_word', `any_word`) as (class_name, value)
@@ -82,7 +88,7 @@ expectedmulti = r"""SELECT
     'tb' as table_name,
     column_name,
     class_name,
-    (sum(value) / count(value)) as frequency
+    (sum(value) / count(value)) as score
 FROM
 (
     SELECT column_name, stack(2, 'any_word', `any_word`, 'any_number', `any_number`) as (class_name, value)
@@ -122,9 +128,10 @@ def test_generate_sql(spark, rules_input, expected):
     rules = rules_input
 
     rules = Rules(custom_rules=rules)
-    MockedScanner = Scanner
-    MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
-    scanner = MockedScanner(spark, rules=rules, rule_filter="any_*", sample_size=100)
+    scanner = Scanner(
+        spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns_mock"
+    )
+
     actual = scanner._rule_matching_sql(table_info)
     logging.info("Generated SQL is: \n%s", actual)
 
@@ -144,9 +151,9 @@ def test_sql_runs(spark):
     ]
 
     rules = Rules(custom_rules=rules)
-    MockedScanner = Scanner
-    MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
-    scanner = MockedScanner(spark, rules=rules, rule_filter="any_*", sample_size=100)
+    scanner = Scanner(
+        spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns_mock"
+    )
     actual = scanner._rule_matching_sql(table_info)
 
     logging.info("Generated SQL is: \n%s", actual)
@@ -166,7 +173,7 @@ def test_scan_custom_rules(spark: SparkSession):
             ["None", "default", "tb_1", "description", "any_word", 0.5],
             ["None", "default", "tb_1", "description", "any_number", 0.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "frequency"],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
     )
 
     columns = [
@@ -181,9 +188,14 @@ def test_scan_custom_rules(spark: SparkSession):
     ]
 
     rules = Rules(custom_rules=rules)
-    MockedScanner = Scanner
-    MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
-    scanner = MockedScanner(spark, rules=rules, tables="tb_1", rule_filter="any_*", sample_size=100)
+    scanner = Scanner(
+        spark,
+        rules=rules,
+        tables="tb_1",
+        rule_filter="any_*",
+        sample_size=100,
+        columns_table_name="default.columns_mock",
+    )
     scanner.scan()
 
     logging.info("Scan result is: \n%s", scanner.scan_result.df)
@@ -201,13 +213,98 @@ def test_scan(spark: SparkSession):
             ["None", "default", "tb_1", "description", "ip_v4", 0.0],
             ["None", "default", "tb_1", "description", "ip_v6", 0.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "frequency"],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
     )
 
     rules = Rules()
-    MockedScanner = Scanner
-    MockedScanner.COLUMNS_TABLE_NAME = "default.columns_mock"
-    scanner = MockedScanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*")
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
     scanner.scan()
 
     assert scanner.scan_result.df.equals(expected)
+
+
+def test_save_scan(spark: SparkSession):
+    # save scan result
+    rules = Rules()
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
+    scanner.scan()
+    scan_table_name = "_discoverx.scan_result_test"
+    scanner.scan_result.save(scan_table_name=scan_table_name)
+
+    result = (
+        spark.sql(f"select * from {scan_table_name}")
+        .toPandas()
+        .drop("effective_timestamp", axis=1)
+        .sort_values(by=["column_name", "class_name"])
+    )
+    expected = pd.DataFrame(
+        [
+            ["None", "default", "tb_1", "description", "ip_v4", 0.0],
+            ["None", "default", "tb_1", "description", "ip_v6", 0.0],
+            ["None", "default", "tb_1", "ip", "ip_v4", 1.0],
+            ["None", "default", "tb_1", "ip", "ip_v6", 0.0],
+            ["None", "default", "tb_1", "mac", "ip_v4", 0.0],
+            ["None", "default", "tb_1", "mac", "ip_v6", 0.0],
+        ],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
+    )
+    assert result.reset_index(drop=True).equals(expected)
+
+    # now load the saved results
+    scan_result = ScanResult(df=pd.DataFrame(), spark=spark)
+    scan_result.load(scan_table_name=scan_table_name)
+    assert scan_result.df.sort_values(by=["column_name", "class_name"]).reset_index(drop=True).equals(expected)
+
+    spark.sql(f"DROP TABLE IF EXISTS {scan_table_name}")
+
+
+def test_get_classes_should_fail_if_no_scan(spark):
+    scan_result = ScanResult(df=pd.DataFrame(), spark=spark)
+    with pytest.raises(Exception):
+        scan_result.get_classes()
+
+
+def test_get_classes(spark):
+    scan_result_df = pd.DataFrame(
+        [
+            ["None", "default", "tb_1", "ip", "any_word", 0.0],
+            ["None", "default", "tb_1", "ip", "any_number", 0.1],
+            ["None", "default", "tb_1", "mac", "any_word", 1.0],
+        ],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
+    )
+    scan_result = ScanResult(df=scan_result_df, spark=spark)
+    assert len(scan_result.get_classes(min_score=None)) == 2
+    assert len(scan_result.get_classes(min_score=0.0)) == 3
+    assert len(scan_result.get_classes(min_score=0.1)) == 2
+    assert len(scan_result.get_classes(min_score=1.0)) == 1
+    with pytest.raises(ValueError):
+        scan_result.get_classes(min_score=-1)
+    with pytest.raises(ValueError):
+        scan_result.get_classes(min_score=2)
+
+
+@pytest.fixture
+def spark_mock():
+    # Mock the SparkSession class
+    spark = MagicMock(spec="pyspark.sql.SparkSession")
+
+    return spark
+
+
+def test_get_or_create_classification_table_from_delta(spark_mock):
+    spark_mock.sql = MagicMock(spec="pyspark.sql.DataFrame")
+
+    scan_result = ScanResult(df=pd.DataFrame(), spark=spark_mock)
+
+    result = scan_result._create_databes_if_not_exists("a.b.c")
+
+    spark_mock.sql.assert_has_calls(
+        [
+            call("DESCRIBE CATALOG a"),
+            call("DESCRIBE DATABASE a.b"),
+            call(
+                "CREATE TABLE IF NOT EXISTS a.b.c (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp)"
+            ),
+        ]
+    )

@@ -15,10 +15,8 @@ import mlflow
 import pytest
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
-from discoverx.classification import DeltaTable
-from discoverx.dx import Classifier
-from discoverx.classification import func
-from discoverx.dx import Scanner
+from discoverx.dx import DX, Scanner, ScanResult
+from discoverx.scanner import DeltaTable
 
 
 @dataclass
@@ -203,56 +201,20 @@ def monkeymodule():
 
 
 @pytest.fixture(autouse=True, scope="module")
-def mock_vacuum(spark, monkeymodule):
-    def vacuum(self):
-        do_nothing = None
-
-    monkeymodule.setattr(DeltaTable, "vacuum", vacuum)
-
-
-@pytest.fixture(autouse=True, scope="module")
-def mock_uc_functionality(spark, monkeymodule):
+def mock_uc_functionality(monkeymodule):
     # apply the monkeypatch for the columns_table_name
-    monkeymodule.setattr(Scanner, "COLUMNS_TABLE_NAME", "default.columns_mock")
+    monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns_mock")
 
     # mock classifier method _get_classification_table_from_delta as we don't
     # have catalogs in open source spark
-    def get_or_create_classification_table_mock(self):
-        (schema, table) = self.classification_table_name.split(".")
+    def get_or_create_classification_table_mock(self, scan_table_name: str):
+        (schema, table) = scan_table_name.split(".")
         self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {schema}")
         self.spark.sql(
             f"""
-                CREATE TABLE IF NOT EXISTS {schema + '.' + table} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, effective_timestamp timestamp, current boolean, end_timestamp timestamp) USING DELTA
+                CREATE TABLE IF NOT EXISTS {schema + '.' + table} (table_catalog string, table_schema string, table_name string, column_name string, class_name string, score double, effective_timestamp timestamp) USING DELTA
                 """
         )
-        return DeltaTable.forName(self.spark, self.classification_table_name)
+        return DeltaTable.forName(self.spark, scan_table_name)
 
-    monkeymodule.setattr(
-        Classifier, "_get_or_create_classification_table_from_delta", get_or_create_classification_table_mock
-    )
-
-    # mock UC's tag functionality
-    def set_uc_classes(self, series):
-        if series.action == "to_be_set":
-            logging.debug(
-                f"Set tag {series.class_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
-            )
-        if series.action == "to_be_unset":
-            logging.debug(
-                f"Unset tag {series.class_name} for column {series.column_name} of table {series.table_catalog}.{series.table_schema}.{series.table_name}"
-            )
-
-    monkeymodule.setattr(Classifier, "_set_tag_uc", set_uc_classes)
-
-    yield
-
-    spark.sql("DROP TABLE IF EXISTS _discoverx.classes")
-    spark.sql("DROP SCHEMA IF EXISTS _discoverx CASCADE")
-
-
-@pytest.fixture(scope="module")
-def mock_current_time(spark, monkeymodule):
-    def set_time():
-        return func.to_timestamp(func.lit("2023-01-01 00:00:00"))
-
-    monkeymodule.setattr(func, "current_timestamp", set_time)
+    monkeymodule.setattr(ScanResult, "_get_or_create_result_table_from_delta", get_or_create_classification_table_mock)
