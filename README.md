@@ -1,11 +1,6 @@
 # DiscoverX
 
-Scan, Classify, and Discover the content of your Lakehouse
-
-## Requirements
-
-* A [Databricks workspace](https://www.databricks.com/try-databricks#account)
-* [Unity Catalog](https://www.databricks.com/product/unity-catalog)
+Scan, Classify, and Discover the content of your Lakehouse.
 
 ## Getting started
 
@@ -24,13 +19,39 @@ dx = DX(locale="US")
 
 ## Scan & classify
 
-You can now scan the content of any set of tables for
-- IP addresses (v4 and v6)
+You can scan a sample of 10k rows from each table with
+
+```
+dx.scan(from_tables="*.*.*")
+```
+
+Check out the [scan parameters](#scan-parameters) for more details.
+
+The scan result is a dataset with a `score` column, which defines the fraction of matched records against the total records scanned for each rule.
+
+### Available classes
+
+The supported classes are:
+- IP v4 addresses
+- IP v6 addresses
 - Email addresses
 - URLs
-- ... and many more
+- fqdn (Fully qualified domain names)
+- Credit card number
+- Credit card expiration date
+- Iso date
+- Iso date time
+- Mac address
 
-See the full list of rules with 
+US locale specific classes
+- us_mailing_address
+- us_phone_number
+- us_social_security_number
+- us_state
+- us_state_abbreviation
+- us_zip_code
+
+See the list of available classification rules with 
 
 ```
 dx.display_rules()
@@ -38,25 +59,6 @@ dx.display_rules()
 
 You can also provide your [custom matching rules](#custom-rules).
 
-The scan will automatically classify columns.
-
-
-### Example
-
-Scan all (samples 10k rows from each table)
-
-```
-dx.scan(from_tables="*.*.*")
-```
-
-Check out the [scan parameters](#scan-parameters).
-
-The result is a dataset with a `score` column, which defines the fraction of matched records against the total records scanned for each rule.
-The full scan result can be displayed using
-
-```
-dx.scan_result
-```
 
 ## Save & Load the Scan Results
 
@@ -146,12 +148,10 @@ You can define
 
 ```
 dx.scan(
-    catalogs="*",      # Catalog filter ('*' is a wildcard)
-    schemas="*",       # Database filter ('*' is a wildcard)
-    tables="*",        # Table filter ('*' is a wildcard)
-    rules="*",         # Rule filter ('*' is a wildcard) or list[string]
-    sample_size=10000, # Number of rows to sample, use None for a full table scan
-    what_if=False      # If `True` it prints the SQL that would be executed
+    from_tables="*.*.*", # Table pattern in form of <catalog>.<schema>.<table> ('*' is a wildcard)
+    rules="*",           # Rule filter ('*' is a wildcard)
+    sample_size=10000,   # Number of rows to sample, use None for a full table scan
+    what_if=False        # If `True` it prints the SQL that would be executed
 )
 ```
 
@@ -178,6 +178,11 @@ You should now see your rules added to the default ones with
 ```
 dx.display_rules()
 ```
+
+## Requirements
+
+* A [Databricks workspace](https://www.databricks.com/try-databricks#account)
+* [Unity Catalog](https://www.databricks.com/product/unity-catalog)
 
 ## Project Support
 Please note that all projects in the /databrickslabs github account are provided for your exploration only, and are not formally supported by Databricks with Service Level Agreements (SLAs).  They are provided AS-IS and we do not make any guarantees of any kind.  Please do not submit a support ticket relating to any issues arising from the use of these projects.
