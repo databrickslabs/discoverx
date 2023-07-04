@@ -36,7 +36,7 @@ class RegexRule(Rule):
             catalog
     """
 
-    type = RuleTypes.REGEX
+    type: RuleTypes = RuleTypes.REGEX
 
     name: str
     description: str
