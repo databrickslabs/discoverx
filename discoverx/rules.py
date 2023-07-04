@@ -18,6 +18,11 @@ class RuleTypes(str, Enum):
 
 
 class Rule(BaseModel):
+    """Parent class for rules
+    Attributes:
+        type (RuleTypes): Defines the type of Rule, e.g. Regex
+    """
+
     type: RuleTypes
 
 
@@ -48,11 +53,33 @@ class RegexRule(Rule):
     # pylint: disable=no-self-argument
     @field_validator("match_example")
     def validate_match_example(cls, match_example, values):
+        """Validate regular expression
+        This validator checks that the regular expression matches
+        the provided match_example.
+
+        Args:
+            match_example (List): A list of strings supposed to match the
+                defined regular expression
+            values (Dict): Dictionary of remaining fields
+
+        Returns: List of specified examples
+        """
         return cls.validate_rule(match_example, values, False)
 
     # pylint: disable=no-self-argument
     @field_validator("nomatch_example")
     def validate_nomatch_example(cls, nomatch_example, values):
+        """Validate regular expression
+        This validator checks that the regular expression does not match
+        the provided nomatch_example.
+
+        Args:
+            nomatch_example (List): A list of strings supposed to not
+                match the defined regular expression
+            values (Dict): Dictionary of remaining fields
+
+        Returns: List of specified examples
+        """
         return cls.validate_rule(nomatch_example, values, True)
 
     @staticmethod
@@ -99,10 +126,11 @@ class RulesList:
         return 0
 
     def test_match(self, input_string: str):
+        """Return a list of rules which match the given input string"""
         if self.rules is not None:
             return [rule.name for rule in self.rules if re.match(rule.definition, input_string)]
-        else:
-            return []
+
+        return []
 
 
 # define builtin rules
@@ -502,7 +530,7 @@ class Rules:
         """
         rules = global_rules.copy()
         if locale is not None:
-            if locale.lower() not in localized_rules.keys():
+            if locale.lower() not in localized_rules:
                 raise ValueError(f"Unsupported locale: {locale}. Use one of {localized_rules.keys()}")
             rules += localized_rules[locale.lower()]
         self.builtin_rules: RulesList = RulesList(rules)
@@ -569,4 +597,12 @@ class Rules:
         return [rule for rule in (rule_set if rule_set is not None else []) if fnmatch(rule.name, rule_filter)]
 
     def match_search_term(self, search_term: str):
+        """Return list of rules matching the search term
+
+        Args:
+            search_term: A string to be matched by the available rules
+
+        Returns:
+            A list of matching rules, both custom and built-in
+        """
         return self.builtin_rules.test_match(search_term) + self.custom_rules.test_match(search_term)
