@@ -60,7 +60,8 @@ class RegexRule(Rule):
         Args:
             match_example (List): A list of strings supposed to match the
                 defined regular expression
-            values (Dict): Dictionary of remaining fields
+            values (ValidationInfo): values.data provides dictionary of
+            remaining fields
 
         Returns: List of specified examples
         """
@@ -76,7 +77,8 @@ class RegexRule(Rule):
         Args:
             nomatch_example (List): A list of strings supposed to not
                 match the defined regular expression
-            values (Dict): Dictionary of remaining fields
+            values (ValidationInfo): values.data provides dictionary of
+                remaining fields
 
         Returns: List of specified examples
         """
@@ -91,9 +93,9 @@ class RegexRule(Rule):
             validation_example = example
 
         for ex in validation_example:
-            if (not re.match(values["definition"], ex)) != fail_match:
+            if (not re.match(values.data["definition"], ex)) != fail_match:
                 raise ValueError(
-                    f"The definition of the rule {values['name']} does not match the provided example {ex}"
+                    f"The definition of the rule {values.data['name']} does not match the provided example {ex}"
                 )
         return example
 
