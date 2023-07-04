@@ -67,7 +67,10 @@ class Msql:
         for classified_cols in col_class_combinations:
             temp_sql = msql
             for classified_col in classified_cols:
-                temp_sql = temp_sql.replace(f"[{classified_col.class_name}]", classified_col.name)
+                # Unescaped column name
+                temp_sql = temp_sql.replace(f"[[{classified_col.class_name}]]", f"{classified_col.name}")
+                # Escaped column name
+                temp_sql = temp_sql.replace(f"[{classified_col.class_name}]", f"`{classified_col.name}`")
             sql_statements.append(SQLRow(table_info.catalog, table_info.schema, table_info.table, temp_sql))
 
         return sql_statements

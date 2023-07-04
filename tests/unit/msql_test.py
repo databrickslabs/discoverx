@@ -69,7 +69,7 @@ def test_msql_validates_command():
 def test_msql_replace_from_clausole():
     msql = "SELECT [dx_pii] AS dx_pii FROM *.*.*"
 
-    expected = SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS dx_pii FROM catalog.prod_db1.tb1")
+    expected = SQLRow("catalog", "prod_db1", "tb1", "SELECT `email_1` AS dx_pii FROM catalog.prod_db1.tb1")
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 1
@@ -79,7 +79,17 @@ def test_msql_replace_from_clausole():
 def test_msql_select_single_class():
     msql = "SELECT [dx_pii] AS pii FROM catalog.prod_db1.tb1"
 
-    expected = SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS pii FROM catalog.prod_db1.tb1")
+    expected = SQLRow("catalog", "prod_db1", "tb1", "SELECT `email_1` AS pii FROM catalog.prod_db1.tb1")
+
+    actual = Msql(msql).compile_msql(table_info)
+    assert len(actual) == 1
+    assert actual[0] == expected
+
+
+def test_msql_with_unescaped_column_name():
+    msql = "SELECT [[dx_pii]] AS dx_pii FROM catalog.prod_db1.tb1"
+
+    expected = SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS dx_pii FROM catalog.prod_db1.tb1")
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 1
@@ -91,8 +101,8 @@ def test_msql_select_repeated_class():
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 2
-    assert actual[0] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS email FROM catalog.prod_db1.tb1")
-    assert actual[1] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_2 AS email FROM catalog.prod_db1.tb1")
+    assert actual[0] == SQLRow("catalog", "prod_db1", "tb1", "SELECT `email_1` AS email FROM catalog.prod_db1.tb1")
+    assert actual[1] == SQLRow("catalog", "prod_db1", "tb1", "SELECT `email_2` AS email FROM catalog.prod_db1.tb1")
 
 
 def test_msql_select_multi_class():
@@ -108,9 +118,9 @@ def test_msql_select_multi_class():
         "tb1",
         strip_margin(
             """
-            SELECT date AS dt, email_1 AS pii, count(email_1) AS cnt
+            SELECT `date` AS dt, `email_1` AS pii, count(`email_1`) AS cnt
             FROM catalog.prod_db1.tb1
-            GROUP BY date, email_1
+            GROUP BY `date`, `email_1`
         """
         ),
     )
@@ -129,13 +139,13 @@ def test_msql_select_multi_and_repeated_class():
         "catalog",
         "prod_db1",
         "tb1",
-        "SELECT email_1 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'",
+        "SELECT `email_1` AS email, `date` AS d FROM catalog.prod_db1.tb1 WHERE `email_1` = 'a@b.c'",
     )
     assert actual[1] == SQLRow(
         "catalog",
         "prod_db1",
         "tb1",
-        "SELECT email_2 AS email, date AS d FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'",
+        "SELECT `email_2` AS email, `date` AS d FROM catalog.prod_db1.tb1 WHERE `email_2` = 'a@b.c'",
     )
 
 
@@ -147,7 +157,7 @@ def test_msql_build_select_multi_and_repeated_class(spark, classification_df):
         "tb1",
         strip_margin(
             """
-                SELECT email_1 AS email, date AS d FROM c.db.tb1 WHERE email_1 = 'a@b.c'
+                SELECT `email_1` AS email, `date` AS d FROM c.db.tb1 WHERE `email_1` = 'a@b.c'
             """
         ),
     )
@@ -158,7 +168,7 @@ def test_msql_build_select_multi_and_repeated_class(spark, classification_df):
         "tb1",
         strip_margin(
             """
-                SELECT email_2 AS email, date AS d FROM c.db.tb1 WHERE email_2 = 'a@b.c'
+                SELECT `email_2` AS email, `date` AS d FROM c.db.tb1 WHERE `email_2` = 'a@b.c'
             """
         ),
     )
@@ -169,7 +179,7 @@ def test_msql_build_select_multi_and_repeated_class(spark, classification_df):
         "tb2",
         strip_margin(
             """
-                SELECT email_3 AS email, date AS d FROM c.db.tb2 WHERE email_3 = 'a@b.c'
+                SELECT `email_3` AS email, `date` AS d FROM c.db.tb2 WHERE `email_3` = 'a@b.c'
             """
         ),
     )
@@ -186,10 +196,10 @@ def test_msql_build_delete_multi_and_repeated_class(spark, classification_df):
     actual = Msql(msql).build(classification_df)
 
     assert len(actual) == 4
-    assert actual[0] == SQLRow("c", "db", "tb1", "DELETE FROM c.db.tb1 WHERE email_1 = 'a@b.c'")
-    assert actual[1] == SQLRow("c", "db", "tb1", "DELETE FROM c.db.tb1 WHERE email_2 = 'a@b.c'")
-    assert actual[2] == SQLRow("c", "db", "tb2", "DELETE FROM c.db.tb2 WHERE email_3 = 'a@b.c'")
-    assert actual[3] == SQLRow("c", "db2", "tb3", "DELETE FROM c.db2.tb3 WHERE email_4 = 'a@b.c'")
+    assert actual[0] == SQLRow("c", "db", "tb1", "DELETE FROM c.db.tb1 WHERE `email_1` = 'a@b.c'")
+    assert actual[1] == SQLRow("c", "db", "tb1", "DELETE FROM c.db.tb1 WHERE `email_2` = 'a@b.c'")
+    assert actual[2] == SQLRow("c", "db", "tb2", "DELETE FROM c.db.tb2 WHERE `email_3` = 'a@b.c'")
+    assert actual[3] == SQLRow("c", "db2", "tb3", "DELETE FROM c.db2.tb3 WHERE `email_4` = 'a@b.c'")
 
 
 def test_msql_delete_command():
@@ -197,8 +207,12 @@ def test_msql_delete_command():
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 2
-    assert actual[0] == SQLRow("catalog", "prod_db1", "tb1", "DELETE FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'")
-    assert actual[1] == SQLRow("catalog", "prod_db1", "tb1", "DELETE FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'")
+    assert actual[0] == SQLRow(
+        "catalog", "prod_db1", "tb1", "DELETE FROM catalog.prod_db1.tb1 WHERE `email_1` = 'a@b.c'"
+    )
+    assert actual[1] == SQLRow(
+        "catalog", "prod_db1", "tb1", "DELETE FROM catalog.prod_db1.tb1 WHERE `email_2` = 'a@b.c'"
+    )
 
 
 def test_execute_sql_rows(spark):

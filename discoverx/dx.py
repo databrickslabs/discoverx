@@ -244,7 +244,7 @@ class DX:
             "named_struct("
             + ", ".join(
                 [
-                    f"'{rule_name}', named_struct('column_name', '[{rule_name}]', 'value', [{rule_name}])"
+                    f"'{rule_name}', named_struct('column_name', '[[{rule_name}]]', 'value', [{rule_name}])"
                     for rule_name in search_matching_rules
                 ]
             )
@@ -302,7 +302,7 @@ class DX:
             "named_struct("
             + ", ".join(
                 [
-                    f"'{class_name}', named_struct('column_name', '[{class_name}]', 'value', [{class_name}])"
+                    f"'{class_name}', named_struct('column_name', '[[{class_name}]]', 'value', [{class_name}])"
                     for class_name in by_classes
                 ]
             )
