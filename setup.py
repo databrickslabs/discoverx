@@ -16,16 +16,16 @@ with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     LONG_DESCRIPTION = f.read()
 
 # import version
-VERSIONFILE = "discoverx/version.py"
-version_line = open(VERSIONFILE, "rt").read()
+with open(path.join(this_directory, "discoverx/version.py"), encoding="utf-8") as f:
+    version_line = f.read()
 VERSION_PATTERN = r"^__version__ = ['\"]([^'\"]*)['\"]"
 parsed_version = re.search(VERSION_PATTERN, version_line, re.M)
 if parsed_version:
     version_string = parsed_version.group(1)
 else:
-    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+    raise RuntimeError("Unable to find version string in discoverx/version.py")
 
-PACKAGE_REQUIREMENTS = ["pyyaml", "pydantic"]
+PACKAGE_REQUIREMENTS = ["pyyaml", "pydantic>=2.0"]
 
 # packages for local development and unit testing
 # please note that these packages are already available in DBR, there is no need to install them on DBR.
