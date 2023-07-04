@@ -25,7 +25,7 @@ if parsed_version:
 else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
-PACKAGE_REQUIREMENTS = ["pyyaml", "pydantic"]
+PACKAGE_REQUIREMENTS = ["pyyaml<=6.0", "pydantic<=2.0"]
 
 # packages for local development and unit testing
 # please note that these packages are already available in DBR, there is no need to install them on DBR.
