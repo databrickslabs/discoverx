@@ -8,7 +8,7 @@ from enum import Enum
 from fnmatch import fnmatch
 import re
 from typing import Union, Optional, List
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 
 class RuleTypes(str, Enum):
@@ -46,12 +46,12 @@ class RegexRule(Rule):
     class_name: Optional[str] = None
 
     # pylint: disable=no-self-argument
-    @validator("match_example")
+    @field_validator("match_example")
     def validate_match_example(cls, match_example, values):
         return cls.validate_rule(match_example, values, False)
 
     # pylint: disable=no-self-argument
-    @validator("nomatch_example")
+    @field_validator("nomatch_example")
     def validate_nomatch_example(cls, nomatch_example, values):
         return cls.validate_rule(nomatch_example, values, True)
 
