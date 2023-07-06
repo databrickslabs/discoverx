@@ -3,7 +3,6 @@ from discoverx.rules import Rule, RegexRule, Rules, RulesList, global_rules
 
 
 def test_ruleslist():
-
     none_rules_list = RulesList()
     assert none_rules_list.rules_info == ""
 
@@ -13,7 +12,7 @@ def test_ruleslist():
 
 def test_localized_rules():
     rules_us = Rules(locale="US")
-    assert len(rules_us.get_rules(rule_filter="*")) == 16
+    assert len(rules_us.get_rules(rule_filter="*")) == 18
 
     # test fails if locale is not supported
     with pytest.raises(ValueError):
@@ -28,7 +27,7 @@ def test_rules():
 
     # check that we can filter with unix wildcards
     rules_ip = Rules()
-    assert len(rules_ip.get_rules(rule_filter="*")) == 10
+    assert len(rules_ip.get_rules(rule_filter="*")) == 12
     assert [rule.name for rule in rules_ip.get_rules(rule_filter="*v4")] == ["ip_v4"]
 
     # add some custom rules
@@ -43,11 +42,10 @@ def test_rules():
     cust_rules = Rules(custom_rules=[cust_rule])
 
     assert "custom_device_id" in cust_rules.get_rules_info()
-    assert len(cust_rules.get_rules(rule_filter="*")) == 11
+    assert len(cust_rules.get_rules(rule_filter="*")) == 13
 
 
 def test_rule_validation():
-
     # The definition of the following rule should match the match_example
     try:
         ip_v4_rule_test = RegexRule(
