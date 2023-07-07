@@ -32,16 +32,18 @@ The scan result is a dataset with a `score` column, which defines the fraction o
 ### Available classes
 
 The supported classes are:
-- IP v4 addresses
-- IP v6 addresses
-- Email addresses
-- URLs
-- fqdn (Fully qualified domain names)
+- IP v4 address
+- IP v6 address
+- Email address
+- URL
+- fqdn (Fully qualified domain name)
 - Credit card number
 - Credit card expiration date
 - Iso date
 - Iso date time
 - Mac address
+- Integer number as string
+- Decimal number as string
 
 US locale specific classes
 - us_mailing_address
