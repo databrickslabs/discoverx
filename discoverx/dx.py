@@ -4,6 +4,7 @@ from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import List, Optional, Union
 from discoverx import logging
+from discoverx.explorer import DataExplorer
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner, ScanResult
@@ -379,6 +380,23 @@ class DX:
         if delete_result is not None:
             delete_result = delete_result.toPandas()
             self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
+
+    def from_tables(self, from_tables: str = "*.*.*"):
+        """Returns a DataExplorer object for the given tables
+
+        Args:
+            from_tables (str, optional): The tables to be selected in format
+                "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+
+        Raises:
+            ValueError: If the from_tables is not valid
+
+        Returns:
+            DataExplorer: A DataExplorer object for the given tables
+
+        """
+
+        return DataExplorer(from_tables)
 
     def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")
