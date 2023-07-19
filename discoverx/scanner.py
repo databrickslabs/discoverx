@@ -134,7 +134,6 @@ class ScanResult:
 
         logger.friendly(f"Overwrite scan result table {scan_table_name}")
 
-        # scan_result_df.write.format("delta").mode("overwrite").saveAsTable(scan_table_name)
         scan_delta_table.alias("scan_delta_table").merge(
             scan_result_df, "scan_delta_table.table_catalog = scan_result_df.table_catalog \
             and scan_delta_table.table_schema = scan_result_df.table_schema \
