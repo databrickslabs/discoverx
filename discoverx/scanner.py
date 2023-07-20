@@ -129,13 +129,13 @@ class ScanResult:
 
         scan_result_df = self.spark.createDataFrame(
             self.df,
-            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double",
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double"
         ).withColumn("effective_timestamp", func.current_timestamp())
 
-        logger.friendly(f"Overwrite scan result table {scan_table_name}")
+        logger.friendly(f"Merging results into {scan_table_name}")
 
         scan_delta_table.alias("scan_delta_table").merge(
-            scan_result_df, "scan_delta_table.table_catalog = scan_result_df.table_catalog \
+            scan_result_df.alias("scan_result_df"), "scan_delta_table.table_catalog = scan_result_df.table_catalog \
             and scan_delta_table.table_schema = scan_result_df.table_schema \
             and scan_delta_table.table_name = scan_result_df.table_name \
             and scan_delta_table.column_name = scan_result_df.column_name ") \
