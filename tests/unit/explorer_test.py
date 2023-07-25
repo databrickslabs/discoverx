@@ -34,3 +34,12 @@ def test_sql_template(spark):
     result = ex.sql("SELECT 1 AS a FROM {full_table_name} LIMIT 1").collect()
 
     assert len(result) == 1
+
+
+def test_column_filtering(spark):
+    ex = DataExplorer("*.*.*", spark, "default.columns_mock")
+    assert len(ex.table_info_df) > 1
+
+    result = ex.having_columns("interval_col")
+
+    assert len(result.table_info_df) == 1
