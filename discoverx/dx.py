@@ -249,10 +249,7 @@ class DX:
             + ") AS search_result"
         )
 
-        if search_term is None:
-            where_statement = ""
-        else:
-            where_statement = f"WHERE {sql_filter}"
+        where_statement = f"WHERE {sql_filter}"
 
         return self._msql(
             f"SELECT {select_statement}, to_json(struct(*)) AS row_content FROM {from_tables} {where_statement}",

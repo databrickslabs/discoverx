@@ -234,7 +234,7 @@ class Scanner:
 
         return ScanContent(table_list, catalogs, schemas)
 
-    def scan_table(self, table):
+    def scan_table(self, table: TableInfo):
         try:
             if self.what_if:
                 logger.friendly(f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}'")
