@@ -24,8 +24,6 @@ yaml/pyyaml - https://github.com/yaml/pyyaml
 Copyright (c) 2017-2021 Ingy döt Net
 Copyright (c) 2006-2016 Kirill Simonov
 
-pydantic/pydantic - https://github.com/pydantic/pydantic
-Copyright (c) 2017 - 2022 Samuel Colvin and other contributors
 —--
 
 This Software contains code from the following open source projects, licensed under the DB license:

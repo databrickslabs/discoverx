@@ -98,7 +98,7 @@ def test_rule_validation():
 def test_standard_rules():
     """Test the standard rules defined in rules.py
 
-    The rules are automatically tested using a pydantic-validator
+    The rules are automatically tested using a validator
     if match/no-match examples are provided. Here, we therefore simply
     test that those examples
     """
