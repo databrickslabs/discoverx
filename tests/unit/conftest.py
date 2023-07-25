@@ -219,6 +219,8 @@ def mock_uc_functionality(monkeymodule):
     # have catalogs in open source spark
     def get_or_create_classification_table_mock(self, scan_table_name: str):
         (schema, table) = scan_table_name.split(".")
+        #Test fails without drop if table already exists
+        self.spark.sql(f"DROP DATABASE IF EXISTS {schema} CASCADE")
         self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {schema}")
         self.spark.sql(
             f"""

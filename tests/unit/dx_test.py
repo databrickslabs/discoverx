@@ -184,4 +184,26 @@ def test_save_and_load_scan_result(spark, dx_ip):
     with pytest.raises(Exception):
         dx.load(full_table_name="xxx")
 
+    #now test merge with updates
+    updated_df = pd.DataFrame(
+        [
+            ["None", "default", "tb_1", "description", "ip_v4", 0.0],
+            ["None", "default", "tb_1", "description", "ip_v6", 0.0],
+            ["None", "default", "tb_1", "ip", "ip_v4", 1.0],
+            ["None", "default", "tb_1", "ip", "ip_v6", 2.0],
+            ["None", "default", "tb_1", "mac", "ip_v4", 3.0],
+            ["None", "default", "tb_1", "mac", "ip_v6", 0.0],
+        ],
+        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
+    )
+    dx_ip.scan_result.update(updated_df)
+    dx_ip.save(full_table_name=scan_result_table)
+    updated_result = (
+        spark.sql(f"select * from {scan_result_table}")
+        .toPandas()
+        .drop("effective_timestamp", axis=1)
+        .sort_values(by=["column_name", "class_name"])
+    )
+    assert updated_result.reset_index(drop=True).equals(updated_df)
+
     spark.sql(f"DROP TABLE IF EXISTS {scan_result_table}")
