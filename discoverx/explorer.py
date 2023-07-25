@@ -4,16 +4,18 @@ from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
 from discoverx.scanner import ColumnInfo, TableInfo
+from pyspark.sql import DataFrame, SparkSession
 
 logger = logging.Logging()
 
 
 class DataExplorer:
-    def __init__(self, from_tables):
+    def __init__(self, from_tables, spark: SparkSession, columns_table_name="system.information_schema.columns"):
+        self.columns_table_name = columns_table_name
         self.from_tables = from_tables
-        self.catalogs, self.schemas, self.tables = Msql.validate_from_tables(from_tables)
+        self.spark = spark
+        self.catalogs, self.schemas, self.tables = Msql.validate_from_components(from_tables)
         self.table_info_df = self._get_tables_info_df(self.catalogs, self.schemas, self.tables)
-        self.columns_table_name = "system.information_schema.columns"
         # self._having_columns = []
         # self._having_classes = []
         # self.sql_query = ""
@@ -61,10 +63,16 @@ class DataExplorer:
         return strip_margin(sql)
 
     def _run_sql(self, sql_template: str, table_info: TableInfo):
+        if table_info.catalog and table_info.catalog != "None":
+            full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
+        else:
+            full_table_name = f"{table_info.schema}.{table_info.table}"
+
         sql = sql_template.format(
-            table_catalog=table_info.table_catalog,
-            table_schema=table_info.table_schema,
-            table_name=table_info.table_name,
+            table_catalog=table_info.catalog,
+            table_schema=table_info.schema,
+            table_name=table_info.table,
+            full_table_name=full_table_name,
         )
         logger.debug(f"Running SQL query: {sql}")
 

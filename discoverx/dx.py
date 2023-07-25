@@ -396,7 +396,7 @@ class DX:
 
         """
 
-        return DataExplorer(from_tables)
+        return DataExplorer(from_tables, self.spark)
 
     def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")
