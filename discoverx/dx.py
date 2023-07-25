@@ -1,7 +1,5 @@
-from delta.tables import DeltaTable
 import pandas as pd
 from pyspark.sql import SparkSession
-import pyspark.sql.functions as func
 from typing import List, Optional, Union
 from discoverx import logging
 from discoverx.msql import Msql
@@ -239,7 +237,7 @@ class DX:
         else:
             raise ValueError(f"The provided by_class {by_class} must be of string type.")
 
-        sql_filter = f"[{search_matching_rules[0]}] = '{search_term}'"
+        sql_filter = f"`[{search_matching_rules[0]}]` = '{search_term}'"
         select_statement = (
             "named_struct("
             + ", ".join(

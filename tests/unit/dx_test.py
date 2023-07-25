@@ -20,6 +20,16 @@ def test_can_read_columns_table(spark):
     assert dx._can_read_columns_table() == False
 
 
+def test_scan_special_caracters_col_name(spark, mock_uc_functionality):
+    dx = DX(spark=spark)
+    dx.scan(from_tables="*.*.tb_2", rules="ip_*")
+
+    assert len(dx.scan_result) > 0
+
+    result = dx.search("1.2.3.5", from_tables="*.*.tb_2").collect()
+    assert len(result) > 0
+
+
 def test_scan_without_classification_table(spark, mock_uc_functionality):
     dx = DX(spark=spark)
     dx.scan(from_tables="*.*.tb_1", rules="ip_*")
@@ -113,10 +123,10 @@ def test_select_by_class(spark, dx_ip):
 def test_delete_by_class(spark, dx_ip):
     # search a specific term and auto-detect matching classes/rules
     dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
-    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {'1.2.3.4', '3.4.5.60'}
+    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {"1.2.3.4", "3.4.5.60"}
 
     dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="1.2.3.4", yes_i_am_sure=True)
-    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {'3.4.5.60'}
+    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {"3.4.5.60"}
 
     with pytest.raises(ValueError):
         dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="x")
