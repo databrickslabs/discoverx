@@ -55,7 +55,7 @@ def test_rule_validation():
             match_example=["192.0.2.1", "0.0.0.0"],
         )
     except ValueError:
-        pytest.fail("The example does not match the rule definition")
+        pytest.fail("The example does not match the rule definition")    
 
     # The definition of the following rule should not match the nomatch-example
     try:
@@ -68,6 +68,19 @@ def test_rule_validation():
         )
     except ValueError:
         pytest.fail("The example does not match the rule definition")
+
+
+   # The definition of the following rule should allow case-insentive matches
+    try:
+        us_state_rule_test = RegexRule(
+            name="ip_v4_test",
+            description="IP address v4",
+            definition=r"(?i)^(Alabama|Alaska|American Samoa|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|District of Columbia|Federated States of Micronesia|Florida|Georgia|Guam|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Marshall Islands|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Northern Mariana Islands|Ohio|Oklahoma|Oregon|Palau|Pennsylvania|Puerto Rico|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virgin Islands|Virginia|Washington|West Virginia|Wisconsin|Wyoming)$",
+            match_example=["alabama", "ALASKA"],
+            nomatch_example="192",
+        )
+    except ValueError:
+        pytest.fail("The example does not match the rule definition")     
 
     # The next tests should fail and result in a ValueError
     with pytest.raises(ValueError):
