@@ -1,6 +1,8 @@
 import concurrent.futures
 import copy
 from functools import reduce
+
+import pandas as pd
 from discoverx import logging
 from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
@@ -11,14 +13,15 @@ logger = logging.Logging()
 
 
 class InfoFetcher:
-    def __init__(self, columns_table_name="system.information_schema.columns") -> None:
+    def __init__(self, spark, columns_table_name="system.information_schema.columns") -> None:
         self.columns_table_name = columns_table_name
+        self.spark = spark
 
     def get_tables_info_df(self, catalogs, schemas, tables):
         # Filter tables by matching filter
         table_list_sql = self._get_table_list_sql(catalogs, schemas, tables)
 
-        filtered_tables = self.spark.sql(table_list_sql).collect()
+        filtered_tables = self.spark.sql(table_list_sql).toPandas()
 
         if len(filtered_tables) == 0:
             raise ValueError(f"No tables found matching filter: {catalogs}.{schemas}.{tables}")
@@ -43,14 +46,15 @@ class InfoFetcher:
             table_catalog, 
             table_schema, 
             table_name, 
-            collect_list(struct(column_name, data_type, partition_index)) as table_columns
+            column_name, 
+            data_type, 
+            partition_index
         FROM {self.columns_table_name}
         WHERE 
             table_schema != "information_schema" 
             {catalog_sql if catalogs != "*" else ""}
             {schema_sql if schemas != "*" else ""}
             {table_sql if tables != "*" else ""}
-        GROUP BY table_catalog, table_schema, table_name
         """
 
         return strip_margin(sql)
@@ -93,20 +97,20 @@ class DataExplorer:
             logger.error(e)
             return None
 
-    def _to_info_list(self, df):
-        filtered_tables = [
-            TableInfo(
-                row["table_catalog"],
-                row["table_schema"],
-                row["table_name"],
-                [
-                    ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
-                    for col in row["table_columns"]
-                ],
+    @staticmethod
+    def _to_info_list(df: pd.DataFrame):
+        def collect_column_info(row):
+            return ColumnInfo(row["column_name"], row["data_type"], row["partition_index"], [])
+
+        grouped = df.groupby(["table_catalog", "table_schema", "table_name"], dropna=False).apply(
+            lambda group: TableInfo(
+                group["table_catalog"].iloc[0],
+                group["table_schema"].iloc[0],
+                group["table_name"].iloc[0],
+                [collect_column_info(row) for _, row in group.iterrows()],
             )
-            for row in df
-        ]
-        return filtered_tables
+        )
+        return grouped.tolist()
 
     def sql(self, sql_template: str):
         # logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
@@ -147,7 +151,7 @@ class DataExplorer:
     def having_columns(self, *columns):
         new_obj = copy.deepcopy(self)
         new_obj._having_columns.extend(columns)
-        new_obj.table_info_df = [t for t in new_obj.table_info_df if any(c in t.columns for c in columns)]
+        new_obj.table_info_df = new_obj.table_info_df[new_obj.table_info_df["column_name"].isin(columns)]
         return new_obj
 
     # def having_classes(self, *classes):
