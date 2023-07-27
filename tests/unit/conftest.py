@@ -136,6 +136,15 @@ def sample_datasets(spark: SparkSession, request):
         f"CREATE TABLE IF NOT EXISTS default.tb_1 USING delta LOCATION '{warehouse_dir}/tb_1' AS SELECT * FROM view_tb_1 "
     )
 
+    # tb_2
+    test_file_path = module_path.parent / "data/tb_2.csv"
+    (
+        spark.read.option("header", True).schema("id integer,`ip.v2` string").csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("view_tb_2")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.tb_2 USING delta LOCATION '{warehouse_dir}/tb_2' AS SELECT * FROM view_tb_2 "
+    )
+
     # columns_mock
     test_file_path = module_path.parent / "data/columns_mock.csv"
     (
@@ -156,6 +165,7 @@ def sample_datasets(spark: SparkSession, request):
     logging.info("Test session finished, removing sample datasets")
 
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
+    spark.sql("DROP TABLE IF EXISTS default.tb_2")
     spark.sql("DROP TABLE IF EXISTS default.columns_mock")
     if Path(warehouse_dir).exists():
         shutil.rmtree(warehouse_dir)

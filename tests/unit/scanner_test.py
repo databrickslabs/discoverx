@@ -258,6 +258,25 @@ def test_save_scan(spark: SparkSession):
     spark.sql(f"DROP TABLE IF EXISTS {scan_table_name}")
 
 
+def test_scan_non_existing_table_returns_none(spark: SparkSession):
+    rules = Rules()
+
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
+    result = scanner.scan_table(TableInfo("", "", "tb_non_existing", []))
+
+    assert result is None
+
+
+def test_scan_whatif_returns_none(spark: SparkSession):
+    rules = Rules()
+    scanner = Scanner(
+        spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock", what_if=True
+    )
+    result = scanner.scan_table(TableInfo(None, "default", "tb_1", []))
+
+    assert result is None
+
+
 def test_get_classes_should_fail_if_no_scan(spark):
     scan_result = ScanResult(df=pd.DataFrame(), spark=spark)
     with pytest.raises(Exception):
