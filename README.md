@@ -162,16 +162,19 @@ dx.scan(
 You can provide your custom scanning rules based on regex expressions.
 
 ```
+from discoverx.rules import RegexRule
+from discoverx import DX
+
 custom_rules = [
-    {
-        'name': 'resource_request_id',
-        'type': 'regex',
-        'description': 'Resource request ID',
-        'definition': r'^AR-\d{9}$',
-        'match_example': ['AR-123456789'],
-        'nomatch_example': ['CD-123456789']
-    }
+  RegexRule(
+    name = "resource_request_id",
+    description = "Resource request ID",
+    definition = r"^AR-\d{9}$",
+    match_example = ["AR-123456789"],
+    nomatch_example = ["R-123"],
+  )
 ]
+
 dx = DX(custom_rules=custom_rules)
 ```
 
