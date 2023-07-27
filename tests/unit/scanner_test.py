@@ -112,11 +112,11 @@ GROUP BY table_catalog, table_schema, table_name, column_name, class_name"""
 @pytest.mark.parametrize(
     "rules_input, expected",
     [
-        ([RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w")], expectedsingle),
+        ([RegexRule(name="any_word", description="Any word", definition=r"\w")], expectedsingle),
         (
             [
-                RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w."),
-                RegexRule(name="any_number", type="regex", description="Any number", definition=r"\d."),
+                RegexRule(name="any_word", description="Any word", definition=r"\w."),
+                RegexRule(name="any_number", description="Any number", definition=r"\d."),
             ],
             expectedmulti,
         ),
@@ -146,8 +146,8 @@ def test_sql_runs(spark):
     ]
     table_info = TableInfo(None, "default", "tb_1", columns)
     rules = [
-        RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w+"),
-        RegexRule(name="any_number", type="regex", description="Any number", definition=r"\d+"),
+        RegexRule(name="any_word", description="Any word", definition=r"\w+"),
+        RegexRule(name="any_number", description="Any number", definition=r"\d+"),
     ]
 
     rules = Rules(custom_rules=rules)
@@ -183,8 +183,8 @@ def test_scan_custom_rules(spark: SparkSession):
     ]
     table_list = [TableInfo(None, "default", "tb_1", columns)]
     rules = [
-        RegexRule(name="any_word", type="regex", description="Any word", definition=r"^\w*$"),
-        RegexRule(name="any_number", type="regex", description="Any number", definition=r"^\d*$"),
+        RegexRule(name="any_word", description="Any word", definition=r"^\w*$"),
+        RegexRule(name="any_number", description="Any number", definition=r"^\d*$"),
     ]
 
     rules = Rules(custom_rules=rules)
