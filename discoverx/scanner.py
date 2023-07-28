@@ -117,7 +117,7 @@ class ScanResult:
         )
         logger.friendly(f"The scan result table {scan_table_name} has been created.")
 
-    def _get_or_create_result_table_from_delta(self, scan_table_name: str)-> DeltaTable:
+    def _get_or_create_result_table_from_delta(self, scan_table_name: str) -> DeltaTable:
         try:
             return DeltaTable.forName(self.spark, scan_table_name)
         except Exception:
@@ -129,19 +129,18 @@ class ScanResult:
 
         scan_result_df = self.spark.createDataFrame(
             self.df,
-            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double"
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double",
         ).withColumn("effective_timestamp", func.current_timestamp())
 
         logger.friendly(f"Merging results into {scan_table_name}")
 
         scan_delta_table.alias("scan_delta_table").merge(
-            scan_result_df.alias("scan_result_df"), "scan_delta_table.table_catalog = scan_result_df.table_catalog \
+            scan_result_df.alias("scan_result_df"),
+            "scan_delta_table.table_catalog = scan_result_df.table_catalog \
             and scan_delta_table.table_schema = scan_result_df.table_schema \
             and scan_delta_table.table_name = scan_result_df.table_name \
-            and scan_delta_table.column_name = scan_result_df.column_name ") \
-            .whenMatchedUpdateAll() \
-            .whenNotMatchedInsertAll() \
-            .execute()
+            and scan_delta_table.column_name = scan_result_df.column_name ",
+        ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
 
     def load(self, scan_table_name: str):
         try:
@@ -235,7 +234,7 @@ class Scanner:
 
         return ScanContent(table_list, catalogs, schemas)
 
-    def scan_table(self, table):
+    def scan_table(self, table: TableInfo):
         try:
             if self.what_if:
                 logger.friendly(f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}'")

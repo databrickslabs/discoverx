@@ -8,7 +8,6 @@ from enum import Enum
 from fnmatch import fnmatch
 import re
 from typing import Union, Optional, List
-from pydantic import BaseModel, field_validator
 
 
 class RuleTypes(str, Enum):
@@ -17,7 +16,7 @@ class RuleTypes(str, Enum):
     REGEX = "regex"
 
 
-class Rule(BaseModel):
+class Rule:
     """Parent class for rules
     Attributes:
         type (RuleTypes): Defines the type of Rule, e.g. Regex
@@ -41,6 +40,18 @@ class RegexRule(Rule):
             catalog
     """
 
+    def __init__(self, name, description, definition, match_example=[], nomatch_example=[], class_name=None):
+        self.name = name
+        self.description = description
+        self.definition = definition
+        self.match_example = match_example
+        self.nomatch_example = nomatch_example
+        self.class_name = class_name
+        self.type = RuleTypes.REGEX
+
+        self.validate_rule(self.match_example, self.definition, self.name, False)
+        self.validate_rule(self.nomatch_example, self.definition, self.name, True)
+
     type: RuleTypes = RuleTypes.REGEX
 
     name: str
@@ -50,42 +61,8 @@ class RegexRule(Rule):
     nomatch_example: Optional[Union[str, List[str]]] = None
     class_name: Optional[str] = None
 
-    # pylint: disable=no-self-argument
-    @field_validator("match_example")
-    def validate_match_example(cls, match_example, values):
-        """Validate regular expression
-        This validator checks that the regular expression matches
-        the provided match_example.
-
-        Args:
-            match_example (List): A list of strings supposed to match the
-                defined regular expression
-            values (ValidationInfo): values.data provides dictionary of
-            remaining fields
-
-        Returns: List of specified examples
-        """
-        return cls.validate_rule(match_example, values, False)
-
-    # pylint: disable=no-self-argument
-    @field_validator("nomatch_example")
-    def validate_nomatch_example(cls, nomatch_example, values):
-        """Validate regular expression
-        This validator checks that the regular expression does not match
-        the provided nomatch_example.
-
-        Args:
-            nomatch_example (List): A list of strings supposed to not
-                match the defined regular expression
-            values (ValidationInfo): values.data provides dictionary of
-                remaining fields
-
-        Returns: List of specified examples
-        """
-        return cls.validate_rule(nomatch_example, values, True)
-
     @staticmethod
-    def validate_rule(example, values, fail_match: bool):
+    def validate_rule(example, definition, name, fail_match: bool):
         """Validates that given example is matched by defined pattern"""
         if not isinstance(example, list):
             validation_example = [example]
@@ -93,10 +70,8 @@ class RegexRule(Rule):
             validation_example = example
 
         for ex in validation_example:
-            if (not re.match(values.data["definition"], ex)) != fail_match:
-                raise ValueError(
-                    f"The definition of the rule {values.data['name']} does not match the provided example {ex}"
-                )
+            if (not re.match(definition, ex)) != fail_match:
+                raise ValueError(f"The definition of the rule {name} does not match the provided example {ex}")
         return example
 
 
@@ -268,7 +243,6 @@ localized_rules = {
     "us": [
         RegexRule(
             name="us_mailing_address",
-            type="regex",
             description="US Mailing Address",
             definition=r"^\d+\s[A-z]+\s[A-z]+",
             match_example=["123 Main St", "456 Elm St", "789 Pine St"],
@@ -276,7 +250,6 @@ localized_rules = {
         ),
         RegexRule(
             name="us_phone_number",
-            type="regex",
             description="US Phone Number",
             definition=r"^\+?1?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})$",
             match_example=["+1 (123) 456-7890", "123-456-7890", "123.456.7890", "1234567890", "(123)456-7890"],
@@ -284,7 +257,6 @@ localized_rules = {
         ),
         RegexRule(
             name="us_social_security_number",
-            type="regex",
             description="US Social Security Number",
             definition=r"^(?!000|666|9)\d{3}-(?!00)\d{2}-(?!0000)\d{4}$",
             match_example=["123-45-6789"],
@@ -292,7 +264,6 @@ localized_rules = {
         ),
         RegexRule(
             name="us_state",
-            type="regex",
             description="US State",
             definition=r"(?i)^(Alabama|Alaska|American Samoa|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|District of Columbia|Federated States of Micronesia|Florida|Georgia|Guam|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Marshall Islands|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Northern Mariana Islands|Ohio|Oklahoma|Oregon|Palau|Pennsylvania|Puerto Rico|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virgin Islands|Virginia|Washington|West Virginia|Wisconsin|Wyoming)$",
             match_example=[
@@ -411,7 +382,6 @@ localized_rules = {
         ),
         RegexRule(
             name="us_state_abbreviation",
-            type="regex",
             description="US State Abbreviation",
             definition=r"(?i)^(AL|AK|AS|AZ|AR|CA|CO|CT|DE|DC|FM|FL|GA|GU|HI|ID|IL|IN|IA|KS|KY|LA|ME|MH|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|MP|OH|OK|OR|PW|PA|PR|RI|SC|SD|TN|TX|UT|VT|VI|VA|WA|WV|WI|WY)$",
             match_example=[
@@ -531,7 +501,6 @@ localized_rules = {
         ),
         RegexRule(
             name="us_zip_code",
-            type="regex",
             description="US Zip Code",
             definition=r"^\d{5}(?:[-\s]\d{4})?$",
             match_example=["12345", "12345-6789"],
