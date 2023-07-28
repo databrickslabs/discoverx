@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.4
+* Removed pydantic dependency
+* Fixed issues with special characters in column names
+* Fixed readme docs
+* Added integer and decimal rules
+* Fixed case insensitive regex expressions 
+
 ## v0.0.3
 * Upgraded pydantic dependency to 2.0
 * Added support for special characters in column names
