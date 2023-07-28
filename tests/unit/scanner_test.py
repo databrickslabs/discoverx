@@ -112,11 +112,11 @@ GROUP BY table_catalog, table_schema, table_name, column_name, class_name"""
 @pytest.mark.parametrize(
     "rules_input, expected",
     [
-        ([RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w")], expectedsingle),
+        ([RegexRule(name="any_word", description="Any word", definition=r"\w")], expectedsingle),
         (
             [
-                RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w."),
-                RegexRule(name="any_number", type="regex", description="Any number", definition=r"\d."),
+                RegexRule(name="any_word", description="Any word", definition=r"\w."),
+                RegexRule(name="any_number", description="Any number", definition=r"\d."),
             ],
             expectedmulti,
         ),
@@ -146,8 +146,8 @@ def test_sql_runs(spark):
     ]
     table_info = TableInfo(None, "default", "tb_1", columns)
     rules = [
-        RegexRule(name="any_word", type="regex", description="Any word", definition=r"\w+"),
-        RegexRule(name="any_number", type="regex", description="Any number", definition=r"\d+"),
+        RegexRule(name="any_word", description="Any word", definition=r"\w+"),
+        RegexRule(name="any_number", description="Any number", definition=r"\d+"),
     ]
 
     rules = Rules(custom_rules=rules)
@@ -183,8 +183,8 @@ def test_scan_custom_rules(spark: SparkSession):
     ]
     table_list = [TableInfo(None, "default", "tb_1", columns)]
     rules = [
-        RegexRule(name="any_word", type="regex", description="Any word", definition=r"^\w*$"),
-        RegexRule(name="any_number", type="regex", description="Any number", definition=r"^\d*$"),
+        RegexRule(name="any_word", description="Any word", definition=r"^\w*$"),
+        RegexRule(name="any_number", description="Any number", definition=r"^\d*$"),
     ]
 
     rules = Rules(custom_rules=rules)
@@ -256,6 +256,25 @@ def test_save_scan(spark: SparkSession):
     assert scan_result.df.sort_values(by=["column_name", "class_name"]).reset_index(drop=True).equals(expected)
 
     spark.sql(f"DROP TABLE IF EXISTS {scan_table_name}")
+
+
+def test_scan_non_existing_table_returns_none(spark: SparkSession):
+    rules = Rules()
+
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
+    result = scanner.scan_table(TableInfo("", "", "tb_non_existing", []))
+
+    assert result is None
+
+
+def test_scan_whatif_returns_none(spark: SparkSession):
+    rules = Rules()
+    scanner = Scanner(
+        spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock", what_if=True
+    )
+    result = scanner.scan_table(TableInfo(None, "default", "tb_1", []))
+
+    assert result is None
 
 
 def test_get_classes_should_fail_if_no_scan(spark):

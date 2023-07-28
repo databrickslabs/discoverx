@@ -25,7 +25,7 @@ if parsed_version:
 else:
     raise RuntimeError("Unable to find version string in discoverx/version.py")
 
-PACKAGE_REQUIREMENTS = ["pyyaml", "pydantic>=2.0"]
+PACKAGE_REQUIREMENTS = ["pyyaml"]
 
 # packages for local development and unit testing
 # please note that these packages are already available in DBR, there is no need to install them on DBR.
