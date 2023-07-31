@@ -2,7 +2,7 @@ import pandas as pd
 from pyspark.sql import SparkSession
 from typing import List, Optional, Union
 from discoverx import logging
-from discoverx.explorer import DataExplorer
+from discoverx.explorer import DataExplorer, InfoFetcher
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
 from discoverx.scanner import Scanner, ScanResult
@@ -391,7 +391,7 @@ class DX:
 
         """
 
-        return DataExplorer(from_tables, self.spark)
+        return DataExplorer(from_tables, self.spark, InfoFetcher(self.spark))
 
     def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")
