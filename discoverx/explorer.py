@@ -4,6 +4,7 @@ from functools import reduce
 
 import pandas as pd
 from discoverx import logging
+from discoverx.common import helper
 from discoverx.common.helper import strip_margin
 from discoverx.msql import Msql
 from discoverx.scanner import ColumnInfo, TableInfo
@@ -18,7 +19,7 @@ class InfoFetcher:
         self.columns_table_name = columns_table_name
         self.spark = spark
 
-    def _to_info_list(df: pd.DataFrame) -> list[TableInfo]:
+    def _to_info_list(self, df: pd.DataFrame) -> list[TableInfo]:
         def collect_column_info(row):
             return ColumnInfo(row["column_name"], row["data_type"], row["partition_index"], [])
 
@@ -32,9 +33,9 @@ class InfoFetcher:
         )
         return grouped.tolist()
 
-    def get_tables_info(self, catalogs, schemas, tables) -> list[TableInfo]:
+    def get_tables_info(self, catalogs: str, schemas: str, tables: str, columns: list[str] = []) -> list[TableInfo]:
         # Filter tables by matching filter
-        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables)
+        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns)
 
         filtered_tables = self.spark.sql(table_list_sql).toPandas()
 
@@ -43,7 +44,7 @@ class InfoFetcher:
 
         return self._to_info_list(filtered_tables)
 
-    def _get_table_list_sql(self, catalogs, schemas, tables) -> str:
+    def _get_table_list_sql(self, catalogs: str, schemas: str, tables: str, columns: list[str] = []) -> str:
         """
         Returns a SQL expression which returns a list of columns matching
         the specified filters
@@ -55,6 +56,10 @@ class InfoFetcher:
         catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
         schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
         table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+
+        if columns:
+            match_any_col = "|".join([f'({c.replace("*", ".*")})' for c in columns])
+            columns_sql = f"""AND regexp_like(column_name, "^{match_any_col}$")"""
 
         sql = f"""
         SELECT 
@@ -70,6 +75,7 @@ class InfoFetcher:
             {catalog_sql if catalogs != "*" else ""}
             {schema_sql if schemas != "*" else ""}
             {table_sql if tables != "*" else ""}
+            {columns_sql if columns else ""}
         """
 
         return strip_margin(sql)
@@ -119,7 +125,7 @@ class DataExplorer:
     def _get_sql_commands(self) -> list[tuple[str, TableInfo]]:
         logger.debug("Launching lakehouse scanning task\n")
 
-        table_list = self.info_fetcher.get_tables_info(self.catalogs, self.schemas, self.tables)
+        table_list = self.info_fetcher.get_tables_info(self.catalogs, self.schemas, self.tables, self._having_columns)
         sql_commands = [(self._build_sql(self._sql_query_template, table), table) for table in table_list]
         return sql_commands
 
@@ -154,7 +160,7 @@ class DataExplorer:
         new_obj._max_concurrency = max_concurrency
         return new_obj
 
-    def apply_sql(self, sql_query_template) -> "DataExplorer":
+    def with_sql(self, sql_query_template) -> "DataExplorer":
         new_obj = copy.deepcopy(self)
         new_obj._sql_query_template = sql_query_template
         return new_obj
@@ -162,37 +168,45 @@ class DataExplorer:
     def explain(self):
         column_filter_explanation = ""
         class_filter_explanation = ""
+        sql_explanation = ""
 
-        if self.having_columns:
-            column_filter_explanation = f"""
-            only for tables that have all the following columns: {self.having_columns}
-            """
-        if self.having_classes:
-            class_filter_explanation = f"""
-            only for tables that have all the following classes: {self.having_classes}
-            """
+        if self._having_columns:
+            column_filter_explanation = f"only for tables that have all the following columns: {self._having_columns}"
+        if self._having_classes:
+            class_filter_explanation = f"only for tables that have all the following classes: {self._having_classes}"
+        if self._sql_query_template:
+            sql_explanation = f"The SQL to be executed is (just a moment, generating it...):"
 
         explanation = f"""
-        DiscoverX will apply the following template
+        DiscoverX will apply the following SQL template
+
         {self._sql_query_template}
 
         to the tables in the following catalog, schema, table combinations:
         {self.from_tables}
         {column_filter_explanation}
         {class_filter_explanation}
-
-        The SQL to be executed is:
-        (just a moment, I am generating it)
+        {sql_explanation}
         """
+        logger.friendly(helper.strip_margin(explanation))
 
-        sql_commands = self._get_sql_commands()
-        for sql, table in sql_commands:
-            explanation += f"""
-            <p>For table: {table.catalog}.{table.schema}.{table.table}</p>
-            <pre><code>{sql}</code></pre>
-            """
+        detailed_explanation = ""
+        if self._sql_query_template:
+            sql_commands = self._get_sql_commands()
+            for sql, table in sql_commands:
+                detailed_explanation += f"""
+                <p>For table: {table.catalog}.{table.schema}.{table.table}</p>
+                <pre><code>{sql}</code></pre>
+                """
 
-        logger.friendlyHTML(explanation)
+            logger.friendlyHTML(detailed_explanation)
+
+    def execute(self) -> DataFrame:
+        df = self.to_dataframe()
+        try:
+            df.display()
+        except Exception as e:
+            df.show(truncate=False)
 
     def to_dataframe(self) -> DataFrame:
         sql_commands = self._get_sql_commands()
