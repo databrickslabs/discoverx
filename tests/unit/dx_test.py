@@ -54,6 +54,19 @@ def test_dx_instantiation(spark):
         pytest.fail(f"Displaying rules failed with {display_rules_error}")
 
 
+def test_sql_template(spark):
+    dx = DX(spark=spark)
+    result = (
+        dx.from_tables("*.*.*")
+        .having_columns("id")
+        .with_sql("SELECT 1 AS a FROM {full_table_name} WHERE id = 1")
+        .to_dataframe()
+        .count()
+    )
+
+    assert result > 0
+
+
 def test_scan_and_msql(spark, dx_ip):
     """
     End-2-end test involving both scanning and searching
@@ -184,7 +197,7 @@ def test_save_and_load_scan_result(spark, dx_ip):
     with pytest.raises(Exception):
         dx.load(full_table_name="xxx")
 
-    #now test merge with updates
+    # now test merge with updates
     updated_df = pd.DataFrame(
         [
             ["None", "default", "tb_1", "description", "ip_v4", 0.0],

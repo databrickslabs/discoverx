@@ -43,6 +43,14 @@ def test_run_sql(spark, info_fetcher):
     assert len(result) == 1
 
 
+def test_execute(spark, info_fetcher, capfd):
+    data_explorer = DataExplorer("*.*.tb_1", spark=spark, info_fetcher=info_fetcher)
+
+    result = data_explorer.with_sql("SELECT 12345 AS a FROM {full_table_name}").execute()
+    captured = capfd.readouterr()
+    assert "12345" in captured.out
+
+
 def test_get_sql_commands():
     info_fetcher = InfoFetcher(spark=Mock(), columns_table_name="default.columns_mock")
     data_explorer = DataExplorer("catalog1.schema1.table1", spark=Mock(), info_fetcher=info_fetcher)
@@ -60,8 +68,10 @@ def test_get_sql_commands():
 def test_explain(capfd, spark, info_fetcher):
     data_explorer = DataExplorer("*.*.tb_*", spark=spark, info_fetcher=info_fetcher)
 
-    data_explorer.having_columns("ip.v2").with_sql("SELECT `ip.v2` FROM {full_table_name}").explain()
+    data_explorer.having_columns("ip.v2").with_concurrency(2).with_sql(
+        "SELECT `something` FROM {full_table_name}"
+    ).explain()
 
     captured = capfd.readouterr()
-    assert "SELECT `ip.v2` FROM " in captured.out
-    # assert "tb_1" in captured.out
+    assert "SELECT `something` FROM " in captured.out
+    assert "ip.v2" in captured.out
