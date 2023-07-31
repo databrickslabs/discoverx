@@ -1,13 +1,11 @@
 import concurrent.futures
 import copy
-from functools import reduce
-
+import re
 import pandas as pd
 from discoverx import logging
 from discoverx.common import helper
-from discoverx.common.helper import strip_margin
-from discoverx.msql import Msql
 from discoverx.scanner import ColumnInfo, TableInfo
+from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
 
@@ -78,19 +76,32 @@ class InfoFetcher:
             {columns_sql if columns else ""}
         """
 
-        return strip_margin(sql)
+        return helper.strip_margin(sql)
 
 
 class DataExplorer:
+    from_components_expr = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
+
     def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher):
         self.info_fetcher = info_fetcher
         self.from_tables = from_tables
         self.spark = spark
-        self.catalogs, self.schemas, self.tables = Msql.validate_from_components(from_tables)
+        self.catalogs, self.schemas, self.tables = DataExplorer.validate_from_components(from_tables)
         self._having_columns = []
-        self._having_classes = []
+        # self._having_classes = []
         self._sql_query_template = None
         self._max_concurrency = 10
+
+    @staticmethod
+    def validate_from_components(from_tables: str):
+        """Extracts the catalog, schema and table name from the from_table string"""
+        matches = re.findall(DataExplorer.from_components_expr, from_tables)
+        if len(matches) == 1 and len(matches[0]) == 4:
+            return (matches[0][1], matches[0][2], matches[0][3])
+        else:
+            raise ValueError(
+                f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'table_catalog.table_schema.table_name'. You can use '*' as wildcard."
+            )
 
     def _build_sql(self, sql_template: str, table_info: TableInfo) -> str:
         if table_info.catalog and table_info.catalog != "None":
@@ -136,7 +147,7 @@ class DataExplorer:
         new_obj.schemas = copy.deepcopy(self.schemas)
         new_obj.tables = copy.deepcopy(self.tables)
         new_obj._having_columns = copy.deepcopy(self._having_columns)
-        new_obj._having_classes = copy.deepcopy(self._having_classes)
+        # new_obj._having_classes = copy.deepcopy(self._having_classes)
         new_obj._sql_query_template = copy.deepcopy(self._sql_query_template)
         new_obj._max_concurrency = copy.deepcopy(self._max_concurrency)
 
@@ -150,30 +161,30 @@ class DataExplorer:
         new_obj._having_columns.extend(columns)
         return new_obj
 
-    def having_classes(self, *classes) -> "DataExplorer":
-        new_obj = copy.deepcopy(self)
-        new_obj._having_classes.extend(classes)
-        return new_obj
+    # def having_classes(self, *classes) -> "DataExplorer":
+    #     new_obj = copy.deepcopy(self)
+    #     new_obj._having_classes.extend(classes)
+    #     return new_obj
 
     def with_concurrency(self, max_concurrency) -> "DataExplorer":
         new_obj = copy.deepcopy(self)
         new_obj._max_concurrency = max_concurrency
         return new_obj
 
-    def with_sql(self, sql_query_template) -> "DataExplorer":
+    def with_sql(self, sql_query_template: str) -> "DataExplorer":
         new_obj = copy.deepcopy(self)
         new_obj._sql_query_template = sql_query_template
         return new_obj
 
     def explain(self):
         column_filter_explanation = ""
-        class_filter_explanation = ""
+        # class_filter_explanation = ""
         sql_explanation = ""
 
         if self._having_columns:
             column_filter_explanation = f"only for tables that have all the following columns: {self._having_columns}"
-        if self._having_classes:
-            class_filter_explanation = f"only for tables that have all the following classes: {self._having_classes}"
+        # if self._having_classes:
+        # class_filter_explanation = f"only for tables that have all the following classes: {self._having_classes}"
         if self._sql_query_template:
             sql_explanation = f"The SQL to be executed is (just a moment, generating it...):"
 
@@ -185,7 +196,6 @@ class DataExplorer:
         to the tables in the following catalog, schema, table combinations:
         {self.from_tables}
         {column_filter_explanation}
-        {class_filter_explanation}
         {sql_explanation}
         """
         logger.friendly(helper.strip_margin(explanation))
