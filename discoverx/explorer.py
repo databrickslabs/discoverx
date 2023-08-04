@@ -82,11 +82,11 @@ class InfoFetcher:
 class DataExplorer:
     from_components_expr = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
 
-    def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher):
-        self.info_fetcher = info_fetcher
-        self.from_tables = from_tables
-        self.spark = spark
-        self.catalogs, self.schemas, self.tables = DataExplorer.validate_from_components(from_tables)
+    def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
+        self._from_tables = from_tables
+        self._catalogs, self._schemas, self._tables = DataExplorer.validate_from_components(from_tables)
+        self._spark = spark
+        self._info_fetcher = info_fetcher
         self._having_columns = []
         # self._having_classes = []
         self._sql_query_template = None
@@ -103,56 +103,19 @@ class DataExplorer:
                 f"Invalid from_tables statement '{from_tables}'. Should be a string in format 'table_catalog.table_schema.table_name'. You can use '*' as wildcard."
             )
 
-    def _build_sql(self, sql_template: str, table_info: TableInfo) -> str:
-        if table_info.catalog and table_info.catalog != "None":
-            full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
-        else:
-            full_table_name = f"{table_info.schema}.{table_info.table}"
-        sql = sql_template.format(
-            table_catalog=table_info.catalog,
-            table_schema=table_info.schema,
-            table_name=table_info.table,
-            full_table_name=full_table_name,
-        )
-        return sql
-
-    def _run_sql(self, sql: str, table_info: TableInfo) -> DataFrame:
-        logger.debug(f"Running SQL query: {sql}")
-
-        try:
-            df = (
-                self.spark.sql(sql)
-                .withColumn("table_catalog", lit(table_info.catalog))
-                .withColumn("table_schema", lit(table_info.schema))
-                .withColumn("table_name", lit(table_info.table))
-            )
-            logger.debug(f"Finished running SQL query: {sql}")
-            return df
-        except Exception as e:
-            logger.error(f"Error running SQL query for: {table_info.catalog}.{table_info.schema}.{table_info.table}.")
-            logger.error(e)
-            return None
-
-    def _get_sql_commands(self) -> list[tuple[str, TableInfo]]:
-        logger.debug("Launching lakehouse scanning task\n")
-
-        table_list = self.info_fetcher.get_tables_info(self.catalogs, self.schemas, self.tables, self._having_columns)
-        sql_commands = [(self._build_sql(self._sql_query_template, table), table) for table in table_list]
-        return sql_commands
-
     def __deepcopy__(self, memo):
         new_obj = type(self).__new__(self.__class__)
         new_obj.__dict__.update(self.__dict__)
-        new_obj.catalogs = copy.deepcopy(self.catalogs)
-        new_obj.schemas = copy.deepcopy(self.schemas)
-        new_obj.tables = copy.deepcopy(self.tables)
+        new_obj._catalogs = copy.deepcopy(self._catalogs)
+        new_obj._schemas = copy.deepcopy(self._schemas)
+        new_obj._tables = copy.deepcopy(self._tables)
         new_obj._having_columns = copy.deepcopy(self._having_columns)
         # new_obj._having_classes = copy.deepcopy(self._having_classes)
         new_obj._sql_query_template = copy.deepcopy(self._sql_query_template)
         new_obj._max_concurrency = copy.deepcopy(self._max_concurrency)
 
-        # We can't deepcopy spark session, so we just copy the reference
-        new_obj.spark = self.spark
+        new_obj._spark = self._spark
+        new_obj._info_fetcher = self._info_fetcher
 
         return new_obj
 
@@ -171,38 +134,96 @@ class DataExplorer:
         new_obj._max_concurrency = max_concurrency
         return new_obj
 
-    def with_sql(self, sql_query_template: str) -> "DataExplorer":
+    def with_sql(self, sql_query_template: str) -> "DataExplorerActions":
         new_obj = copy.deepcopy(self)
         new_obj._sql_query_template = sql_query_template
-        return new_obj
+        return DataExplorerActions(new_obj, spark=self._spark, info_fetcher=self._info_fetcher)
 
-    def explain(self):
+
+class DataExplorerActions:
+    def __init__(
+        self, data_explorer: DataExplorer, spark: SparkSession = None, info_fetcher: InfoFetcher = None
+    ) -> None:
+        self._data_explorer = data_explorer
+        if spark is None:
+            spark = SparkSession.builder.getOrCreate()
+        if info_fetcher is None:
+            info_fetcher = InfoFetcher(spark)
+        self._info_fetcher = info_fetcher
+        self._spark = spark
+
+    @staticmethod
+    def _build_sql(sql_template: str, table_info: TableInfo) -> str:
+        if table_info.catalog and table_info.catalog != "None":
+            full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
+        else:
+            full_table_name = f"{table_info.schema}.{table_info.table}"
+        sql = sql_template.format(
+            table_catalog=table_info.catalog,
+            table_schema=table_info.schema,
+            table_name=table_info.table,
+            full_table_name=full_table_name,
+        )
+        return sql
+
+    def _run_sql(self, sql: str, table_info: TableInfo) -> DataFrame:
+        logger.debug(f"Running SQL query: {sql}")
+
+        try:
+            df = (
+                self._spark.sql(sql)
+                .withColumn("table_catalog", lit(table_info.catalog))
+                .withColumn("table_schema", lit(table_info.schema))
+                .withColumn("table_name", lit(table_info.table))
+            )
+            logger.debug(f"Finished running SQL query: {sql}")
+            return df
+        except Exception as e:
+            logger.error(f"Error running SQL query for: {table_info.catalog}.{table_info.schema}.{table_info.table}.")
+            logger.error(e)
+            return None
+
+    def _get_sql_commands(self, data_explorer: DataExplorer) -> list[tuple[str, TableInfo]]:
+        logger.debug("Launching lakehouse scanning task\n")
+
+        table_list = self._info_fetcher.get_tables_info(
+            data_explorer._catalogs, data_explorer._schemas, data_explorer._tables, data_explorer._having_columns
+        )
+        sql_commands = [
+            (DataExplorerActions._build_sql(data_explorer._sql_query_template, table), table) for table in table_list
+        ]
+        return sql_commands
+
+    def explain(self) -> None:
+        data_explorer = self._data_explorer
         column_filter_explanation = ""
         # class_filter_explanation = ""
         sql_explanation = ""
 
-        if self._having_columns:
-            column_filter_explanation = f"only for tables that have all the following columns: {self._having_columns}"
-        # if self._having_classes:
-        # class_filter_explanation = f"only for tables that have all the following classes: {self._having_classes}"
-        if self._sql_query_template:
+        if data_explorer._having_columns:
+            column_filter_explanation = (
+                f"only for tables that have all the following columns: {data_explorer._having_columns}"
+            )
+        # if data_explorer._having_classes:
+        # class_filter_explanation = f"only for tables that have all the following classes: {data_explorer._having_classes}"
+        if data_explorer._sql_query_template:
             sql_explanation = f"The SQL to be executed is (just a moment, generating it...):"
 
         explanation = f"""
         DiscoverX will apply the following SQL template
 
-        {self._sql_query_template}
+        {data_explorer._sql_query_template}
 
         to the tables in the following catalog, schema, table combinations:
-        {self.from_tables}
+        {data_explorer._from_tables}
         {column_filter_explanation}
         {sql_explanation}
         """
         logger.friendly(helper.strip_margin(explanation))
 
         detailed_explanation = ""
-        if self._sql_query_template:
-            sql_commands = self._get_sql_commands()
+        if data_explorer._sql_query_template:
+            sql_commands = self._get_sql_commands(data_explorer)
             for sql, table in sql_commands:
                 detailed_explanation += f"""
                 <p>For table: {table.catalog}.{table.schema}.{table.table}</p>
@@ -212,16 +233,18 @@ class DataExplorer:
             logger.friendlyHTML(detailed_explanation)
 
     def execute(self) -> DataFrame:
-        df = self.to_dataframe()
+        df = self.to_union_dataframe()
         try:
             df.display()
         except Exception as e:
             df.show(truncate=False)
 
-    def to_dataframe(self) -> DataFrame:
-        sql_commands = self._get_sql_commands()
+    def to_union_dataframe(self) -> DataFrame:
+        data_explorer = self._data_explorer
+
+        sql_commands = self._get_sql_commands(data_explorer)
         dfs = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=data_explorer._max_concurrency) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(self._run_sql, sql, table) for sql, table in sql_commands]
 

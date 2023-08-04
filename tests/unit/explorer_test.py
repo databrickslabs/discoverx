@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from pyspark.sql import SparkSession
-from discoverx.explorer import DataExplorer, InfoFetcher, TableInfo
+from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, TableInfo
 
 
 # # Sample test data
@@ -23,19 +23,18 @@ def test_validate_from_components():
 
 
 def test_build_sql(sample_table_info):
-    info_fetcher = InfoFetcher(spark=Mock(), columns_table_name="default.columns_mock")
-    data_explorer = DataExplorer("catalog1.schema1.table1", spark=Mock(), info_fetcher=info_fetcher)
     sql_template = "SELECT * FROM {full_table_name}"
     expected_sql = "SELECT * FROM catalog1.schema1.table1"
-    assert data_explorer._build_sql(sql_template, sample_table_info) == expected_sql
+    assert DataExplorerActions._build_sql(sql_template, sample_table_info) == expected_sql
 
 
 def test_run_sql(spark, info_fetcher):
-    data_explorer = DataExplorer("*.*.tb_1", spark=spark, info_fetcher=info_fetcher)
+    data_explorer = DataExplorer("*.*.tb_1")
+    data_explorer._sql_query_template = "SELECT 1 AS a FROM {full_table_name}"
 
     result = (
-        data_explorer.with_sql("SELECT 1 AS a FROM {full_table_name}")
-        .to_dataframe()
+        DataExplorerActions(data_explorer=data_explorer, spark=spark, info_fetcher=info_fetcher)
+        .to_union_dataframe()
         .groupBy("table_name")
         .count()
         .collect()
@@ -44,33 +43,20 @@ def test_run_sql(spark, info_fetcher):
 
 
 def test_execute(spark, info_fetcher, capfd):
-    data_explorer = DataExplorer("*.*.tb_1", spark=spark, info_fetcher=info_fetcher)
+    data_explorer = DataExplorer("*.*.tb_1")
+    data_explorer._sql_query_template = "SELECT 12345 AS a FROM {full_table_name}"
 
-    result = data_explorer.with_sql("SELECT 12345 AS a FROM {full_table_name}").execute()
+    result = DataExplorerActions(data_explorer=data_explorer, spark=spark, info_fetcher=info_fetcher).execute()
     captured = capfd.readouterr()
     assert "12345" in captured.out
 
 
-def test_get_sql_commands():
-    info_fetcher = InfoFetcher(spark=Mock(), columns_table_name="default.columns_mock")
-    data_explorer = DataExplorer("catalog1.schema1.table1", spark=Mock(), info_fetcher=info_fetcher)
-
-    # Mocking get_tables_info to return a sample table list
-    info_fetcher.get_tables_info = Mock(return_value=[sample_table_info])
-
-    # Mocking _build_sql to return a sample SQL query
-    data_explorer._build_sql = Mock(return_value="SELECT * FROM catalog1.schema1.table1")
-
-    expected_sql_commands = [("SELECT * FROM catalog1.schema1.table1", sample_table_info)]
-    assert data_explorer._get_sql_commands() == expected_sql_commands
-
-
 def test_explain(capfd, spark, info_fetcher):
-    data_explorer = DataExplorer("*.*.tb_*", spark=spark, info_fetcher=info_fetcher)
+    data_explorer = DataExplorer("*.*.tb_*").having_columns("ip.v2").with_concurrency(2)
 
-    data_explorer.having_columns("ip.v2").with_concurrency(2).with_sql(
-        "SELECT `something` FROM {full_table_name}"
-    ).explain()
+    data_explorer._sql_query_template = "SELECT `something` FROM {full_table_name}"
+
+    DataExplorerActions(data_explorer, spark, info_fetcher).explain()
 
     captured = capfd.readouterr()
     assert "SELECT `something` FROM " in captured.out

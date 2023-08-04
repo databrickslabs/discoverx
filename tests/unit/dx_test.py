@@ -60,7 +60,7 @@ def test_sql_template(spark):
         dx.from_tables("*.*.*")
         .having_columns("id")
         .with_sql("SELECT 1 AS a FROM {full_table_name} WHERE id = 1")
-        .to_dataframe()
+        .to_union_dataframe()
         .count()
     )
 
