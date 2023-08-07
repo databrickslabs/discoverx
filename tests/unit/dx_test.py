@@ -67,6 +67,14 @@ def test_sql_template(spark):
     assert result > 0
 
 
+def test_sql_template(spark):
+    dx = DX(spark=spark)
+
+    with pytest.raises(Exception) as no_search_term_error:
+        dx.from_tables("*.*.*").with_sql("Not-a-SQL-query").execute()
+    assert no_search_term_error.value.args[0] == "No SQL statements were successfully executed."
+
+
 def test_scan_and_msql(spark, dx_ip):
     """
     End-2-end test involving both scanning and searching
