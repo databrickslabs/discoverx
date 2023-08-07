@@ -29,7 +29,7 @@ def test_build_sql(sample_table_info):
 
 
 def test_run_sql(spark, info_fetcher):
-    data_explorer = DataExplorer("*.*.tb_1")
+    data_explorer = DataExplorer("*.*.tb_1", spark, info_fetcher)
     data_explorer._sql_query_template = "SELECT 1 AS a FROM {full_table_name}"
 
     result = (
@@ -43,7 +43,7 @@ def test_run_sql(spark, info_fetcher):
 
 
 def test_execute(spark, info_fetcher, capfd):
-    data_explorer = DataExplorer("*.*.tb_1")
+    data_explorer = DataExplorer("*.*.tb_1", spark, info_fetcher)
     data_explorer._sql_query_template = "SELECT 12345 AS a FROM {full_table_name}"
 
     result = DataExplorerActions(data_explorer=data_explorer, spark=spark, info_fetcher=info_fetcher).execute()
@@ -52,7 +52,7 @@ def test_execute(spark, info_fetcher, capfd):
 
 
 def test_explain(capfd, spark, info_fetcher):
-    data_explorer = DataExplorer("*.*.tb_*").having_columns("ip.v2").with_concurrency(2)
+    data_explorer = DataExplorer("*.*.tb_*", spark, info_fetcher).having_columns("ip.v2").with_concurrency(2)
 
     data_explorer._sql_query_template = "SELECT `something` FROM {full_table_name}"
 
