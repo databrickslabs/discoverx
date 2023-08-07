@@ -88,7 +88,6 @@ class DataExplorer:
         self._spark = spark
         self._info_fetcher = info_fetcher
         self._having_columns = []
-        # self._having_classes = []
         self._sql_query_template = None
         self._max_concurrency = 10
 
@@ -110,7 +109,6 @@ class DataExplorer:
         new_obj._schemas = copy.deepcopy(self._schemas)
         new_obj._tables = copy.deepcopy(self._tables)
         new_obj._having_columns = copy.deepcopy(self._having_columns)
-        # new_obj._having_classes = copy.deepcopy(self._having_classes)
         new_obj._sql_query_template = copy.deepcopy(self._sql_query_template)
         new_obj._max_concurrency = copy.deepcopy(self._max_concurrency)
 
@@ -123,11 +121,6 @@ class DataExplorer:
         new_obj = copy.deepcopy(self)
         new_obj._having_columns.extend(columns)
         return new_obj
-
-    # def having_classes(self, *classes) -> "DataExplorer":
-    #     new_obj = copy.deepcopy(self)
-    #     new_obj._having_classes.extend(classes)
-    #     return new_obj
 
     def with_concurrency(self, max_concurrency) -> "DataExplorer":
         new_obj = copy.deepcopy(self)
@@ -204,8 +197,6 @@ class DataExplorerActions:
             column_filter_explanation = (
                 f"only for tables that have all the following columns: {data_explorer._having_columns}"
             )
-        # if data_explorer._having_classes:
-        # class_filter_explanation = f"only for tables that have all the following classes: {data_explorer._having_classes}"
         if data_explorer._sql_query_template:
             sql_explanation = f"The SQL to be executed is (just a moment, generating it...):"
 
