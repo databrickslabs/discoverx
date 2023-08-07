@@ -8,6 +8,7 @@ from discoverx.scanner import ColumnInfo, TableInfo
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
+from pyspark.sql.types import Row
 
 logger = logging.Logging()
 
@@ -17,25 +18,26 @@ class InfoFetcher:
         self.columns_table_name = columns_table_name
         self.spark = spark
 
-    def _to_info_list(self, df: pd.DataFrame) -> list[TableInfo]:
-        def collect_column_info(row):
-            return ColumnInfo(row["column_name"], row["data_type"], row["partition_index"], [])
-
-        grouped = df.groupby(["table_catalog", "table_schema", "table_name"], dropna=False).apply(
-            lambda group: TableInfo(
-                group["table_catalog"].iloc[0],
-                group["table_schema"].iloc[0],
-                group["table_name"].iloc[0],
-                [collect_column_info(row) for _, row in group.iterrows()],
+    def _to_info_list(self, info_rows: list[Row]) -> list[TableInfo]:
+        filtered_tables = [
+            TableInfo(
+                row["table_catalog"],
+                row["table_schema"],
+                row["table_name"],
+                [
+                    ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
+                    for col in row["table_columns"]
+                ],
             )
-        )
-        return grouped.tolist()
+            for row in info_rows
+        ]
+        return filtered_tables
 
     def get_tables_info(self, catalogs: str, schemas: str, tables: str, columns: list[str] = []) -> list[TableInfo]:
         # Filter tables by matching filter
         table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns)
 
-        filtered_tables = self.spark.sql(table_list_sql).toPandas()
+        filtered_tables = self.spark.sql(table_list_sql).collect()
 
         if len(filtered_tables) == 0:
             raise ValueError(f"No tables found matching filter: {catalogs}.{schemas}.{tables}")
@@ -60,20 +62,31 @@ class InfoFetcher:
             columns_sql = f"""AND regexp_like(column_name, "^{match_any_col}$")"""
 
         sql = f"""
-        SELECT 
-            table_catalog, 
-            table_schema, 
-            table_name, 
-            column_name, 
-            data_type, 
-            partition_index
-        FROM {self.columns_table_name}
-        WHERE 
-            table_schema != "information_schema" 
-            {catalog_sql if catalogs != "*" else ""}
-            {schema_sql if schemas != "*" else ""}
-            {table_sql if tables != "*" else ""}
-            {columns_sql if columns else ""}
+        WITH tb_list AS (
+            SELECT DISTINCT
+                table_catalog, 
+                table_schema, 
+                table_name
+            FROM {self.columns_table_name}
+            WHERE 
+                table_schema != "information_schema" 
+                {catalog_sql if catalogs != "*" else ""}
+                {schema_sql if schemas != "*" else ""}
+                {table_sql if tables != "*" else ""}
+                {columns_sql if columns else ""}
+        )
+
+        SELECT
+            info_schema.table_catalog, 
+            info_schema.table_schema, 
+            info_schema.table_name, 
+            collect_list(struct(column_name, data_type, partition_index)) as table_columns
+        FROM {self.columns_table_name} info_schema
+        INNER JOIN tb_list ON (
+            info_schema.table_catalog <=> tb_list.table_catalog AND
+            info_schema.table_schema = tb_list.table_schema AND
+            info_schema.table_name = tb_list.table_name)
+        GROUP BY info_schema.table_catalog, info_schema.table_schema, info_schema.table_name
         """
 
         return helper.strip_margin(sql)
@@ -132,6 +145,17 @@ class DataExplorer:
         new_obj._sql_query_template = sql_query_template
         return DataExplorerActions(new_obj, spark=self._spark, info_fetcher=self._info_fetcher)
 
+    def melt_string_columns(self, sample_size=None) -> "DataExplorerActions":
+        sql_query_template = """
+        SELECT
+            {stack_string_columns} AS (column_name, string_value)
+        FROM {full_table_name}
+        """
+        if sample_size is not None:
+            sql_query_template += f"TABLESAMPLE ({sample_size} ROWS)"
+
+        return self.with_sql(sql_query_template)
+
 
 class DataExplorerActions:
     def __init__(
@@ -146,16 +170,26 @@ class DataExplorerActions:
         self._spark = spark
 
     @staticmethod
+    def _get_stack_string_columns_expression(table_info: TableInfo) -> str:
+        string_col_names = [c.name for c in table_info.columns if c.data_type.lower() == "string"]
+        stack_parameters = ", ".join([f"'{c}', `{c}`" for c in string_col_names])
+        return f"stack({len(string_col_names)}, {stack_parameters})"
+
+    @staticmethod
     def _build_sql(sql_template: str, table_info: TableInfo) -> str:
         if table_info.catalog and table_info.catalog != "None":
             full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
         else:
             full_table_name = f"{table_info.schema}.{table_info.table}"
+
+        stack_string_columns = DataExplorerActions._get_stack_string_columns_expression(table_info)
+
         sql = sql_template.format(
             table_catalog=table_info.catalog,
             table_schema=table_info.schema,
             table_name=table_info.table,
             full_table_name=full_table_name,
+            stack_string_columns=stack_string_columns,
         )
         return sql
 

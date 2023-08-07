@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 from discoverx.dx import DX
 from discoverx import logging
+from pyspark.sql.functions import col
 
 logger = logging.Logging()
 
@@ -67,12 +68,28 @@ def test_sql_template(spark):
     assert result > 0
 
 
-def test_sql_template(spark):
+def test_sql_template_fails_for_incorrect_sql(spark):
     dx = DX(spark=spark)
 
     with pytest.raises(Exception) as no_search_term_error:
         dx.from_tables("*.*.*").with_sql("Not-a-SQL-query").execute()
     assert no_search_term_error.value.args[0] == "No SQL statements were successfully executed."
+
+
+def test_melt_string_columns(spark):
+    dx = DX(spark=spark)
+
+    df = dx.from_tables("*.*.*").melt_string_columns().to_union_dataframe()
+
+    assert df.filter(col("column_name") == "ip.v2").count() > 1
+
+
+def test_melt_string_columns_with_sampling(spark):
+    dx = DX(spark=spark)
+
+    df = dx.from_tables("*.*.*").melt_string_columns(sample_size=1).to_union_dataframe()
+
+    assert df.filter(col("column_name") == "ip.v2").count() == 1
 
 
 def test_scan_and_msql(spark, dx_ip):
