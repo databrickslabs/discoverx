@@ -253,7 +253,7 @@ class DataExplorerActions:
 
         if self._data_explorer._having_columns:
             column_filter_explanation = (
-                f"only for tables that have all the following columns: {data_explorer._having_columns}"
+                f"only for tables that have all the following columns: {self._data_explorer._having_columns}"
             )
         if self._data_explorer._sql_query_template:
             sql_explanation = f"The SQL to be executed is (just a moment, generating it...):"
@@ -292,11 +292,9 @@ class DataExplorerActions:
     def to_union_dataframe(self) -> DataFrame:
         """Executes the data exploration queries and returns a DataFrame with the results"""
 
-        data_explorer = self._data_explorer
-
-        sql_commands = self._get_sql_commands(data_explorer)
+        sql_commands = self._get_sql_commands(self._data_explorer)
         dfs = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=data_explorer._max_concurrency) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self._data_explorer._max_concurrency) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(self._run_sql, sql, table) for sql, table in sql_commands]
 
