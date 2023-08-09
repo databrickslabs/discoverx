@@ -93,7 +93,7 @@ class InfoFetcher:
 
 
 class DataExplorer:
-    from_components_expr = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
+    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
 
     def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
         self._from_tables = from_tables
@@ -107,7 +107,7 @@ class DataExplorer:
     @staticmethod
     def validate_from_components(from_tables: str):
         """Extracts the catalog, schema and table name from the from_table string"""
-        matches = re.findall(DataExplorer.from_components_expr, from_tables)
+        matches = re.findall(DataExplorer.FROM_COMPONENTS_EXPR, from_tables)
         if len(matches) == 1 and len(matches[0]) == 4:
             return (matches[0][1], matches[0][2], matches[0][3])
         else:
@@ -131,21 +131,43 @@ class DataExplorer:
         return new_obj
 
     def having_columns(self, *columns) -> "DataExplorer":
+        """Will select tables that contain any of the provided columns
+
+        Args:
+            columns (list[str]): The list of column names to filter by
+        """
         new_obj = copy.deepcopy(self)
         new_obj._having_columns.extend(columns)
         return new_obj
 
     def with_concurrency(self, max_concurrency) -> "DataExplorer":
+        """Sets the maximum number of concurrent queries to run"""
         new_obj = copy.deepcopy(self)
         new_obj._max_concurrency = max_concurrency
         return new_obj
 
     def with_sql(self, sql_query_template: str) -> "DataExplorerActions":
+        """Sets the SQL query template to use for the data exploration
+
+        Args:
+            sql_query_template (str): The SQL query template to use. The template might contain the following variables:
+                - table_catalog: The table catalog name
+                - table_schema: The table schema name
+                - table_name: The table name
+                - full_table_name: The full table name (catalog.schema.table)
+                - stack_string_columns: A SQL expression that returns a table with two columns: column_name and string_value
+        """
         new_obj = copy.deepcopy(self)
         new_obj._sql_query_template = sql_query_template
         return DataExplorerActions(new_obj, spark=self._spark, info_fetcher=self._info_fetcher)
 
     def melt_string_columns(self, sample_size=None) -> "DataExplorerActions":
+        """Returns a DataExplorerActions object that will run a query that will melt all string columns into a pair of columns (column_name, string_value)
+
+        Args:
+            sample_size (int, optional): The number of rows to sample. Defaults to None (Return all rows).
+        """
+
         sql_query_template = """
         SELECT
             {stack_string_columns} AS (column_name, string_value)
@@ -222,33 +244,35 @@ class DataExplorerActions:
         return sql_commands
 
     def explain(self) -> None:
-        data_explorer = self._data_explorer
+        """Prints a friendly explanation of the data exploration that will be performed
+
+        The explanation will include the SQL query that will be executed, and the tables that will be scanned
+        """
         column_filter_explanation = ""
-        # class_filter_explanation = ""
         sql_explanation = ""
 
-        if data_explorer._having_columns:
+        if self._data_explorer._having_columns:
             column_filter_explanation = (
                 f"only for tables that have all the following columns: {data_explorer._having_columns}"
             )
-        if data_explorer._sql_query_template:
+        if self._data_explorer._sql_query_template:
             sql_explanation = f"The SQL to be executed is (just a moment, generating it...):"
 
         explanation = f"""
         DiscoverX will apply the following SQL template
 
-        {data_explorer._sql_query_template}
+        {self._data_explorer._sql_query_template}
 
         to the tables in the following catalog, schema, table combinations:
-        {data_explorer._from_tables}
+        {self._data_explorer._from_tables}
         {column_filter_explanation}
         {sql_explanation}
         """
         logger.friendly(helper.strip_margin(explanation))
 
         detailed_explanation = ""
-        if data_explorer._sql_query_template:
-            sql_commands = self._get_sql_commands(data_explorer)
+        if self._data_explorer._sql_query_template:
+            sql_commands = self._get_sql_commands(self._data_explorer)
             for sql, table in sql_commands:
                 detailed_explanation += f"""
                 <p>For table: {table.catalog}.{table.schema}.{table.table}</p>
@@ -257,7 +281,8 @@ class DataExplorerActions:
 
             logger.friendlyHTML(detailed_explanation)
 
-    def execute(self) -> DataFrame:
+    def execute(self) -> None:
+        """Executes the data exploration queries and displays a sample of results"""
         df = self.to_union_dataframe()
         try:
             df.display()
@@ -265,6 +290,8 @@ class DataExplorerActions:
             df.show(truncate=False)
 
     def to_union_dataframe(self) -> DataFrame:
+        """Executes the data exploration queries and returns a DataFrame with the results"""
+
         data_explorer = self._data_explorer
 
         sql_commands = self._get_sql_commands(data_explorer)
