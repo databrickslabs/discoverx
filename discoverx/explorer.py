@@ -146,7 +146,7 @@ class DataExplorer:
         new_obj._max_concurrency = max_concurrency
         return new_obj
 
-    def with_sql(self, sql_query_template: str) -> "DataExplorerActions":
+    def apply_sql(self, sql_query_template: str) -> "DataExplorerActions":
         """Sets the SQL query template to use for the data exploration
 
         Args:
@@ -176,7 +176,7 @@ class DataExplorer:
         if sample_size is not None:
             sql_query_template += f"TABLESAMPLE ({sample_size} ROWS)"
 
-        return self.with_sql(sql_query_template)
+        return self.apply_sql(sql_query_template)
 
 
 class DataExplorerActions:

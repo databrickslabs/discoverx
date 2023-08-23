@@ -60,7 +60,7 @@ def test_sql_template(spark):
     result = (
         dx.from_tables("*.*.*")
         .having_columns("id")
-        .with_sql("SELECT 1 AS a FROM {full_table_name} WHERE id = 1")
+        .apply_sql("SELECT 1 AS a FROM {full_table_name} WHERE id = 1")
         .to_union_dataframe()
         .count()
     )
@@ -72,7 +72,7 @@ def test_sql_template_fails_for_incorrect_sql(spark):
     dx = DX(spark=spark)
 
     with pytest.raises(Exception) as no_search_term_error:
-        dx.from_tables("*.*.*").with_sql("Not-a-SQL-query").execute()
+        dx.from_tables("*.*.*").apply_sql("Not-a-SQL-query").execute()
     assert no_search_term_error.value.args[0] == "No SQL statements were successfully executed."
 
 

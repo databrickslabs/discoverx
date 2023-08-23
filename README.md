@@ -31,7 +31,7 @@ For example, to vacuum all the tables in "default" catalog:
 
 ```
 dx.from_tables("default.*.*")\
-  .with_sql("VACUUM {full_table_name}")\
+  .apply_sql("VACUUM {full_table_name}")\
   .execute()
 ```
 
@@ -47,7 +47,7 @@ You can use the `explain()` command to see the SQL that would be executed.
 
 ```
 dx.from_tables("default.*.*")\
-  .with_sql("VACUUM {full_table_name}")\
+  .apply_sql("VACUUM {full_table_name}")\
   .explain()
 ```
 
@@ -57,7 +57,7 @@ Eg.
 ```
 dx.from_tables("default.*.*")\
   .having_columns("device_id")\
-  .with_sql("OPTIMIZE {full_table_name} ZORDER BY (`device_id`)")\
+  .apply_sql("OPTIMIZE {full_table_name} ZORDER BY (`device_id`)")\
   .execute()
 ```
 
