@@ -43,11 +43,3 @@ dx.from_tables(from_tables)\
   .apply_sql("VACUUM {full_table_name}")
   .execute()
 )
-
-# COMMAND ----------
-
-df = (dx.from_tables("sample_data_discoverx.*.*")
-  .having_columns("email")
-  .with_sql("OPTIMIZE {full_table_name} ZORDER BY (email)")
-  .execute()
-)
