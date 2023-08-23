@@ -161,7 +161,7 @@ class DataExplorer:
         new_obj._sql_query_template = sql_query_template
         return DataExplorerActions(new_obj, spark=self._spark, info_fetcher=self._info_fetcher)
 
-    def melt_string_columns(self, sample_size=None) -> "DataExplorerActions":
+    def unpivot_string_columns(self, sample_size=None) -> "DataExplorerActions":
         """Returns a DataExplorerActions object that will run a query that will melt all string columns into a pair of columns (column_name, string_value)
 
         Args:

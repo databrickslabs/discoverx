@@ -76,18 +76,18 @@ def test_sql_template_fails_for_incorrect_sql(spark):
     assert no_search_term_error.value.args[0] == "No SQL statements were successfully executed."
 
 
-def test_melt_string_columns(spark):
+def test_unpivot_string_columns(spark):
     dx = DX(spark=spark)
 
-    df = dx.from_tables("*.*.*").melt_string_columns().to_union_dataframe()
+    df = dx.from_tables("*.*.*").unpivot_string_columns().to_union_dataframe()
 
     assert df.filter(col("column_name") == "ip.v2").count() > 1
 
 
-def test_melt_string_columns_with_sampling(spark):
+def test_unpivot_string_columns_with_sampling(spark):
     dx = DX(spark=spark)
 
-    df = dx.from_tables("*.*.*").melt_string_columns(sample_size=1).to_union_dataframe()
+    df = dx.from_tables("*.*.*").unpivot_string_columns(sample_size=1).to_union_dataframe()
 
     assert df.filter(col("column_name") == "ip.v2").count() == 1
 
