@@ -43,10 +43,11 @@ sample_size = 100
 
 # COMMAND ----------
 
-from presidio_analyzer import AnalyzerEngine, PatternRecognizer
-from pyspark.sql.functions import pandas_udf, col, concat, lit, explode, count, avg, sum
-from pyspark.sql.types import ArrayType, StringType, StructType, FloatType, StructField
 import pandas as pd
+from presidio_analyzer import AnalyzerEngine, PatternRecognizer
+from pyspark.sql.functions import pandas_udf, col, concat, lit, explode, count, avg, min, max, sum
+from pyspark.sql.types import ArrayType, StringType, StructType, FloatType, StructField
+from typing import Iterator
 
 # COMMAND ----------
 
@@ -84,9 +85,11 @@ unpivoted_stats = unpivoted_df.groupBy("table_catalog", "table_schema", "table_n
 
 # MAGIC %md
 # MAGIC ## Define Presidio UDFs
-
+# MAGIC
 
 # COMMAND ----------
+
+
 
 # Define the analyzer, and add custom matchers if needed
 analyzer = AnalyzerEngine()
@@ -94,11 +97,9 @@ analyzer = AnalyzerEngine()
 # broadcast the engines to the cluster nodes
 broadcasted_analyzer = sc.broadcast(analyzer)
 
-
 # define a pandas UDF function and a series function over it.
-def analyze_text(text: str) -> list[str]:
+def analyze_text(text: str, analyzer: AnalyzerEngine) -> list[str]:
     try:
-        analyzer = broadcasted_analyzer.value
         analyzer_results = analyzer.analyze(text=text, language="en")
         dic = {}
         # Deduplicate the detections and take the max scode per entity type
@@ -111,9 +112,12 @@ def analyze_text(text: str) -> list[str]:
     except:
         return []
 
-
-def analyze_series(s: pd.Series) -> pd.Series:
-    return s.apply(analyze_text)
+# define the iterator of series to minimize 
+def analyze_series(iterator: Iterator[pd.Series]) -> Iterator[pd.Series]:
+    analyzer = broadcasted_analyzer.value
+    for series in iterator:
+        # Use that state for whole iterator.
+        yield series.apply(lambda t: analyze_text(t, analyzer))
 
 
 # define a the function as pandas UDF
@@ -150,17 +154,19 @@ detections = (
 
 summarised_detections = (
     detections.groupBy("table_catalog", "table_schema", "table_name", "column_name", "entity_type")
-    .agg(count("string_value").alias("value_count"), avg("score").alias("avg_score"), sum("score").alias("sum_score"))
+    .agg(
+      count("string_value").alias("value_count"),
+      max("score").alias("max_score"), 
+      sum("score").alias("sum_score"))
     .join(unpivoted_stats, ["table_catalog", "table_schema", "table_name", "column_name"])
     .withColumn("score", col("sum_score") / col("sampled_rows_count"))
-    .select("table_catalog", "table_schema", "table_name", "column_name", "entity_type", "score")
+    .select("table_catalog", "table_schema", "table_name", "column_name", "entity_type", "score", "max_score")
 )
 
+# TODO: Comment out the display when saving the result to table
 summarised_detections.display()
 
 # COMMAND ----------
 
 # TODO: Store result to a table
 # summarised_detections.write.saveAsTable("default..")
-
-# COMMAND ----------
