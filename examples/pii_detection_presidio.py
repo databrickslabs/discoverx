@@ -3,6 +3,11 @@
 # MAGIC # PII detection with DiscoverX & Presidio
 # MAGIC
 # MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to run PII detection with [Presidio](https://microsoft.github.io/presidio/) over a set of tables in Unity Catalog.
+# MAGIC
+# MAGIC The notebook will:
+# MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
+# MAGIC 2. Run PII detection with Presidio
+# MAGIC 3. Compute summarised statistics per table and column
 
 # COMMAND ----------
 
