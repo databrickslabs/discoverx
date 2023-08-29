@@ -16,7 +16,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install presidio_analyzer
+# MAGIC %pip install presidio_analyzer==2.2.33 dbl-discoverx==0.0.5
 
 # COMMAND ----------
 
@@ -90,12 +90,12 @@ unpivoted_stats = unpivoted_df.groupBy("table_catalog", "table_schema", "table_n
 # COMMAND ----------
 
 
-
 # Define the analyzer, and add custom matchers if needed
 analyzer = AnalyzerEngine()
 
 # broadcast the engines to the cluster nodes
 broadcasted_analyzer = sc.broadcast(analyzer)
+
 
 # define a pandas UDF function and a series function over it.
 def analyze_text(text: str, analyzer: AnalyzerEngine) -> list[str]:
@@ -112,7 +112,8 @@ def analyze_text(text: str, analyzer: AnalyzerEngine) -> list[str]:
     except:
         return []
 
-# define the iterator of series to minimize 
+
+# define the iterator of series to minimize
 def analyze_series(iterator: Iterator[pd.Series]) -> Iterator[pd.Series]:
     analyzer = broadcasted_analyzer.value
     for series in iterator:
@@ -154,10 +155,7 @@ detections = (
 
 summarised_detections = (
     detections.groupBy("table_catalog", "table_schema", "table_name", "column_name", "entity_type")
-    .agg(
-      count("string_value").alias("value_count"),
-      max("score").alias("max_score"), 
-      sum("score").alias("sum_score"))
+    .agg(count("string_value").alias("value_count"), max("score").alias("max_score"), sum("score").alias("sum_score"))
     .join(unpivoted_stats, ["table_catalog", "table_schema", "table_name", "column_name"])
     .withColumn("score", col("sum_score") / col("sampled_rows_count"))
     .select("table_catalog", "table_schema", "table_name", "column_name", "entity_type", "score", "max_score")
