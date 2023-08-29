@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.0.5
+* Added support for multi-table SQL execution dx.from_tables(...).apply_sql(...)
+* Added example of VACUUM command to multiple tables
+* Added example of PII detection using Presidio over multiple tables
+
 ## v0.0.4
 * Removed pydantic dependency
 * Fixed issues with special characters in column names
