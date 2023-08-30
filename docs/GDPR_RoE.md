@@ -14,20 +14,6 @@ dx.from_tables("*.*.*")\
   # You can use .explain() instead of .execute() to preview the generated SQL 
 ```
 
-### Delete by class
-
-You can also delete using a column class instead of the column name. For instance if you want to delete all rows that contain the email address
-
-Show delete statements
-```
-dx.delete_by_class(from_tables="*.*.*", by_class="email", values=['example_email@databricks.com'], yes_i_am_sure=False, min_score=0.95)
-```
-
-Execute delete statements
-```
-dx.delete_by_class(from_tables="*.*.*", by_class="email", values=['example_email@databricks.com'], yes_i_am_sure=True, min_score=0.95)
-```
-
 ## Vaccum
 
 Note: You need to regularly [vacuum](https://docs.delta.io/latest/delta-utility.html#remove-files-no-longer-referenced-by-a-delta-table) all your delta tables to remove all traces of your deleted rows. 
