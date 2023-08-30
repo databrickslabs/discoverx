@@ -41,6 +41,47 @@ from discoverx import DX
 dx = DX(locale="US")
 ```
 
+You can now run operations across multiple tables. 
+
+For example you can select one row from all tables which name contains `sample` in a catalog starting with `dev_` with
+
+```
+dx.from_tables("dev_*.*.*sample*")\
+  .apply_sql("SELECT to_json(struct(*)) AS row FROM {full_table_name} LIMIT 1")\
+  .execute()
+```
+
+## Available functionality
+
+The available `dx` functions are
+
+* `from_tables("<catalog>.<schema>.<table>")` selects tables based on the specified pattern (use `*` as a wildcard). Returns a [DataExplorer](#dataexplorer-object) object. 
+* `intro` gives an introduction to the library
+* `scan` scans the lakehouse with regex expressions defined by the rules and to power the semantic classification. [Documentation](docs/Semantic_classification.md)
+* `display_rules` shows the rules available for semantic classification
+* `search` searches the lakehouse content for by leveraging the semantic classes identified with scan (eg. email, ip address, etc.). [Documentaiton](docs/Search.md)
+* `select_by_class` selects data from the lakehouse content by semantic class. [Documentation](docs/Select_by_class.md)
+* `delete_by_class` deletes from the lakehouse by semantic class. [Documentation](docs/Delete_by_class.md)
+
+### DataExplorer Object
+
+The functions available from the `DataExplorer` Object are:
+
+* `having_columns` restricts the selection to tables that have the specified columns
+* `with_concurrency` defines how many queries are executed concurrently (10 by defailt)
+* `apply_sql` applies a SQL template to all tables and returns a [DataExplorerActions](#dataexploreractions-object) object
+* `unpivot_string_columns` returns a melted (unpivoted) dataframe with all string columns from the selected tables and returns a [DataExplorerActions](#dataexploreractions-object) object
+
+### DataExplorerActions Object
+
+The functions available from the `DataExplorerActions` Object are:
+
+* `explain` explains the queries that would be executed
+* `execute` executes the queries and shows the result in a unioned dataframe
+* `to_union_df` unions all the dataframes that result from the queries
+
+
+
 ## Requirements
 
 * A [Databricks workspace](https://www.databricks.com/try-databricks#account)
