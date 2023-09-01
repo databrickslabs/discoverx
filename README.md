@@ -10,20 +10,20 @@ Run a single command to execute operations across many tables.
 
 Operations are applied concurrently across multiple tables
 
-* Manitenance operations
+* **Maintenance**
   * [VACUUM all tables](docs/Vacuum.md) ([example notebook](examples/vacuum_multiple_tables.py))
   * OPTIMIZE with z-order on tables having specified columns
   * Visualise quantity of data written per table per period
-* Governance operations
+* **Governance**
   * PII detection with Presidio ([example notebook](examples/pii_detection_presidio.py))
   * [GDPR right of access: extract user data from all tables at once](docs/GDPR_RoA.md)
   * [GDPR right of erasure: delete user data from all tables at once](docs/GDPR_RoE.md)
   * [Search in any column](docs/Search.md)
-* Semantic classification operations
+* **Semantic classification**
   * [Semantic classification of columns by semantic type](docs/Semantic_classification.md): email, phone number, IP address, etc.
   * [Select data based on semantic types](docs/Select_by_class.md)
   * [Delete data based on semantic types](docs/Delete_by_class.md)
-* Custom operations
+* **Custom**
   * [Arbitrary SQL template execution across multiple tables](docs/Arbitrary_multi-table_SQL.md)
 
 ## Getting started
@@ -43,7 +43,7 @@ dx = DX(locale="US")
 
 You can now run operations across multiple tables. 
 
-For example you can select one row from all tables which name contains `sample` in a catalog starting with `dev_` with
+As an illustration, consider the scenario where you need to retrieve a single row from various tables within a catalog that begins with "dev_" and includes the term "sample" in their names. To achieve this, the following code block utilizes the dx.from_tables function, which applies an SQL query to extract JSON-formatted data:
 
 ```
 dx.from_tables("dev_*.*.*sample*")\
@@ -55,22 +55,18 @@ dx.from_tables("dev_*.*.*sample*")\
 
 The available `dx` functions are
 
-* `from_tables("<catalog>.<schema>.<table>")` selects tables based on the specified pattern (use `*` as a wildcard). Returns a [DataExplorer](#dataexplorer-object) object. 
+* `from_tables("<catalog>.<schema>.<table>")` selects tables based on the specified pattern (use `*` as a wildcard). Returns a `DataExplorer` object with methods
+  * `having_columns` restricts the selection to tables that have the specified columns
+  * `with_concurrency` defines how many queries are executed concurrently (10 by defailt)
+  * `apply_sql` applies a SQL template to all tables and returns a [DataExplorerActions](#dataexploreractions-object) object. See in-depth documentation [here](docs/Arbitrary_multi-table_SQL.md).
+  * `unpivot_string_columns` returns a melted (unpivoted) dataframe with all string columns from the selected tables and returns a [DataExplorerActions](#dataexploreractions-object) object
 * `intro` gives an introduction to the library
 * `scan` scans the lakehouse with regex expressions defined by the rules and to power the semantic classification. [Documentation](docs/Semantic_classification.md)
 * `display_rules` shows the rules available for semantic classification
-* `search` searches the lakehouse content for by leveraging the semantic classes identified with scan (eg. email, ip address, etc.). [Documentaiton](docs/Search.md)
+* `search` searches the lakehouse content for by leveraging the semantic classes identified with scan (eg. email, ip address, etc.). [Documentation](docs/Search.md)
 * `select_by_class` selects data from the lakehouse content by semantic class. [Documentation](docs/Select_by_class.md)
 * `delete_by_class` deletes from the lakehouse by semantic class. [Documentation](docs/Delete_by_class.md)
 
-### DataExplorer Object
-
-The functions available from the `DataExplorer` Object are:
-
-* `having_columns` restricts the selection to tables that have the specified columns
-* `with_concurrency` defines how many queries are executed concurrently (10 by defailt)
-* `apply_sql` applies a SQL template to all tables and returns a [DataExplorerActions](#dataexploreractions-object) object
-* `unpivot_string_columns` returns a melted (unpivoted) dataframe with all string columns from the selected tables and returns a [DataExplorerActions](#dataexploreractions-object) object
 
 ### DataExplorerActions Object
 

@@ -4,7 +4,7 @@
 You can run arbitrary SQL operations on multiple tables. In order for this to work, the dataset of each SQL command should return the same schema. You can align the schemas by:
 * Running schema-agnostic commands (Eg. Vacuum, Optimize, History, Describe, etc.)
 * Specifying the common column names to be selected
-* Melting multiple columns into a "long" format
+* Converting the columns into a JSON ([example](#select-entire-rows-as-json))
 
 For example, to vacuum all the tables in "default" catalog:
 
@@ -31,11 +31,18 @@ dx.from_tables("default.*.*")\
 ```
 
 You can also filter tables that have a specific column name. 
-Eg.
 
 ```
 dx.from_tables("default.*.*")\
   .having_columns("device_id")\
   .apply_sql("OPTIMIZE {full_table_name} ZORDER BY (`device_id`)")\
+  .execute()
+```
+
+## Select entire rows as json
+
+```
+dx.from_tables("default.*.*")\
+  .apply_sql("SELECT to_json(struct(*)) AS json_row FROM {full_table_name}")\
   .execute()
 ```
