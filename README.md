@@ -58,8 +58,8 @@ The available `dx` functions are
 * `from_tables("<catalog>.<schema>.<table>")` selects tables based on the specified pattern (use `*` as a wildcard). Returns a `DataExplorer` object with methods
   * `having_columns` restricts the selection to tables that have the specified columns
   * `with_concurrency` defines how many queries are executed concurrently (10 by defailt)
-  * `apply_sql` applies a SQL template to all tables and returns a [DataExplorerActions](#dataexploreractions-object) object. See in-depth documentation [here](docs/Arbitrary_multi-table_SQL.md).
-  * `unpivot_string_columns` returns a melted (unpivoted) dataframe with all string columns from the selected tables and returns a [DataExplorerActions](#dataexploreractions-object) object
+  * `apply_sql` applies a SQL template to all tables. After this command you can apply an [action](#from_tables-actions). See in-depth documentation [here](docs/Arbitrary_multi-table_SQL.md).
+  * `unpivot_string_columns` returns a melted (unpivoted) dataframe with all string columns from the selected tables. After this command you can apply an [action](#from_tables-actions)
 * `intro` gives an introduction to the library
 * `scan` scans the lakehouse with regex expressions defined by the rules and to power the semantic classification. [Documentation](docs/Semantic_classification.md)
 * `display_rules` shows the rules available for semantic classification
@@ -68,14 +68,13 @@ The available `dx` functions are
 * `delete_by_class` deletes from the lakehouse by semantic class. [Documentation](docs/Delete_by_class.md)
 
 
-### DataExplorerActions Object
+### from_tables Actions
 
-The functions available from the `DataExplorerActions` Object are:
+After a `apply_sql` or `unpivot_string_columns` command, you can apply the following actions:
 
 * `explain` explains the queries that would be executed
 * `execute` executes the queries and shows the result in a unioned dataframe
 * `to_union_df` unions all the dataframes that result from the queries
-
 
 
 ## Requirements
