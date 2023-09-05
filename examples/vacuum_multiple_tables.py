@@ -8,7 +8,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install dbl-discoverx
+# MAGIC %pip install dbl-discoverx==0.0.5
 
 # COMMAND ----------
 
@@ -28,9 +28,7 @@ dx = DX()
 
 # COMMAND ----------
 
-dx.from_tables(from_tables)\
-  .apply_sql("VACUUM {full_table_name}")\
-  .explain()
+dx.from_tables(from_tables).apply_sql("VACUUM {full_table_name}").explain()
 
 # COMMAND ----------
 
@@ -39,7 +37,4 @@ dx.from_tables(from_tables)\
 
 # COMMAND ----------
 
-(dx.from_tables(from_tables)
-  .apply_sql("VACUUM {full_table_name}")
-  .execute()
-)
+(dx.from_tables(from_tables).apply_sql("VACUUM {full_table_name}").execute())
