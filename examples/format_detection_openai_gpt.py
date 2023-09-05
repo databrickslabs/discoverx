@@ -1,13 +1,12 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # PII detection with DiscoverX & Presidio
+# MAGIC # PII detection with DiscoverX & Azure OpenAI
 # MAGIC
-# MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to run PII detection with [Presidio](https://microsoft.github.io/presidio/) over a set of tables in Unity Catalog.
+# MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to run PII detection with [AZURE OpenAI API](https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=command-line&pivots=programming-language-studio) over a set of tables in Unity Catalog.
 # MAGIC
 # MAGIC The notebook will:
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
-# MAGIC 2. Run PII detection with Presidio
-# MAGIC 3. Compute summarised statistics per table and column
+# MAGIC 2. Run format detection with Azure OpenAI GPT model
 
 # COMMAND ----------
 
@@ -20,7 +19,19 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Setup widgets
 
+# COMMAND ----------
+
+dbutils.widgets.text("secret_scope","discoverx","Secret Scope")
+dbutils.widgets.text("open_ai_base","openaibase","Secret Key of Open API Base")
+dbutils.widgets.text("open_ai_key","openaikey","Secret Key of Open AI API Key")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Import required libs and initialize variables
 
 # COMMAND ----------
 
@@ -78,14 +89,15 @@ display(unpivoted_df)
 
 # COMMAND ----------
 
-openai_key_broadcast = sc.broadcast(dbutils.secrets.get("discoverx","openaikey"))
+openai_base_broadcast = sc.broadcast(dbutils.secrets.get(dbutils.widgets.get("secret_scope"),dbutils.widgets.get("open_ai_base")))
+openai_key_broadcast = sc.broadcast(dbutils.secrets.get(dbutils.widgets.get("secret_scope"),dbutils.widgets.get("open_ai_key")))
 
 # COMMAND ----------
 
 # Define the UDF function
 @pandas_udf(StringType())
 def predict_value_udf(s):
-    openai.api_base = "https://testopanai.openai.azure.com/"  # Your Azure OpenAI resource's endpoint value.
+    openai.api_base = openai_base_broadcast.value  # Your Azure OpenAI resource's endpoint value.
     openai.api_key = openai_key_broadcast.value
     openai.api_type = "azure"
     openai.api_version = "2023-05-15"
