@@ -74,7 +74,7 @@ After a `apply_sql` or `unpivot_string_columns` command, you can apply the follo
 
 * `explain` explains the queries that would be executed
 * `execute` executes the queries and shows the result in a unioned dataframe
-* `to_union_df` unions all the dataframes that result from the queries
+* `to_union_dataframe` unions all the dataframes that result from the queries
 
 
 ## Requirements
