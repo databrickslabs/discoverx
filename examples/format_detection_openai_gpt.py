@@ -8,7 +8,7 @@
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
 # MAGIC 2. Run format detection with Azure OpenAI GPT model
 
-# COMMAND ---------
+# COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Install dependencies
@@ -27,6 +27,7 @@
 dbutils.widgets.text("secret_scope", "discoverx", "Secret Scope")
 dbutils.widgets.text("open_ai_base", "openaibase", "Secret Key of Open API Base")
 dbutils.widgets.text("open_ai_key", "openaikey", "Secret Key of Open AI API Key")
+dbutils.widgets.text("from_tables", "discoverx_sample.sample_datasets.cyber_data", "from tables")
 
 # COMMAND ----------
 
@@ -56,11 +57,10 @@ from typing import Iterator
 
 # COMMAND ----------
 
-from_tables = "discoverx_sample.sample_datasets.cyber_data"
+from_tables = dbutils.widgets.get("from_tables")
 
-# TODO: Change the num of rows to sample
+# Set the sample rows size
 sample_size = 100
-
 
 # COMMAND ----------
 
@@ -118,7 +118,10 @@ def predict_value_udf(s):
     openai.api_version = "2023-05-15"
 
     def predict_value(s):
-        content = f"Please categorize the following value {s} based on its format into one of the following categories: IPv4, IPv6, MAC, NOT MATCHED. Please reply with just category name"
+        content = f""" Please categorize the text value based on its format into one of the categories.Please reply with just category name
+        Text: {s}
+        Categories: [IPv4, IPv6, MAC, NOT MATCHED]"""
+
         response = openai.ChatCompletion.create(
             engine="gpt-35-turbo",  # The deployment name you chose when you deployed the GPT-35-Turbo or GPT-4 model.
             messages=[{"role": "user", "content": content}],
@@ -137,3 +140,5 @@ df_with_prediction = unpivoted_df.withColumn("entity_type", predict_value_udf(co
 display(df_with_prediction)
 
 # COMMAND ----------
+
+
