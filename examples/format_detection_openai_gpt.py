@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Format detection with DiscoverX & Azure OpenAI
 # MAGIC
-# MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to run PII detection with [AZURE OpenAI API](https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=command-line&pivots=programming-language-studio) over a set of tables in Unity Catalog.
+# MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to run Format detection with [AZURE OpenAI API](https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=command-line&pivots=programming-language-studio) over a set of tables in Unity Catalog.
 # MAGIC
 # MAGIC The notebook will:
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
@@ -27,7 +27,7 @@
 dbutils.widgets.text("secret_scope", "discoverx", "Secret Scope")
 dbutils.widgets.text("open_ai_base", "openaibase", "Secret Key of Open API Base")
 dbutils.widgets.text("open_ai_key", "openaikey", "Secret Key of Open AI API Key")
-dbutils.widgets.text("from_tables", "discoverx_sample.sample_datasets.cyber_data", "from tables")
+dbutils.widgets.text("from_tables", "discoverx_sample.*.*", "from tables")
 
 # COMMAND ----------
 
@@ -138,7 +138,3 @@ df_with_prediction = unpivoted_df.withColumn("entity_type", predict_value_udf(co
 # COMMAND ----------
 
 display(df_with_prediction)
-
-# COMMAND ----------
-
-
