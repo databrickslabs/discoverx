@@ -14,8 +14,8 @@ logger = logging.Logging()
 
 
 class InfoFetcher:
-    def __init__(self, spark, columns_table_name="system.information_schema.columns") -> None:
-        self.columns_table_name = columns_table_name
+    def __init__(self, spark, information_schema="system.information_schema") -> None:
+        self.information_schema = information_schema
         self.spark = spark
 
     def _to_info_list(self, info_rows: list[Row]) -> list[TableInfo]:
@@ -55,13 +55,17 @@ class InfoFetcher:
 
         if "*" in catalogs:
             catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
+            catalog_tags_sql = f"""AND regexp_like(catalog_name, "^{catalogs.replace("*", ".*")}$")"""
         else:
             catalog_sql = f"""AND table_catalog = "{catalogs}" """
+            catalog_tags_sql = f"""AND catalog_name = "{catalogs}" """
         
         if "*" in schemas:
             schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
+            schema_tags_sql = f"""AND regexp_like(schema_name, "^{schemas.replace("*", ".*")}$")"""
         else:
             schema_sql = f"""AND table_schema = "{schemas}" """
+            schema_tags_sql = f"""AND schema_name = "{schemas}" """
           
         if "*" in tables:
             table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
@@ -78,7 +82,7 @@ class InfoFetcher:
                 table_catalog, 
                 table_schema, 
                 table_name
-            FROM {self.columns_table_name}
+            FROM {self.information_schema}.columns
             WHERE 
                 table_schema != "information_schema" 
                 {catalog_sql if catalogs != "*" else ""}
@@ -93,22 +97,48 @@ class InfoFetcher:
             info_schema.table_schema,
             info_schema.table_name,
             collect_list(struct(column_name, data_type, partition_index)) as table_columns
-          FROM {self.columns_table_name} info_schema
+          FROM {self.information_schema}.columns info_schema
           WHERE 
                 table_schema != "information_schema" 
                 {catalog_sql if catalogs != "*" else ""}
                 {schema_sql if schemas != "*" else ""}
                 {table_sql if tables != "*" else ""}
           GROUP BY info_schema.table_catalog, info_schema.table_schema, info_schema.table_name
+        ),
+
+        table_tags AS (
+          SELECT
+            info_schema.catalog_name AS table_catalog,
+            info_schema.schema_name AS table_schema,
+            info_schema.table_name,
+            collect_list(struct(tag_name, tag_value)) as table_tags
+          FROM {self.information_schema}.table_tags info_schema
+          WHERE 
+                schema_name != "information_schema" 
+                {catalog_tags_sql if catalogs != "*" else ""}
+                {schema_tags_sql if schemas != "*" else ""}
+                {table_sql if tables != "*" else ""}
+          GROUP BY info_schema.catalog_name, info_schema.schema_name, info_schema.table_name
+        ),
+
+        with_column_info AS (
+          SELECT
+              col_list.*
+          FROM col_list
+          INNER JOIN tb_list ON (
+              col_list.table_catalog <=> tb_list.table_catalog AND
+              col_list.table_schema = tb_list.table_schema AND
+              col_list.table_name = tb_list.table_name)
         )
 
         SELECT
-            col_list.*
-        FROM col_list
-        INNER JOIN tb_list ON (
-            col_list.table_catalog <=> tb_list.table_catalog AND
-            col_list.table_schema = tb_list.table_schema AND
-            col_list.table_name = tb_list.table_name)
+              with_column_info.*,
+              table_tags.table_tags
+          FROM with_column_info
+          LEFT OUTER JOIN table_tags ON (
+              with_column_info.table_catalog <=> table_tags.table_catalog AND
+              with_column_info.table_schema = table_tags.table_schema AND
+              with_column_info.table_name = table_tags.table_name)
 
         """
 
