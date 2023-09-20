@@ -244,7 +244,7 @@ class DataExplorer:
         table_list = self._info_fetcher.get_tables_info(
             self._catalogs, self._schemas, self._tables, self._having_columns
         )
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self._data_explorer._max_concurrency) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(f, table_info) for table_info in table_list]
 

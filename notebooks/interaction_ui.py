@@ -44,6 +44,20 @@ dx = DX(locale="US")
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### Map
+# MAGIC
+
+# COMMAND ----------
+
+def my_func(table_info):
+  print(table_info)
+  return table_info.table_tags
+
+r = dx.from_tables("discoverx_sample.*.*").map(my_func)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### Scan
 # MAGIC This section demonstrates a typical DiscoverX workflow which consists of the following steps:
 # MAGIC - `dx.scan()`: Scan the lakehouse including catalogs with names starting with `discoverx`
