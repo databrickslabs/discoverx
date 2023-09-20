@@ -239,6 +239,25 @@ class DataExplorer:
 
         return self.apply_sql(sql_query_template)
 
+    def map(self, f) -> list[any]:
+        res = []
+        table_list = self._info_fetcher.get_tables_info(
+            self._catalogs, self._schemas, self._tables, self._having_columns
+        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self._data_explorer._max_concurrency) as executor:
+            # Submit tasks to the thread pool
+            futures = [executor.submit(f, table_info) for table_info in table_list]
+
+            # Process completed tasks
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result is not None:
+                    res.append(result)
+
+        logger.debug("Finished lakehouse map task")
+
+        return res
+
 
 class DataExplorerActions:
     def __init__(
