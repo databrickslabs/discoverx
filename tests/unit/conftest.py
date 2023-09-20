@@ -155,7 +155,7 @@ def sample_datasets(spark: SparkSession, request):
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("view_columns_mock")
     spark.sql(
-        f"CREATE TABLE IF NOT EXISTS default.columns_mock USING delta LOCATION '{warehouse_dir}/columns_mock' AS SELECT * FROM view_columns_mock"
+        f"CREATE TABLE IF NOT EXISTS default.columns USING delta LOCATION '{warehouse_dir}/columns' AS SELECT * FROM view_columns_mock"
     )
 
     logging.info("Sample datasets created")
@@ -166,7 +166,7 @@ def sample_datasets(spark: SparkSession, request):
 
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
     spark.sql("DROP TABLE IF EXISTS default.tb_2")
-    spark.sql("DROP TABLE IF EXISTS default.columns_mock")
+    spark.sql("DROP TABLE IF EXISTS default.columns")
     if Path(warehouse_dir).exists():
         shutil.rmtree(warehouse_dir)
 
@@ -214,12 +214,13 @@ def monkeymodule():
 def mock_uc_functionality(monkeymodule):
     # apply the monkeypatch for the columns_table_name
     monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns_mock")
+    monkeymodule.setattr(DX, "INFORMATION_SCHEMA", "default")
 
     # mock classifier method _get_classification_table_from_delta as we don't
     # have catalogs in open source spark
     def get_or_create_classification_table_mock(self, scan_table_name: str):
         (schema, table) = scan_table_name.split(".")
-        #Test fails without drop if table already exists
+        # Test fails without drop if table already exists
         self.spark.sql(f"DROP DATABASE IF EXISTS {schema} CASCADE")
         self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {schema}")
         self.spark.sql(

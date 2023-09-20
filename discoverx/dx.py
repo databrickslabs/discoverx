@@ -26,6 +26,7 @@ class DX:
     """
 
     COLUMNS_TABLE_NAME = "system.information_schema.columns"
+    INFORMATION_SCHEMA = "system.information_schema"
     MAX_WORKERS = 10
 
     def __init__(
@@ -391,7 +392,7 @@ class DX:
 
         """
 
-        return DataExplorer(from_tables, self.spark, InfoFetcher(self.spark, self.COLUMNS_TABLE_NAME))
+        return DataExplorer(from_tables, self.spark, InfoFetcher(self.spark, self.INFORMATION_SCHEMA))
 
     def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")
