@@ -18,19 +18,27 @@ class InfoFetcher:
         self.information_schema = information_schema
         self.spark = spark
 
-    def _to_info_list(self, info_rows: list[Row]) -> list[TableInfo]:
-        filtered_tables = [
-            TableInfo(
-                row["table_catalog"],
-                row["table_schema"],
-                row["table_name"],
-                [
-                    ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
-                    for col in row["table_columns"]
-                ],
-            )
-            for row in info_rows
+    @staticmethod
+    def _to_info_row(row: Row) -> TableInfo:
+        columns = [
+            ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], []) for col in row["table_columns"]
         ]
+
+        if row["table_tags"]:
+            table_tags = [(tag["tag_name"], tag["tag_value"]) for tag in row["table_tags"]]
+        else:
+            table_tags = []
+
+        return TableInfo(
+            row["table_catalog"],
+            row["table_schema"],
+            row["table_name"],
+            columns=columns,
+            table_tags=table_tags,
+        )
+
+    def _to_info_list(self, info_rows: list[Row]) -> list[TableInfo]:
+        filtered_tables = [self._to_info_row(row) for row in info_rows]
         return filtered_tables
 
     def get_tables_info(self, catalogs: str, schemas: str, tables: str, columns: list[str] = []) -> list[TableInfo]:
@@ -59,14 +67,14 @@ class InfoFetcher:
         else:
             catalog_sql = f"""AND table_catalog = "{catalogs}" """
             catalog_tags_sql = f"""AND catalog_name = "{catalogs}" """
-        
+
         if "*" in schemas:
             schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
             schema_tags_sql = f"""AND regexp_like(schema_name, "^{schemas.replace("*", ".*")}$")"""
         else:
             schema_sql = f"""AND table_schema = "{schemas}" """
             schema_tags_sql = f"""AND schema_name = "{schemas}" """
-          
+
         if "*" in tables:
             table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
         else:
