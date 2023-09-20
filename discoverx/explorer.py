@@ -53,9 +53,20 @@ class InfoFetcher:
             string: The SQL expression
         """
 
-        catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
-        schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
-        table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+        if "*" in catalogs:
+            catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
+        else:
+            catalog_sql = f"""AND table_catalog = "{catalogs}" """
+        
+        if "*" in schemas:
+            schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
+        else:
+            schema_sql = f"""AND table_schema = "{schemas}" """
+          
+        if "*" in tables:
+            table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+        else:
+            table_sql = f"""AND table_name = "{tables}" """
 
         if columns:
             match_any_col = "|".join([f'({c.replace("*", ".*")})' for c in columns])
@@ -74,19 +85,31 @@ class InfoFetcher:
                 {schema_sql if schemas != "*" else ""}
                 {table_sql if tables != "*" else ""}
                 {columns_sql if columns else ""}
+        ),
+
+        col_list AS (
+          SELECT
+            info_schema.table_catalog,
+            info_schema.table_schema,
+            info_schema.table_name,
+            collect_list(struct(column_name, data_type, partition_index)) as table_columns
+          FROM {self.columns_table_name} info_schema
+          WHERE 
+                table_schema != "information_schema" 
+                {catalog_sql if catalogs != "*" else ""}
+                {schema_sql if schemas != "*" else ""}
+                {table_sql if tables != "*" else ""}
+          GROUP BY info_schema.table_catalog, info_schema.table_schema, info_schema.table_name
         )
 
         SELECT
-            info_schema.table_catalog, 
-            info_schema.table_schema, 
-            info_schema.table_name, 
-            collect_list(struct(column_name, data_type, partition_index)) as table_columns
-        FROM {self.columns_table_name} info_schema
+            col_list.*
+        FROM col_list
         INNER JOIN tb_list ON (
-            info_schema.table_catalog <=> tb_list.table_catalog AND
-            info_schema.table_schema = tb_list.table_schema AND
-            info_schema.table_name = tb_list.table_name)
-        GROUP BY info_schema.table_catalog, info_schema.table_schema, info_schema.table_name
+            col_list.table_catalog <=> tb_list.table_catalog AND
+            col_list.table_schema = tb_list.table_schema AND
+            col_list.table_name = tb_list.table_name)
+
         """
 
         return helper.strip_margin(sql)
