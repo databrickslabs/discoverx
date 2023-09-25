@@ -1,12 +1,12 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Format detection with DiscoverX & Azure OpenAI
+# MAGIC # Text analysis with DiscoverX & Azure OpenAI
 # MAGIC
-# MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to run Format detection with [AZURE OpenAI API](https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=command-line&pivots=programming-language-studio) over a set of tables in Unity Catalog.
+# MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to analyze text with [AZURE OpenAI API](https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=command-line&pivots=programming-language-studio) over a set of tables in Unity Catalog.
 # MAGIC
 # MAGIC The notebook will:
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
-# MAGIC 2. Run format detection with Azure OpenAI GPT model
+# MAGIC 2. Run text analysis with Azure OpenAI GPT model
 
 # COMMAND ----------
 
@@ -118,9 +118,9 @@ def predict_value_udf(s):
     openai.api_version = "2023-05-15"
 
     def predict_value(s):
-        content = f""" Please categorize the text value based on its format into one of the categories.Please reply with just category name
-        Text: {s}
-        Categories: [IPv4, IPv6, MAC, NOT MATCHED]"""
+        content = f""" Given the tweet text, extract the english of the country and reply with just the name of country"
+        Tweet Text: {s}
+        """
 
         response = openai.ChatCompletion.create(
             engine="gpt-35-turbo",  # The deployment name you chose when you deployed the GPT-35-Turbo or GPT-4 model.
@@ -133,7 +133,7 @@ def predict_value_udf(s):
 
 # COMMAND ----------
 
-df_with_prediction = unpivoted_df.withColumn("entity_type", predict_value_udf(col("string_value")))
+df_with_prediction = unpivoted_df.filter(col("column_name") == 'tweet').withColumn("country_name", predict_value_udf(col("string_value")))
 
 # COMMAND ----------
 

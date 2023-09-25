@@ -17,7 +17,7 @@ Operations are applied concurrently across multiple tables
   * Visualise quantity of data written per table per period
 * **Governance**
   * PII detection with Presidio ([example notebook](examples/pii_detection_presidio.py))
-  * Format detection with OpenAI GPT ([example notebook](examples/format_detection_openai_gpt.py))
+  * Text Analysis with OpenAI GPT ([example notebook](examples/text_analysis_openai_gpt.py))
   * [GDPR right of access: extract user data from all tables at once](docs/GDPR_RoA.md)
   * [GDPR right of erasure: delete user data from all tables at once](docs/GDPR_RoE.md)
   * [Search in any column](docs/Search.md)
