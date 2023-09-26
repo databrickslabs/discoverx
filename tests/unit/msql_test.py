@@ -39,7 +39,7 @@ columns = [
     ColumnInfo("email_2", "string", None, ["dx_email"]),
     ColumnInfo("date", "string", 1, ["dx_date_partition"]),
 ]
-table_info = TableInfo("catalog", "prod_db1", "tb1", columns)
+table_info = TableInfo("catalog", "prod_db1", "tb1", columns, [])
 
 
 def test_msql_extracts_command():

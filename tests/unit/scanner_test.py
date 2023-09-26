@@ -36,6 +36,7 @@ def test_get_table_list(spark):
                 ColumnInfo("interval_col", "INTERVAL", None, []),
                 ColumnInfo("str_part_col", "STRING", 1, []),
             ],
+            [],
         )
     ]
 
@@ -48,7 +49,7 @@ def test_get_table_list(spark):
         tables="*_all_types",
         rule_filter="*",
         sample_size=100,
-        columns_table_name="default.columns_mock",
+        columns_table_name="default.columns",
     )
     actual = scanner._get_list_of_tables()
 
@@ -124,13 +125,11 @@ GROUP BY table_catalog, table_schema, table_name, column_name, class_name"""
 )
 def test_generate_sql(spark, rules_input, expected):
     columns = [ColumnInfo("id", "number", False, []), ColumnInfo("name", "string", False, [])]
-    table_info = TableInfo("meta", "db", "tb", columns)
+    table_info = TableInfo("meta", "db", "tb", columns, [])
     rules = rules_input
 
     rules = Rules(custom_rules=rules)
-    scanner = Scanner(
-        spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns_mock"
-    )
+    scanner = Scanner(spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns")
 
     actual = scanner._rule_matching_sql(table_info)
     logging.info("Generated SQL is: \n%s", actual)
@@ -144,16 +143,14 @@ def test_sql_runs(spark):
         ColumnInfo("ip", "string", None, []),
         ColumnInfo("description", "string", None, []),
     ]
-    table_info = TableInfo(None, "default", "tb_1", columns)
+    table_info = TableInfo(None, "default", "tb_1", columns, [])
     rules = [
         RegexRule(name="any_word", description="Any word", definition=r"\w+"),
         RegexRule(name="any_number", description="Any number", definition=r"\d+"),
     ]
 
     rules = Rules(custom_rules=rules)
-    scanner = Scanner(
-        spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns_mock"
-    )
+    scanner = Scanner(spark, rules=rules, rule_filter="any_*", sample_size=100, columns_table_name="default.columns")
     actual = scanner._rule_matching_sql(table_info)
 
     logging.info("Generated SQL is: \n%s", actual)
@@ -181,7 +178,7 @@ def test_scan_custom_rules(spark: SparkSession):
         ColumnInfo("ip", "string", False, []),
         ColumnInfo("description", "string", False, []),
     ]
-    table_list = [TableInfo(None, "default", "tb_1", columns)]
+    table_list = [TableInfo(None, "default", "tb_1", columns, [])]
     rules = [
         RegexRule(name="any_word", description="Any word", definition=r"^\w*$"),
         RegexRule(name="any_number", description="Any number", definition=r"^\d*$"),
@@ -194,7 +191,7 @@ def test_scan_custom_rules(spark: SparkSession):
         tables="tb_1",
         rule_filter="any_*",
         sample_size=100,
-        columns_table_name="default.columns_mock",
+        columns_table_name="default.columns",
     )
     scanner.scan()
 
@@ -217,7 +214,7 @@ def test_scan(spark: SparkSession):
     )
 
     rules = Rules()
-    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns")
     scanner.scan()
 
     assert scanner.scan_result.df.equals(expected)
@@ -226,7 +223,7 @@ def test_scan(spark: SparkSession):
 def test_save_scan(spark: SparkSession):
     # save scan result
     rules = Rules()
-    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns")
     scanner.scan()
     scan_table_name = "_discoverx.scan_result_test"
     scanner.scan_result.save(scan_table_name=scan_table_name)
@@ -261,8 +258,8 @@ def test_save_scan(spark: SparkSession):
 def test_scan_non_existing_table_returns_none(spark: SparkSession):
     rules = Rules()
 
-    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock")
-    result = scanner.scan_table(TableInfo("", "", "tb_non_existing", []))
+    scanner = Scanner(spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns")
+    result = scanner.scan_table(TableInfo("", "", "tb_non_existing", [], []))
 
     assert result is None
 
@@ -270,9 +267,9 @@ def test_scan_non_existing_table_returns_none(spark: SparkSession):
 def test_scan_whatif_returns_none(spark: SparkSession):
     rules = Rules()
     scanner = Scanner(
-        spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns_mock", what_if=True
+        spark, rules=rules, tables="tb_1", rule_filter="ip_*", columns_table_name="default.columns", what_if=True
     )
-    result = scanner.scan_table(TableInfo(None, "default", "tb_1", []))
+    result = scanner.scan_table(TableInfo(None, "default", "tb_1", [], []))
 
     assert result is None
 

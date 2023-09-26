@@ -158,6 +158,17 @@ def sample_datasets(spark: SparkSession, request):
         f"CREATE TABLE IF NOT EXISTS default.columns USING delta LOCATION '{warehouse_dir}/columns' AS SELECT * FROM view_columns_mock"
     )
 
+    # table_tags
+    test_file_path = module_path.parent / "data/table_tags.csv"
+    (
+        spark.read.option("header", True)
+        .schema("catalog_name string,schema_name string,table_name string,tag_name string,tag_value string")
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("table_tags_mock")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.table_tags USING delta LOCATION '{warehouse_dir}/table_tags' AS SELECT * FROM table_tags_mock"
+    )
+
     logging.info("Sample datasets created")
 
     yield None
@@ -213,7 +224,7 @@ def monkeymodule():
 @pytest.fixture(autouse=True, scope="module")
 def mock_uc_functionality(monkeymodule):
     # apply the monkeypatch for the columns_table_name
-    monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns_mock")
+    monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns")
     monkeymodule.setattr(DX, "INFORMATION_SCHEMA", "default")
 
     # mock classifier method _get_classification_table_from_delta as we don't

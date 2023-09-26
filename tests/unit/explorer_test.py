@@ -8,12 +8,12 @@ from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, T
 # sample_table_info = TableInfo("catalog1", "schema1", "table1", [])
 @pytest.fixture()
 def info_fetcher(spark):
-    return InfoFetcher(spark=spark, columns_table_name="default.columns_mock")
+    return InfoFetcher(spark=spark, information_schema="default")
 
 
 @pytest.fixture()
 def sample_table_info():
-    return TableInfo("catalog1", "schema1", "table1", [])
+    return TableInfo("catalog1", "schema1", "table1", [], [])
 
 
 def test_validate_from_components():
