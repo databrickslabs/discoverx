@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import Mock, patch
 from pyspark.sql import SparkSession
 from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, TableInfo
+from discoverx.scanner import TableTagInfo
 
 
 # # Sample test data
@@ -61,3 +62,15 @@ def test_explain(capfd, spark, info_fetcher):
     captured = capfd.readouterr()
     assert "SELECT `something` FROM " in captured.out
     assert "ip.v2" in captured.out
+
+
+def test_map(spark, info_fetcher):
+    data_explorer = DataExplorer("*.default.tb_1", spark, info_fetcher)
+    result = data_explorer.map(lambda table_info: table_info)
+    assert len(result) == 1
+    assert result[0].table == "tb_1"
+    assert result[0].schema == "default"
+    assert result[0].catalog == None
+    assert len(result[0].table_tags) == 2
+    assert result[0].table_tags[0] == ("pk", None)
+    assert result[0].table_tags[1] == ("pii", "true")
