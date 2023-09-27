@@ -164,9 +164,9 @@ def sample_datasets(spark: SparkSession, request):
         spark.read.option("header", True)
         .schema("catalog_name string,schema_name string,table_name string,tag_name string,tag_value string")
         .csv(str(test_file_path.resolve()))
-    ).createOrReplaceTempView("table_tags_mock")
+    ).createOrReplaceTempView("table_tags_temp_view")
     spark.sql(
-        f"CREATE TABLE IF NOT EXISTS default.table_tags USING delta LOCATION '{warehouse_dir}/table_tags' AS SELECT * FROM table_tags_mock"
+        f"CREATE TABLE IF NOT EXISTS default.table_tags USING delta LOCATION '{warehouse_dir}/table_tags' AS SELECT * FROM table_tags_temp_view"
     )
 
     logging.info("Sample datasets created")
@@ -178,6 +178,7 @@ def sample_datasets(spark: SparkSession, request):
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
     spark.sql("DROP TABLE IF EXISTS default.tb_2")
     spark.sql("DROP TABLE IF EXISTS default.columns")
+    spark.sql("DROP TABLE IF EXISTS default.table_tags")
     if Path(warehouse_dir).exists():
         shutil.rmtree(warehouse_dir)
 
