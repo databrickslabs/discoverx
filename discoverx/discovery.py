@@ -293,8 +293,3 @@ class Discovery:
         if delete_result is not None:
             delete_result = delete_result.toPandas()
             logger.friendlyHTML(f"<p>The affected tables are</p>{delete_result.to_html()}")
-
-    def save_scan(self):
-        """Method to save scan result"""
-        # TODO:
-        pass

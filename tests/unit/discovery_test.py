@@ -1,5 +1,6 @@
 import pytest
 from discoverx.explorer import DataExplorer, InfoFetcher
+from discoverx.discovery import Discovery
 
 
 @pytest.fixture()
@@ -12,6 +13,22 @@ def scan_ip_in_tb1(spark, info_fetcher):
     data_explorer = DataExplorer("*.*.tb_1", spark, info_fetcher)
     discover = data_explorer.scan(rules="ip_*")
     return discover
+
+
+def test_noscan(spark, info_fetcher):
+    data_explorer = DataExplorer("*.*.tb_1", spark, info_fetcher)
+    discover = Discovery(
+        data_explorer._spark,
+        data_explorer._catalogs,
+        data_explorer._schemas,
+        data_explorer._tables,
+        data_explorer._info_fetcher.get_tables_info(
+            data_explorer._catalogs, data_explorer._schemas, data_explorer._tables, data_explorer._having_columns
+        ),
+    )
+    with pytest.raises(Exception) as scan_first_error:
+        scan_result = discover.scan_result
+    assert scan_first_error.value.args[0] == "You first need to scan your lakehouse using Scanner.scan()"
 
 
 def test_discover_scan_msql(discover_ip):
@@ -38,6 +55,13 @@ def test_discover_search(discover_ip):
     with pytest.raises(ValueError) as no_search_term_error:
         discover_ip.search(None)
     assert no_search_term_error.value.args[0] == "search_term has not been provided."
+
+    with pytest.raises(ValueError) as search_term_not_string_error:
+        discover_ip.search(7)
+    assert (
+        search_term_not_string_error.value.args[0]
+        == "The search_term type <class 'int'> is not valid. Please use a string type."
+    )
 
     with pytest.raises(ValueError) as no_inferred_class_error:
         discover_ip.search("###")
@@ -96,6 +120,9 @@ def test_discover_delete_by_class(spark, discover_ip):
 
     with pytest.raises(ValueError):
         discover_ip.delete_by_class(from_tables="invalid from", by_class="email", values="x")
+
+    with pytest.raises(ValueError):
+        discover_ip.delete_by_class(from_tables="invalid from", by_class="email", values=1)
 
 
 def test_discover_scan_result(discover_ip):
