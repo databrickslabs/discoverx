@@ -74,3 +74,9 @@ def test_map(spark, info_fetcher):
     assert len(result[0].table_tags) == 2
     assert result[0].table_tags[0] == ("pk", None)
     assert result[0].table_tags[1] == ("pii", "true")
+
+
+def test_no_tables_matching_filter(spark, info_fetcher):
+    data_explorer = DataExplorer("some_catalog.default.non_existent_table", spark, info_fetcher)
+    with pytest.raises(ValueError):
+        data_explorer.map(lambda table_info: table_info)
