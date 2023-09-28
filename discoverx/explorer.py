@@ -41,7 +41,7 @@ class InfoFetcher:
         filtered_tables = [self._to_info_row(row) for row in info_rows]
         return filtered_tables
 
-    def get_tables_info(self, catalogs: str, schemas: str, tables: str, columns: list[str] = []) -> list[TableInfo]:
+    def get_tables_info(self, catalogs: str, schemas: str, tables: str, columns: list[str] = [], with_tags=False) -> list[TableInfo]:
         # Filter tables by matching filter
         table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns)
 
@@ -52,7 +52,9 @@ class InfoFetcher:
 
         return self._to_info_list(filtered_tables)
 
-    def _get_table_list_sql(self, catalogs: str, schemas: str, tables: str, columns: list[str] = []) -> str:
+    def _get_table_list_sql(
+        self, catalogs: str, schemas: str, tables: str, columns: list[str] = [], with_tags=False
+    ) -> str:
         """
         Returns a SQL expression which returns a list of columns matching
         the specified filters
@@ -84,7 +86,7 @@ class InfoFetcher:
             match_any_col = "|".join([f'({c.replace("*", ".*")})' for c in columns])
             columns_sql = f"""AND regexp_like(column_name, "^{match_any_col}$")"""
 
-        sql = f"""
+        with_column_info_sql = f"""
         WITH tb_list AS (
             SELECT DISTINCT
                 table_catalog, 
@@ -114,6 +116,44 @@ class InfoFetcher:
           GROUP BY info_schema.table_catalog, info_schema.table_schema, info_schema.table_name
         ),
 
+        with_column_info AS (
+          SELECT
+              col_list.*
+          FROM col_list
+          INNER JOIN tb_list ON (
+              col_list.table_catalog <=> tb_list.table_catalog AND
+              col_list.table_schema = tb_list.table_schema AND
+              col_list.table_name = tb_list.table_name)
+        )
+
+        """
+
+        tags_sql = f"""
+        ,
+        catalog_tags AS (
+          SELECT
+            info_schema.catalog_name AS table_catalog,
+            collect_list(struct(tag_name, tag_value)) as catalog_tags
+          FROM {self.information_schema}.catalog_tags info_schema
+          WHERE 
+                catalog_name != "system"
+                {catalog_tags_sql if catalogs != "*" else ""}
+          GROUP BY info_schema.catalog_name
+        ),
+
+        schema_tags AS (
+          SELECT
+            info_schema.catalog_name AS table_catalog,
+            info_schema.schema_name AS table_schema,
+            collect_list(struct(tag_name, tag_value)) as schema_tags
+          FROM {self.information_schema}.schema_tags info_schema
+          WHERE 
+                schema_name != "information_schema" 
+                {catalog_tags_sql if catalogs != "*" else ""}
+                {schema_tags_sql if schemas != "*" else ""}
+          GROUP BY info_schema.catalog_name, info_schema.schema_name
+        ),
+
         table_tags AS (
           SELECT
             info_schema.catalog_name AS table_catalog,
@@ -129,26 +169,75 @@ class InfoFetcher:
           GROUP BY info_schema.catalog_name, info_schema.schema_name, info_schema.table_name
         ),
 
-        with_column_info AS (
+        column_tags AS (
           SELECT
-              col_list.*
-          FROM col_list
-          INNER JOIN tb_list ON (
-              col_list.table_catalog <=> tb_list.table_catalog AND
-              col_list.table_schema = tb_list.table_schema AND
-              col_list.table_name = tb_list.table_name)
+            info_schema.catalog_name AS table_catalog,
+            info_schema.schema_name AS table_schema,
+            info_schema.table_name,
+            collect_list(struct(column_name, tag_name, tag_value)) as column_tags
+          FROM {self.information_schema}.column_tags info_schema
+          WHERE 
+                schema_name != "information_schema" 
+                {catalog_tags_sql if catalogs != "*" else ""}
+                {schema_tags_sql if schemas != "*" else ""}
+                {table_sql if tables != "*" else ""}
+          GROUP BY info_schema.catalog_name, info_schema.schema_name, info_schema.table_name
+        ),
+
+        tags AS (
+          SELECT 
+            tb_list.table_catalog,
+            tb_list.table_schema,
+            tb_list.table_name,
+            catalog_tags.catalog_tags,
+            schema_tags.schema_tags,
+            table_tags.table_tags,
+            column_tags.column_tags
+          FROM tb_list
+          LEFT OUTER JOIN table_tags ON (
+            table_tags.table_catalog <=> tb_list.table_catalog AND 
+            table_tags.table_schema = tb_list.table_schema AND 
+            table_tags.table_name = tb_list.table_name
+            )
+          LEFT OUTER JOIN schema_tags
+          ON tb_list.table_catalog <=> schema_tags.table_catalog AND tb_list.table_schema = schema_tags.table_schema 
+          LEFT OUTER JOIN column_tags
+          ON tb_list.table_catalog <=> column_tags.table_catalog AND tb_list.table_schema = column_tags.table_schema AND tb_list.table_name = column_tags.table_name
+          LEFT OUTER JOIN catalog_tags
+          ON catalog_tags.table_catalog <=> tb_list.table_catalog
         )
 
-        SELECT
-              with_column_info.*,
-              table_tags.table_tags
-          FROM with_column_info
-          LEFT OUTER JOIN table_tags ON (
-              with_column_info.table_catalog <=> table_tags.table_catalog AND
-              with_column_info.table_schema = table_tags.table_schema AND
-              with_column_info.table_name = table_tags.table_name)
-
+        
         """
+
+        if with_tags:
+            sql = (
+                with_column_info_sql
+                + tags_sql
+                + f"""
+            SELECT
+                with_column_info.*,
+                tags.table_tags,
+                tags.catalog_tags,
+                tags.schema_tags,
+                tags.table_tags,
+                tags.column_tags
+            FROM with_column_info
+            LEFT OUTER JOIN tags ON (
+              with_column_info.table_catalog <=> tags.table_catalog AND
+              with_column_info.table_schema = tags.table_schema AND
+              with_column_info.table_name = tags.table_name)
+            """
+            )
+        else:
+            sql = (
+                with_column_info_sql
+                + f"""
+                SELECT
+                *
+                FROM with_column_info
+                """
+            )
 
         return helper.strip_margin(sql)
 
