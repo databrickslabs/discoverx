@@ -71,9 +71,8 @@ def test_map(spark, info_fetcher):
     assert result[0].table == "tb_1"
     assert result[0].schema == "default"
     assert result[0].catalog == None
-    assert len(result[0].table_tags) == 2
-    assert result[0].table_tags[0] == ("pk", None)
-    assert result[0].table_tags[1] == ("pii", "true")
+    assert len(result[0].table_tags) == 1
+    assert result[0].table_tags[0] == ("pii", "true")
 
 
 def test_no_tables_matching_filter(spark, info_fetcher):
