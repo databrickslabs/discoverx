@@ -201,11 +201,6 @@ class DataExplorer:
         discover.scan(rules=rules, sample_size=sample_size, what_if=what_if)
         return discover
 
-    def from_scan(self):
-        """Method to load from saved scan result and return discover object"""
-        # TODO
-        pass
-
 
 class DataExplorerActions:
     def __init__(
