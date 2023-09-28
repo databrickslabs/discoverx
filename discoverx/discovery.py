@@ -63,7 +63,6 @@ class Discovery:
         sample_size=10000,
         what_if: bool = False,
     ):
-
         self.scanner = Scanner(
             self.spark,
             self.rules,
