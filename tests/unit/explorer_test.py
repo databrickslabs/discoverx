@@ -1,6 +1,4 @@
 import pytest
-from unittest.mock import Mock, patch
-from pyspark.sql import SparkSession
 from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, TableInfo
 
 

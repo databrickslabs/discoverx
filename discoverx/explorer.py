@@ -1,9 +1,12 @@
 import concurrent.futures
 import copy
 import re
-import pandas as pd
+from typing import Optional, List
+
 from discoverx import logging
 from discoverx.common import helper
+from discoverx.discovery import Discovery
+from discoverx.rules import Rule
 from discoverx.scanner import ColumnInfo, TableInfo
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
@@ -177,6 +180,31 @@ class DataExplorer:
             sql_query_template += f"TABLESAMPLE ({sample_size} ROWS)"
 
         return self.apply_sql(sql_query_template)
+
+    def scan(
+        self,
+        rules="*",
+        sample_size=10000,
+        what_if: bool = False,
+        custom_rules: Optional[List[Rule]] = None,
+        locale: str = None,
+    ):
+        discover = Discovery(
+            self._spark,
+            self._catalogs,
+            self._schemas,
+            self._tables,
+            self._info_fetcher.get_tables_info(self._catalogs, self._schemas, self._tables, self._having_columns),
+            custom_rules=custom_rules,
+            locale=locale,
+        )
+        discover.scan(rules=rules, sample_size=sample_size, what_if=what_if)
+        return discover
+
+    def from_scan(self):
+        """Method to load from saved scan result and return discover object"""
+        # TODO
+        pass
 
 
 class DataExplorerActions:
