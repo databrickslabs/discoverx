@@ -199,6 +199,36 @@ class Scanner:
         ]
         return filtered_tables
 
+    def _get_table_list_sql(self):
+        """
+        Returns a SQL expression which returns a list of columns matching
+        the specified filters
+
+        Returns:
+            string: The SQL expression
+        """
+
+        catalog_sql = f"""AND regexp_like(table_catalog, "^{self.catalogs.replace("*", ".*")}$")"""
+        schema_sql = f"""AND regexp_like(table_schema, "^{self.schemas.replace("*", ".*")}$")"""
+        table_sql = f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
+
+        sql = f"""
+        SELECT 
+            table_catalog, 
+            table_schema, 
+            table_name, 
+            collect_list(struct(column_name, data_type, partition_index)) as table_columns
+        FROM {self.columns_table_name}
+        WHERE 
+            table_schema != "information_schema" 
+            {catalog_sql if self.catalogs != "*" else ""}
+            {schema_sql if self.schemas != "*" else ""}
+            {table_sql if self.tables != "*" else ""}
+        GROUP BY table_catalog, table_schema, table_name
+        """
+
+        return strip_margin(sql)
+
     def _resolve_scan_content(self) -> ScanContent:
         if self.table_list:
             table_list = self.table_list
