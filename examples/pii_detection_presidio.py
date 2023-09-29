@@ -67,7 +67,7 @@ dx = DX()
 unpivoted_df = (
     dx.from_tables(from_tables)
     .unpivot_string_columns(sample_size=sample_size)
-    .to_union_dataframe()
+    .apply()
     .localCheckpoint()  # Checkpointing to reduce the query plan size
 )
 

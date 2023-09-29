@@ -203,7 +203,7 @@ class DataExplorer:
         if sample_size is not None:
             sql_query_template += f"TABLESAMPLE ({sample_size} ROWS)"
 
-        return self.apply_sql(sql_query_template)
+        return self.with_sql(sql_query_template)
 
     def scan(
         self,
@@ -330,7 +330,7 @@ class DataExplorerActions:
 
     def display(self) -> None:
         """Executes the data exploration queries and displays a sample of results"""
-        return self.execute()
+        return self.display()
 
     def execute(self) -> None:
         """[DEPRECATED] Executes the data exploration queries and displays a sample of results"""

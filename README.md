@@ -48,8 +48,8 @@ As an illustration, consider the scenario where you need to retrieve a single ro
 
 ```
 dx.from_tables("dev_*.*.*sample*")\
-  .apply_sql("SELECT to_json(struct(*)) AS row FROM {full_table_name} LIMIT 1")\
-  .execute()
+  .with_sql("SELECT to_json(struct(*)) AS row FROM {full_table_name} LIMIT 1")\
+  .apply()
 ```
 
 ## Available functionality

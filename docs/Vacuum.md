@@ -8,8 +8,8 @@ With DiscoverX you can vacuum all the tables at once with the command:
 
 ```
 dx.from_tables("*.*.*")\
-  .apply_sql("VACUUM {full_table_name}")\
-  .execute()
+  .with_sql("VACUUM {full_table_name}")\
+  .display()
 ```
 
 You can schedule [this example notebook](https://raw.githubusercontent.com/databrickslabs/discoverx/master/examples/vacuum_multiple_tables.py) in your Databricks workflows to run vacuum periodically.
