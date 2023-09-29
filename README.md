@@ -21,9 +21,9 @@ Operations are applied concurrently across multiple tables
   * [GDPR right of erasure: delete user data from all tables at once](docs/GDPR_RoE.md)
   * [Search in any column](docs/Search.md)
 * **Semantic classification**
-  * [Semantic classification of columns by semantic type](docs/Semantic_classification.md): email, phone number, IP address, etc.
-  * [Select data based on semantic types](docs/Select_by_class.md)
-  * [Delete data based on semantic types](docs/Delete_by_class.md)
+  * [Semantic classification of columns by semantic class](docs/Semantic_classification.md): email, phone number, IP address, etc.
+  * [Select data based on semantic classes](docs/Select_by_class.md)
+  * [Delete data based on semantic classes](docs/Delete_by_class.md)
 * **Custom**
   * [Arbitrary SQL template execution across multiple tables](docs/Arbitrary_multi-table_SQL.md)
 

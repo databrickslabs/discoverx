@@ -61,10 +61,18 @@ class DX:
         <h1>Hi there, I'm DiscoverX.</h1>
 
         <p>
-          I'm here to help you discover data in your lakehouse.<br />
-          You can scan your lakehouse by using
+          I'm here to help you paralelize multi-table operations across your lakehouse.<br />
+          You can start by defining the set of tables to run operations on (use "*" as a wildcard)<br />
         </p>
-        <pre><code>dx.scan(from_tables="*.*.*")</code></pre>
+        <pre><code>dx.from_tables("*.*.*")</code></pre>
+        <p>
+            Then you can apply the following operations
+            <ul>
+                <li><code>.apply_sql(...)</code> - Runs a SQL template on each table</li>
+                <li><code>.scan(...)</code> - Scan your lakehouse for columns matching the given rules</li>
+                <li><code>.search(...)</code> - Search your lakehouse for columns matching the given search term</li>
+            </ul>
+        </p>
         <p>
           For more detailed instructions, check out the <a href="https://github.com/databrickslabs/discoverx">readme</a> or use
         </p>
