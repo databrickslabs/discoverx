@@ -330,7 +330,7 @@ class DataExplorerActions:
 
     def display(self) -> None:
         """Executes the data exploration queries and displays a sample of results"""
-        return self.display()
+        return self.execute()
 
     def execute(self) -> None:
         """[DEPRECATED] Executes the data exploration queries and displays a sample of results"""

@@ -140,7 +140,7 @@ class ScanResult:
             and scan_delta_table.table_schema = scan_result_df.table_schema \
             and scan_delta_table.table_name = scan_result_df.table_name \
             and scan_delta_table.column_name = scan_result_df.column_name ",
-        ).whenMatchedUpdateAll().whenNotMatchedInsertAll().display()
+        ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
 
     def load(self, scan_table_name: str):
         try:
