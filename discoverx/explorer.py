@@ -4,7 +4,7 @@ import re
 import pandas as pd
 from discoverx import logging
 from discoverx.common import helper
-from discoverx.scanner import ColumnInfo, TableInfo, TagsInfo
+from discoverx.scanner import ColumnInfo, ColumnTagInfo, TableInfo, TagInfo, TagsInfo
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
@@ -19,22 +19,47 @@ class InfoFetcher:
         self.spark = spark
 
     @staticmethod
+    def _get_tag_info(row: Row) -> TagsInfo:
+        if all(item in row.asDict().keys() for item in ["column_tags", "table_tags", "schema_tags", "catalog_tags"]):
+            if row["column_tags"] is None:
+                column_tags = []
+            else:
+                column_tags = [
+                    ColumnTagInfo(tag["column_name"], tag["tag_name"], tag["tag_value"]) for tag in row["column_tags"]
+                ]
+
+            if row["table_tags"] is None:
+                table_tags = []
+            else:
+                table_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["table_tags"]]
+
+            if row["schema_tags"] is None:
+                schema_tags = []
+            else:
+                schema_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["schema_tags"]]
+
+            if row["catalog_tags"] is None:
+                catalog_tags = []
+            else:
+                catalog_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["catalog_tags"]]
+
+            tags = TagsInfo(column_tags, table_tags, schema_tags, catalog_tags)
+        else:
+            tags = None
+        return tags
+
+    @staticmethod
     def _to_info_row(row: Row) -> TableInfo:
         columns = [
             ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], []) for col in row["table_columns"]
         ]
-        if "table_tags" in row.asDict().keys():
-            table_tags = [(tag["tag_name"], tag["tag_value"]) for tag in row["table_tags"]]
-            tags = TagsInfo(table_tags=table_tags)
-        else:
-            tags = None
 
         return TableInfo(
             row["table_catalog"],
             row["table_schema"],
             row["table_name"],
             columns=columns,
-            tags=tags,
+            tags=InfoFetcher._get_tag_info(row),
         )
 
     def _to_info_list(self, info_rows: list[Row]) -> list[TableInfo]:
@@ -45,7 +70,7 @@ class InfoFetcher:
         self, catalogs: str, schemas: str, tables: str, columns: list[str] = [], with_tags=False
     ) -> list[TableInfo]:
         # Filter tables by matching filter
-        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns)
+        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags)
 
         filtered_tables = self.spark.sql(table_list_sql).collect()
 
