@@ -97,23 +97,37 @@ class InfoFetcher:
             FROM {self.columns_table_name}
             WHERE 
                 table_schema != "information_schema" 
+                AND table_catalog != "system"
                 {catalog_sql if catalogs != "*" else ""}
                 {schema_sql if schemas != "*" else ""}
                 {table_sql if tables != "*" else ""}
                 {columns_sql if columns else ""}
+        ),
+
+        col_list AS (
+          SELECT
+            info_schema.table_catalog,
+            info_schema.table_schema,
+            info_schema.table_name,
+            collect_list(struct(column_name, data_type, partition_index)) as table_columns
+          FROM {self.columns_table_name} info_schema
+          WHERE 
+                table_schema != "information_schema"
+                AND table_catalog != "system"
+                {catalog_sql if catalogs != "*" else ""}
+                {schema_sql if schemas != "*" else ""}
+                {table_sql if tables != "*" else ""}
+          GROUP BY info_schema.table_catalog, info_schema.table_schema, info_schema.table_name
         )
 
         SELECT
-            info_schema.table_catalog, 
-            info_schema.table_schema, 
-            info_schema.table_name, 
-            collect_list(struct(column_name, data_type, partition_index)) as table_columns
-        FROM {self.columns_table_name} info_schema
-        INNER JOIN tb_list ON (
-            info_schema.table_catalog <=> tb_list.table_catalog AND
-            info_schema.table_schema = tb_list.table_schema AND
-            info_schema.table_name = tb_list.table_name)
-        GROUP BY info_schema.table_catalog, info_schema.table_schema, info_schema.table_name
+              col_list.*
+          FROM col_list
+          INNER JOIN tb_list ON (
+              col_list.table_catalog <=> tb_list.table_catalog AND
+              col_list.table_schema = tb_list.table_schema AND
+              col_list.table_name = tb_list.table_name)
+        
         """
 
         return helper.strip_margin(sql)
