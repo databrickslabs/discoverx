@@ -56,9 +56,20 @@ class InfoFetcher:
             string: The SQL expression
         """
 
-        catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
-        schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
-        table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+        if "*" in catalogs:
+            catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
+        else:
+            catalog_sql = f"""AND table_catalog = "{catalogs}" """
+
+        if "*" in schemas:
+            schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
+        else:
+            schema_sql = f"""AND table_schema = "{schemas}" """
+
+        if "*" in tables:
+            table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+        else:
+            table_sql = f"""AND table_name = "{tables}" """
 
         if columns:
             match_any_col = "|".join([f'({c.replace("*", ".*")})' for c in columns])
