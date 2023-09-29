@@ -158,6 +158,7 @@ class Scanner:
         catalogs: str = "*",
         schemas: str = "*",
         tables: str = "*",
+        table_list: Optional[List[TableInfo]] = None,
         rule_filter: str = "*",
         sample_size: int = 1000,
         what_if: bool = False,
@@ -169,6 +170,7 @@ class Scanner:
         self.catalogs = catalogs
         self.schemas = schemas
         self.tables = tables
+        self.table_list = table_list
         self.rules_filter = rule_filter
         self.sample_size = sample_size
         self.what_if = what_if
@@ -228,7 +230,10 @@ class Scanner:
         return strip_margin(sql)
 
     def _resolve_scan_content(self) -> ScanContent:
-        table_list = self._get_list_of_tables()
+        if self.table_list:
+            table_list = self.table_list
+        else:
+            table_list = self._get_list_of_tables()
         catalogs = set(map(lambda x: x.catalog, table_list))
         schemas = set(map(lambda x: f"{x.catalog}.{x.schema}", table_list))
 

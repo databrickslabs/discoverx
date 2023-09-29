@@ -1,9 +1,12 @@
 import concurrent.futures
 import copy
 import re
-import pandas as pd
+from typing import Optional, List
+
 from discoverx import logging
 from discoverx.common import helper
+from discoverx.discovery import Discovery
+from discoverx.rules import Rule
 from discoverx.scanner import ColumnInfo, TableInfo
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
@@ -53,9 +56,20 @@ class InfoFetcher:
             string: The SQL expression
         """
 
-        catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
-        schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
-        table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+        if "*" in catalogs:
+            catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
+        else:
+            catalog_sql = f"""AND table_catalog = "{catalogs}" """
+
+        if "*" in schemas:
+            schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
+        else:
+            schema_sql = f"""AND table_schema = "{schemas}" """
+
+        if "*" in tables:
+            table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+        else:
+            table_sql = f"""AND table_name = "{tables}" """
 
         if columns:
             match_any_col = "|".join([f'({c.replace("*", ".*")})' for c in columns])
@@ -146,8 +160,21 @@ class DataExplorer:
         new_obj._max_concurrency = max_concurrency
         return new_obj
 
-    def apply_sql(self, sql_query_template: str) -> "DataExplorerActions":
+    def with_sql(self, sql_query_template: str) -> "DataExplorerActions":
         """Sets the SQL query template to use for the data exploration
+
+        Args:
+            sql_query_template (str): The SQL query template to use. The template might contain the following variables:
+                - table_catalog: The table catalog name
+                - table_schema: The table schema name
+                - table_name: The table name
+                - full_table_name: The full table name (catalog.schema.table)
+                - stack_string_columns: A SQL expression that returns a table with two columns: column_name and string_value
+        """
+        return self.apply_sql(sql_query_template)
+
+    def apply_sql(self, sql_query_template: str) -> "DataExplorerActions":
+        """[DEPRECATED] Sets the SQL query template to use for the data exploration
 
         Args:
             sql_query_template (str): The SQL query template to use. The template might contain the following variables:
@@ -177,6 +204,26 @@ class DataExplorer:
             sql_query_template += f"TABLESAMPLE ({sample_size} ROWS)"
 
         return self.apply_sql(sql_query_template)
+
+    def scan(
+        self,
+        rules="*",
+        sample_size=10000,
+        what_if: bool = False,
+        custom_rules: Optional[List[Rule]] = None,
+        locale: str = None,
+    ):
+        discover = Discovery(
+            self._spark,
+            self._catalogs,
+            self._schemas,
+            self._tables,
+            self._info_fetcher.get_tables_info(self._catalogs, self._schemas, self._tables, self._having_columns),
+            custom_rules=custom_rules,
+            locale=locale,
+        )
+        discover.scan(rules=rules, sample_size=sample_size, what_if=what_if)
+        return discover
 
 
 class DataExplorerActions:
@@ -281,16 +328,24 @@ class DataExplorerActions:
 
             logger.friendlyHTML(detailed_explanation)
 
-    def execute(self) -> None:
+    def display(self) -> None:
         """Executes the data exploration queries and displays a sample of results"""
+        return self.execute()
+
+    def execute(self) -> None:
+        """[DEPRECATED] Executes the data exploration queries and displays a sample of results"""
         df = self.to_union_dataframe()
         try:
             df.display()
         except Exception as e:
             df.show(truncate=False)
 
-    def to_union_dataframe(self) -> DataFrame:
+    def apply(self) -> DataFrame:
         """Executes the data exploration queries and returns a DataFrame with the results"""
+        return self.to_union_dataframe()
+
+    def to_union_dataframe(self) -> DataFrame:
+        """[DEPRECATED] Executes the data exploration queries and returns a DataFrame with the results"""
 
         sql_commands = self._get_sql_commands(self._data_explorer)
         dfs = []
