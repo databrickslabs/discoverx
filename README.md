@@ -61,6 +61,7 @@ The available `dx` functions are
   * `with_concurrency` defines how many queries are executed concurrently (10 by defailt)
   * `apply_sql` applies a SQL template to all tables. After this command you can apply an [action](#from_tables-actions). See in-depth documentation [here](docs/Arbitrary_multi-table_SQL.md).
   * `unpivot_string_columns` returns a melted (unpivoted) dataframe with all string columns from the selected tables. After this command you can apply an [action](#from_tables-actions)
+  * `scan` (experimental) scans the lakehouse with regex expressions defined by the rules and to power the semantic classification.
 * `intro` gives an introduction to the library
 * `scan` scans the lakehouse with regex expressions defined by the rules and to power the semantic classification. [Documentation](docs/Semantic_classification.md)
 * `display_rules` shows the rules available for semantic classification

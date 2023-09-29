@@ -149,8 +149,21 @@ class DataExplorer:
         new_obj._max_concurrency = max_concurrency
         return new_obj
 
-    def apply_sql(self, sql_query_template: str) -> "DataExplorerActions":
+    def with_sql(self, sql_query_template: str) -> "DataExplorerActions":
         """Sets the SQL query template to use for the data exploration
+
+        Args:
+            sql_query_template (str): The SQL query template to use. The template might contain the following variables:
+                - table_catalog: The table catalog name
+                - table_schema: The table schema name
+                - table_name: The table name
+                - full_table_name: The full table name (catalog.schema.table)
+                - stack_string_columns: A SQL expression that returns a table with two columns: column_name and string_value
+        """
+        return self.apply_sql(sql_query_template)
+
+    def apply_sql(self, sql_query_template: str) -> "DataExplorerActions":
+        """[DEPRECATED] Sets the SQL query template to use for the data exploration
 
         Args:
             sql_query_template (str): The SQL query template to use. The template might contain the following variables:
@@ -304,16 +317,24 @@ class DataExplorerActions:
 
             logger.friendlyHTML(detailed_explanation)
 
-    def execute(self) -> None:
+    def display(self) -> None:
         """Executes the data exploration queries and displays a sample of results"""
+        return self.execute()
+
+    def execute(self) -> None:
+        """[DEPRECATED] Executes the data exploration queries and displays a sample of results"""
         df = self.to_union_dataframe()
         try:
             df.display()
         except Exception as e:
             df.show(truncate=False)
 
-    def to_union_dataframe(self) -> DataFrame:
+    def apply(self) -> DataFrame:
         """Executes the data exploration queries and returns a DataFrame with the results"""
+        return self.to_union_dataframe()
+
+    def to_union_dataframe(self) -> DataFrame:
+        """[DEPRECATED] Executes the data exploration queries and returns a DataFrame with the results"""
 
         sql_commands = self._get_sql_commands(self._data_explorer)
         dfs = []
