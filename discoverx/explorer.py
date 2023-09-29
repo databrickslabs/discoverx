@@ -4,7 +4,7 @@ import re
 import pandas as pd
 from discoverx import logging
 from discoverx.common import helper
-from discoverx.scanner import ColumnInfo, TableInfo
+from discoverx.scanner import ColumnInfo, TableInfo, TagsInfo
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
@@ -23,25 +23,27 @@ class InfoFetcher:
         columns = [
             ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], []) for col in row["table_columns"]
         ]
-
-        if row["table_tags"]:
+        if "table_tags" in row.asDict().keys():
             table_tags = [(tag["tag_name"], tag["tag_value"]) for tag in row["table_tags"]]
+            tags = TagsInfo(table_tags=table_tags)
         else:
-            table_tags = []
+            tags = None
 
         return TableInfo(
             row["table_catalog"],
             row["table_schema"],
             row["table_name"],
             columns=columns,
-            table_tags=table_tags,
+            tags=tags,
         )
 
     def _to_info_list(self, info_rows: list[Row]) -> list[TableInfo]:
         filtered_tables = [self._to_info_row(row) for row in info_rows]
         return filtered_tables
 
-    def get_tables_info(self, catalogs: str, schemas: str, tables: str, columns: list[str] = [], with_tags=False) -> list[TableInfo]:
+    def get_tables_info(
+        self, catalogs: str, schemas: str, tables: str, columns: list[str] = [], with_tags=False
+    ) -> list[TableInfo]:
         # Filter tables by matching filter
         table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns)
 
@@ -253,6 +255,7 @@ class DataExplorer:
         self._having_columns = []
         self._sql_query_template = None
         self._max_concurrency = 10
+        self._with_tags = False
 
     @staticmethod
     def validate_from_components(from_tables: str):
@@ -274,6 +277,7 @@ class DataExplorer:
         new_obj._having_columns = copy.deepcopy(self._having_columns)
         new_obj._sql_query_template = copy.deepcopy(self._sql_query_template)
         new_obj._max_concurrency = copy.deepcopy(self._max_concurrency)
+        new_obj._with_tags = copy.deepcopy(self._with_tags)
 
         new_obj._spark = self._spark
         new_obj._info_fetcher = self._info_fetcher
@@ -294,6 +298,12 @@ class DataExplorer:
         """Sets the maximum number of concurrent queries to run"""
         new_obj = copy.deepcopy(self)
         new_obj._max_concurrency = max_concurrency
+        return new_obj
+
+    def with_tags(self, use_tags=True) -> "DataExplorer":
+        """Sets the maximum number of concurrent queries to run"""
+        new_obj = copy.deepcopy(self)
+        new_obj._with_tags = use_tags
         return new_obj
 
     def apply_sql(self, sql_query_template: str) -> "DataExplorerActions":
@@ -331,7 +341,7 @@ class DataExplorer:
     def map(self, f) -> list[any]:
         res = []
         table_list = self._info_fetcher.get_tables_info(
-            self._catalogs, self._schemas, self._tables, self._having_columns
+            self._catalogs, self._schemas, self._tables, self._having_columns, self._with_tags
         )
         with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool
@@ -405,7 +415,11 @@ class DataExplorerActions:
         logger.debug("Launching lakehouse scanning task\n")
 
         table_list = self._info_fetcher.get_tables_info(
-            data_explorer._catalogs, data_explorer._schemas, data_explorer._tables, data_explorer._having_columns
+            data_explorer._catalogs,
+            data_explorer._schemas,
+            data_explorer._tables,
+            data_explorer._having_columns,
+            data_explorer._with_tags,
         )
         sql_commands = [
             (DataExplorerActions._build_sql(data_explorer._sql_query_template, table), table) for table in table_list

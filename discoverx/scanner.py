@@ -23,9 +23,24 @@ class ColumnInfo:
 
 
 @dataclass
-class TableTagInfo:
+class TagInfo:
     tag_name: str
     tag_value: str
+
+
+@dataclass
+class ColumnTagInfo:
+    column_name: str
+    tag_name: str
+    tag_value: str
+
+
+@dataclass
+class TagsInfo:
+    column_tags: Optional[list[ColumnTagInfo]]
+    table_tags: Optional[list[TagInfo]]
+    schema_tags: Optional[list[TagInfo]]
+    catalog_tags: Optional[list[TagInfo]]
 
 
 @dataclass
@@ -34,7 +49,7 @@ class TableInfo:
     schema: str
     table: str
     columns: list[ColumnInfo]
-    table_tags: list[TableTagInfo]
+    tags: Optional[TagsInfo]
 
     def get_columns_by_class(self, class_name: str):
         return [ClassifiedColumn(col.name, class_name) for col in self.columns if class_name in col.classes]

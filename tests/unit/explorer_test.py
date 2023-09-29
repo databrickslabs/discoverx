@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import Mock, patch
 from pyspark.sql import SparkSession
 from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, TableInfo
-from discoverx.scanner import TableTagInfo
 
 
 # # Sample test data
@@ -71,8 +70,17 @@ def test_map(spark, info_fetcher):
     assert result[0].table == "tb_1"
     assert result[0].schema == "default"
     assert result[0].catalog == None
-    assert len(result[0].table_tags) == 1
-    assert result[0].table_tags[0] == ("pii", "true")
+    assert result[0].tags == None
+
+
+def test_map_with_tags(spark, info_fetcher):
+    data_explorer = DataExplorer("*.default.tb_1", spark, info_fetcher).with_tags()
+    result = data_explorer.map(lambda table_info: table_info)
+    assert len(result) == 1
+    assert result[0].table == "tb_1"
+    assert result[0].schema == "default"
+    assert result[0].catalog == None
+    assert len(result[0].tags.table_tags) == 1
 
 
 def test_no_tables_matching_filter(spark, info_fetcher):
