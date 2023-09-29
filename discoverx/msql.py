@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from functools import reduce
 from discoverx import logging
-from discoverx.scanner import ColumnInfo, TableInfo
+from discoverx.table_info import ColumnInfo, TableInfo
 from discoverx.common.helper import strip_margin
 from fnmatch import fnmatch
 from pyspark.sql.functions import lit

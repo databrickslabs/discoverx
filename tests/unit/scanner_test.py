@@ -4,56 +4,9 @@ import pandas as pd
 from pyspark.sql import SparkSession
 import pytest
 
-from discoverx.scanner import ScanResult, Scanner, ColumnInfo, TableInfo
+from discoverx.scanner import ScanResult, Scanner
+from discoverx.table_info import ColumnInfo, TableInfo
 from discoverx.rules import RegexRule, Rules
-
-
-def test_get_table_list(spark):
-    expected = [
-        TableInfo(
-            "hive_metastore",
-            "default",
-            "tb_all_types",
-            [
-                ColumnInfo("str_col", "STRING", None, []),
-                ColumnInfo("int_col", "INT", None, []),
-                ColumnInfo("double_col", "DOUBLE", None, []),
-                ColumnInfo("timestamp_col", "TIMESTAMP", None, []),
-                ColumnInfo("bool_col", "BOOLEAN", None, []),
-                ColumnInfo("long_col", "LONG", None, []),
-                ColumnInfo("null_col", "NULL", None, []),
-                ColumnInfo("decimal_col", "DECIMAL", None, []),
-                ColumnInfo("float_col", "FLOAT", None, []),
-                ColumnInfo("map_col", "MAP", None, []),
-                ColumnInfo("short_col", "SHORT", None, []),
-                ColumnInfo("array_col", "ARRAY", None, []),
-                ColumnInfo("date_col", "DATE", None, []),
-                ColumnInfo("byte_col", "BYTE", None, []),
-                ColumnInfo("struct_col", "STRUCT", None, []),
-                ColumnInfo("binary_col", "BINARY", None, []),
-                ColumnInfo("char_col", "CHAR", None, []),
-                ColumnInfo("udt_col", "USER_DEFINED_TYPE", None, []),
-                ColumnInfo("interval_col", "INTERVAL", None, []),
-                ColumnInfo("str_part_col", "STRING", 1, []),
-            ],
-        )
-    ]
-
-    rules = Rules()
-    scanner = Scanner(
-        spark,
-        rules=rules,
-        catalogs="*",
-        schemas="*",
-        tables="*_all_types",
-        rule_filter="*",
-        sample_size=100,
-        columns_table_name="default.columns_mock",
-    )
-    actual = scanner._get_list_of_tables()
-
-    assert len(actual) == 1
-    assert actual == expected
 
 
 # test generating sql for single and multiple rules (using parametrized pytests)
