@@ -36,7 +36,6 @@ dbutils.widgets.text("from_tables", "discoverx_sample.*.*", "from tables")
 
 # COMMAND ----------
 
-import openai
 import pandas as pd
 from pyspark.sql.functions import (
     pandas_udf,
@@ -128,7 +127,6 @@ except:
 # COMMAND ----------
 
 from mlflow import gateway
-
 
 @pandas_udf(StringType())
 def predict_value_udf(s):
