@@ -118,8 +118,8 @@ def predict_value_udf(s):
     openai.api_version = "2023-05-15"
 
     def predict_value(s):
-        content = f""" Given the tweet text, extract the english of the country and reply with just the name of country"
-        Tweet Text: {s}
+        content = f""" Is this news article related to aquisition. Please reply with either YES or NO
+        News Article: {s}
         """
 
         response = openai.ChatCompletion.create(
@@ -133,8 +133,12 @@ def predict_value_udf(s):
 
 # COMMAND ----------
 
-df_with_prediction = unpivoted_df.filter(col("column_name") == 'tweet').withColumn("country_name", predict_value_udf(col("string_value")))
+df_with_prediction = unpivoted_df.withColumn("is_realted_to_aquisition", predict_value_udf(col("string_value")))
 
 # COMMAND ----------
 
 display(df_with_prediction)
+
+# COMMAND ----------
+
+
