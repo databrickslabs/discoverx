@@ -98,9 +98,10 @@ display(unpivoted_df)
 
 # COMMAND ----------
 
-#get or create mosaic route
+# get or create mosaic route
 import mlflow
 from mlflow import gateway
+
 gateway.set_gateway_uri(gateway_uri="databricks")
 
 mosaic_route_name = "mosaicml-llama2-70b-completions"
@@ -110,37 +111,41 @@ try:
 except:
     # Create a route for embeddings with MosaicML
     print(f"Creating the route {mosaic_route_name}")
-    print(gateway.create_route(
-        name=mosaic_route_name,
-        route_type="llm/v1/completions",
-        model={
-            "name": "llama2-70b-chat",
-            "provider": "mosaicml",
-            "mosaicml_config": {
-                "mosaicml_api_key": dbutils.secrets.get(scope="dbdemos", key="mosaic_ml_api_key")
-            }
-        }
-    ))
+    print(
+        gateway.create_route(
+            name=mosaic_route_name,
+            route_type="llm/v1/completions",
+            model={
+                "name": "llama2-70b-chat",
+                "provider": "mosaicml",
+                "mosaicml_config": {"mosaicml_api_key": dbutils.secrets.get(scope="dbdemos", key="mosaic_ml_api_key")},
+            },
+        )
+    )
 
 # COMMAND ----------
 
 from mlflow import gateway
 
+
 @pandas_udf(StringType())
 def predict_value_udf(s):
     def predict_value(s):
-        data = {"prompt": f""" [INST] 
+        data = {
+            "prompt": f""" [INST] 
         <<SYS>>
         Reply with either YES or NO
         <</SYS>>
         Is this news article related to aquisition ?
         News Article: {s}
          [/INST]
-        """}
-        r = mlflow.gateway.query(route="mosaicml-llama2-70b-completions", data = data) 
+        """
+        }
+        r = mlflow.gateway.query(route="mosaicml-llama2-70b-completions", data=data)
         return r["candidates"][0]["text"]
 
     return s.apply(predict_value)
+
 
 # COMMAND ----------
 

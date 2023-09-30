@@ -140,5 +140,3 @@ df_with_prediction = unpivoted_df.withColumn("is_realted_to_aquisition", predict
 display(df_with_prediction)
 
 # COMMAND ----------
-
-
