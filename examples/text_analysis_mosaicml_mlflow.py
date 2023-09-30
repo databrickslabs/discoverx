@@ -8,7 +8,7 @@
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
 # MAGIC 2. Run text analysis with MosaicML llama2-70b model & Databricks MLflow
 # MAGIC
-# MAGIC **NOTE**: This notebook requires >= DBR 13.3 LTS ML Runtime 
+# MAGIC **NOTE**: This notebook requires >= DBR 13.3 LTS ML Runtime
 
 # COMMAND ----------
 
