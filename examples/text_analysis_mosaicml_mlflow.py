@@ -7,6 +7,8 @@
 # MAGIC The notebook will:
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
 # MAGIC 2. Run text analysis with MosaicML llama2-70b model & Databricks MLflow
+# MAGIC
+# MAGIC **NOTE**: This notebook requires >= DBR 13.3 LTS ML Runtime 
 
 # COMMAND ----------
 
@@ -136,7 +138,7 @@ def predict_value_udf(s):
         <<SYS>>
         Reply with either YES or NO
         <</SYS>>
-        Is this news article related to aquisition ?
+        Is this news article related to aquisition/merger ?
         News Article: {s}
          [/INST]
         """
@@ -146,6 +148,11 @@ def predict_value_udf(s):
 
     return s.apply(predict_value)
 
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Run Predictions
 
 # COMMAND ----------
 

@@ -51,6 +51,8 @@ from pyspark.sql.functions import (
     sum,
     collect_set,
     concat_ws,
+    regexp_replace,
+    upper
 )
 from pyspark.sql.types import ArrayType, StringType, StructType, FloatType, StructField
 from typing import Iterator
@@ -118,7 +120,8 @@ def predict_value_udf(s):
     openai.api_version = "2023-05-15"
 
     def predict_value(s):
-        content = f""" Is this news article related to aquisition. Please reply with either YES or NO
+        content = f""" Reply strictly with YES/NO
+        Is this news article related to aquisition/merger? 
         News Article: {s}
         """
 
@@ -133,10 +136,17 @@ def predict_value_udf(s):
 
 # COMMAND ----------
 
-df_with_prediction = unpivoted_df.withColumn("is_realted_to_aquisition", predict_value_udf(col("string_value")))
+# MAGIC %md
+# MAGIC ### Run Predictions
+
+# COMMAND ----------
+
+df_with_prediction = unpivoted_df.withColumn("is_realted_to_aquisition", predict_value_udf(col("string_value"))).withColumn("is_realted_to_aquisition", upper(regexp_replace(col("is_realted_to_aquisition"), "\\.", "")))
 
 # COMMAND ----------
 
 display(df_with_prediction)
 
 # COMMAND ----------
+
+
