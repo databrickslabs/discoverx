@@ -384,9 +384,6 @@ class Scanner:
           To be more precise:
         </p>
         {summary_html_table}
-        <p>
-          You can see the full classification output with 'dx.scan_result'.
-        </p>
 
 
         """
