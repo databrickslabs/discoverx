@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import pandas as pd
 import pytest
 from discoverx.common.helper import strip_margin
-from discoverx.scanner import ColumnInfo, TableInfo
+from discoverx.table_info import ColumnInfo, TableInfo
 from discoverx.msql import Msql, SQLRow
 from discoverx.scanner import ScanResult
 

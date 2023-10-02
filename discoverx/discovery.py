@@ -2,10 +2,10 @@ from typing import Optional, List, Union
 
 from discoverx import logging
 from discoverx.msql import Msql
-from discoverx.scanner import TableInfo
+from discoverx.table_info import TableInfo
 from discoverx.scanner import Scanner, ScanResult
 from discoverx.rules import Rules, Rule
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import SparkSession
 
 logger = logging.Logging()
 
