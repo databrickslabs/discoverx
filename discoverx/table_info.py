@@ -97,7 +97,7 @@ class InfoFetcher:
             FROM {self.columns_table_name}
             WHERE 
                 table_schema != "information_schema" 
-                AND table_catalog != "system"
+                AND NOT table_catalog <=> "system"
                 {catalog_sql if catalogs != "*" else ""}
                 {schema_sql if schemas != "*" else ""}
                 {table_sql if tables != "*" else ""}
@@ -113,7 +113,7 @@ class InfoFetcher:
           FROM {self.columns_table_name} info_schema
           WHERE 
                 table_schema != "information_schema"
-                AND table_catalog != "system"
+                AND NOT table_catalog <=> "system"
                 {catalog_sql if catalogs != "*" else ""}
                 {schema_sql if schemas != "*" else ""}
                 {table_sql if tables != "*" else ""}
