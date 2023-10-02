@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Text analysis with DiscoverX, MosaicML & Databricks MLflow
 # MAGIC
-# MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to analyze text with [Mosiac Ml](https://www.mosaicml.com/blog/llama2-inference) over a set of tables in Unity Catalog.
+# MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to analyze text with [MosiacML](https://www.mosaicml.com/blog/llama2-inference) over a set of tables in Unity Catalog.
 # MAGIC
 # MAGIC The notebook will:
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
@@ -17,7 +17,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install mlflow[gateway] databricks-sdk==0.8.0
+# MAGIC %pip install mlflow[gateway]
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -95,7 +95,7 @@ display(unpivoted_df)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Define udf to use gpt apis
+# MAGIC ### Define udf to use MosiacML model
 
 # COMMAND ----------
 
@@ -141,7 +141,7 @@ def predict_value_udf(s):
          [/INST]
         """
         }
-        r = mlflow.gateway.query(route="mosaicml-llama2-70b-completions", data=data)
+        r = mlflow.gateway.query(route=mosaic_route_name, data=data)
         return r["candidates"][0]["text"]
 
     return s.apply(predict_value)
