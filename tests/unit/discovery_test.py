@@ -98,6 +98,17 @@ def test_discover_select_by_class(discover_ip):
         discover_ip.select_by_classes(from_tables="invalid from", by_classes="email")
 
 
+def test_discover_display_rules(capfd, discover_ip):
+    # search a specific term and auto-detect matching classes/rules
+    discover_ip.display_rules()
+
+    captured = capfd.readouterr()
+    assert "Matching rules" in captured.out
+    assert "built-in rules that are available to you:" in captured.out
+    assert "mac_address - MAC Addresses" in captured.out
+    assert "credit_card_expiration_date" in captured.out
+
+
 def test_discover_delete_by_class(spark, discover_ip):
     # search a specific term and auto-detect matching classes/rules
     discover_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")

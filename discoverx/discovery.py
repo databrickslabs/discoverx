@@ -95,6 +95,11 @@ class Discovery:
 
         return self._scan_result.df
 
+    def display_rules(self):
+        """Displays the available rules in a friendly HTML format"""
+        text = self.rules.get_rules_info()
+        logger.friendlyHTML(text)
+
     def search(
         self,
         search_term: str,
