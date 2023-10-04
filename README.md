@@ -75,7 +75,7 @@ The available `dx` functions are
 After a `with_sql` or `unpivot_string_columns` command, you can apply the following actions:
 
 * `explain` explains the queries that would be executed
-* `display` executes the queries and shows the result in a unioned dataframe
+* `display` executes the queries and shows the first 1000 rows of the result in a unioned dataframe
 * `apply` returns a unioned dataframe with the result from the queries
 
 ## Requirements
