@@ -68,7 +68,7 @@ class DX:
         <p>
             Then you can apply the following operations
             <ul>
-                <li><code>.apply_sql(...)</code> - Runs a SQL template on each table</li>
+                <li><code>.with_sql(...)</code> - Runs a SQL template on each table</li>
                 <li><code>.scan(...)</code> - Scan your lakehouse for columns matching the given rules</li>
                 <li><code>.search(...)</code> - Search your lakehouse for columns matching the given search term</li>
             </ul>

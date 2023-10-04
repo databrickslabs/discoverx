@@ -10,8 +10,8 @@ For example, to vacuum all the tables in "default" catalog:
 
 ```
 dx.from_tables("default.*.*")\
-  .apply_sql("VACUUM {full_table_name}")\
-  .execute()
+  .with_sql("VACUUM {full_table_name}")\
+  .display()
 ```
 
 That will apply the SQL template `VACUUM {full_table_name}` to all tables matched by the pattern `default.*.*`.
@@ -26,7 +26,7 @@ You can use the `explain()` command to see the SQL that would be executed.
 
 ```
 dx.from_tables("default.*.*")\
-  .apply_sql("VACUUM {full_table_name}")\
+  .with_sql("VACUUM {full_table_name}")\
   .explain()
 ```
 
@@ -35,14 +35,14 @@ You can also filter tables that have a specific column name.
 ```
 dx.from_tables("default.*.*")\
   .having_columns("device_id")\
-  .apply_sql("OPTIMIZE {full_table_name} ZORDER BY (`device_id`)")\
-  .execute()
+  .with_sql("OPTIMIZE {full_table_name} ZORDER BY (`device_id`)")\
+  .display()
 ```
 
 ## Select entire rows as json
 
 ```
 dx.from_tables("default.*.*")\
-  .apply_sql("SELECT to_json(struct(*)) AS json_row FROM {full_table_name}")\
-  .execute()
+  .with_sql("SELECT to_json(struct(*)) AS json_row FROM {full_table_name}")\
+  .display()
 ```

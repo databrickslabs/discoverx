@@ -113,7 +113,7 @@ class DataExplorer:
         if sample_size is not None:
             sql_query_template += f"TABLESAMPLE ({sample_size} ROWS)"
 
-        return self.apply_sql(sql_query_template)
+        return self.with_sql(sql_query_template)
 
     def scan(
         self,

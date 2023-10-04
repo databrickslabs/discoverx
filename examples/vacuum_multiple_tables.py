@@ -28,7 +28,7 @@ dx = DX()
 
 # COMMAND ----------
 
-dx.from_tables(from_tables).apply_sql("VACUUM {full_table_name}").explain()
+dx.from_tables(from_tables).with_sql("VACUUM {full_table_name}").explain()
 
 # COMMAND ----------
 
@@ -37,4 +37,4 @@ dx.from_tables(from_tables).apply_sql("VACUUM {full_table_name}").explain()
 
 # COMMAND ----------
 
-(dx.from_tables(from_tables).apply_sql("VACUUM {full_table_name}").execute())
+(dx.from_tables(from_tables).with_sql("VACUUM {full_table_name}").display())
