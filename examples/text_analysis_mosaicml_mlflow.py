@@ -99,35 +99,36 @@ display(unpivoted_df)
 
 # COMMAND ----------
 
-# get or create mosaic route
-import mlflow
-from mlflow import gateway
+# # get or create mosaic route
+# import mlflow
+# from mlflow import gateway
 
-gateway.set_gateway_uri(gateway_uri="databricks")
+# gateway.set_gateway_uri(gateway_uri="databricks")
 
-mosaic_route_name = "mosaicml-llama2-70b-completions"
+# mosaic_route_name = "mosaicml-llama2-70b-completions"
 
-try:
-    route = gateway.get_route(mosaic_route_name)
-except:
-    # Create a route for embeddings with MosaicML
-    print(f"Creating the route {mosaic_route_name}")
-    print(
-        gateway.create_route(
-            name=mosaic_route_name,
-            route_type="llm/v1/completions",
-            model={
-                "name": "llama2-70b-chat",
-                "provider": "mosaicml",
-                "mosaicml_config": {"mosaicml_api_key": dbutils.secrets.get(scope="dbdemos", key="mosaic_ml_api_key")},
-            },
-        )
-    )
+# try:
+#     route = gateway.get_route(mosaic_route_name)
+# except:
+#     # Create a route for embeddings with MosaicML
+#     print(f"Creating the route {mosaic_route_name}")
+#     print(
+#         gateway.create_route(
+#             name=mosaic_route_name,
+#             route_type="llm/v1/completions",
+#             model={
+#                 "name": "llama2-70b-chat",
+#                 "provider": "mosaicml",
+#                 "mosaicml_config": {"mosaicml_api_key": dbutils.secrets.get(scope="dbdemos", key="mosaic_ml_api_key")},
+#             },
+#         )
+#     )
 
 # COMMAND ----------
 
+import mlflow
 from mlflow import gateway
-
+mosaic_route_name = "discoverx-mosaicml-llama2-70b-completions"
 @pandas_udf(StringType())
 def predict_value_udf(s):
     def predict_value(s):

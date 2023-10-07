@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install openai
+# MAGIC %pip install mlflow[gateway]
 
 # COMMAND ----------
 
@@ -24,9 +24,9 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("secret_scope", "discoverx", "Secret Scope")
-dbutils.widgets.text("open_ai_base", "openaibase", "Secret Key of Open API Base")
-dbutils.widgets.text("open_ai_key", "openaikey", "Secret Key of Open AI API Key")
+# dbutils.widgets.text("secret_scope", "discoverx", "Secret Scope")
+# dbutils.widgets.text("open_ai_base", "openaibase", "Secret Key of Open API Base")
+# dbutils.widgets.text("open_ai_key", "openaikey", "Secret Key of Open AI API Key")
 dbutils.widgets.text("from_tables", "discoverx_sample.*.*", "from tables")
 
 # COMMAND ----------
@@ -102,37 +102,68 @@ display(unpivoted_df)
 
 # COMMAND ----------
 
-openai_base_broadcast = sc.broadcast(
-    dbutils.secrets.get(dbutils.widgets.get("secret_scope"), dbutils.widgets.get("open_ai_base"))
-)
-openai_key_broadcast = sc.broadcast(
-    dbutils.secrets.get(dbutils.widgets.get("secret_scope"), dbutils.widgets.get("open_ai_key"))
-)
+# openai_base_broadcast = sc.broadcast(
+#     dbutils.secrets.get(dbutils.widgets.get("secret_scope"), dbutils.widgets.get("open_ai_base"))
+# )
+# openai_key_broadcast = sc.broadcast(
+#     dbutils.secrets.get(dbutils.widgets.get("secret_scope"), dbutils.widgets.get("open_ai_key"))
+# )
 
 # COMMAND ----------
 
-# Define the UDF function
+# # Define the UDF function
+# @pandas_udf(StringType())
+# def predict_value_udf(s):
+#     openai.api_base = openai_base_broadcast.value  # Your Azure OpenAI resource's endpoint value.
+#     openai.api_key = openai_key_broadcast.value
+#     openai.api_type = "azure"
+#     openai.api_version = "2023-05-15"
+
+#     def predict_value(s):
+#         content = f""" Reply strictly with YES/NO
+#         Is this news article related to aquisition/merger? 
+#         News Article: {s}
+#         """
+
+#         response = openai.ChatCompletion.create(
+#             engine="gpt-35-turbo",  # The deployment name you chose when you deployed the GPT-35-Turbo or GPT-4 model.
+#             messages=[{"role": "user", "content": content}],
+#         )
+#         return response["choices"][0]["message"]["content"]
+
+#     return s.apply(predict_value)
+
+
+# COMMAND ----------
+
+import mlflow
+from mlflow import gateway
+openai_route_name = "discoverx-openai-gpt-3.5-completions"
 @pandas_udf(StringType())
 def predict_value_udf(s):
-    openai.api_base = openai_base_broadcast.value  # Your Azure OpenAI resource's endpoint value.
-    openai.api_key = openai_key_broadcast.value
-    openai.api_type = "azure"
-    openai.api_version = "2023-05-15"
-
     def predict_value(s):
-        content = f""" Reply strictly with YES/NO
-        Is this news article related to aquisition/merger? 
+        data = {
+            "prompt": f""" 
+        Reply with either YES or NO
+        Is this news article related to aquisition/merger ?
         News Article: {s}
         """
-
-        response = openai.ChatCompletion.create(
-            engine="gpt-35-turbo",  # The deployment name you chose when you deployed the GPT-35-Turbo or GPT-4 model.
-            messages=[{"role": "user", "content": content}],
-        )
-        return response["choices"][0]["message"]["content"]
+        }
+        r = mlflow.gateway.query(route=openai_route_name, data=data)
+        return r["candidates"][0]["text"]
 
     return s.apply(predict_value)
 
+# COMMAND ----------
+
+# import mlflow
+# from mlflow import gateway
+# openai_route_name = "discoverx-openai-gpt-3.5-completions"
+# data = {
+#             "prompt": f""" what is databricks"""
+#         }
+# r = mlflow.gateway.query(route=openai_route_name, data=data)
+# print(r)
 
 # COMMAND ----------
 
@@ -150,3 +181,5 @@ df_with_prediction = unpivoted_df.withColumn(
 display(df_with_prediction)
 
 # COMMAND ----------
+
+
