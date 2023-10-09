@@ -8,7 +8,7 @@
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
 # MAGIC 2. Run text analysis with Azure OpenAI GPT model & Databricks MLflow
 # MAGIC
-# MAGIC **NOTE**: 
+# MAGIC **NOTE**:
 # MAGIC - This notebook requires >= DBR 13.3 LTS ML Runtime
 # MAGIC - This notebook requires Mlflow gateway route for OpenAI. Please refer to the [example notebook](./mlflow_gateway_routes_examples.py) for the steps to create route
 
@@ -30,7 +30,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("from_tables", "discoverx_sample.*.*", "from tables")
-dbutils.widgets.text("openai_route_name","discoverx-openai-gpt-3.5-completions","openai route name")
+dbutils.widgets.text("openai_route_name", "discoverx-openai-gpt-3.5-completions", "openai route name")
 
 # COMMAND ----------
 
@@ -108,6 +108,8 @@ display(unpivoted_df)
 
 import mlflow
 from mlflow import gateway
+
+
 @pandas_udf(StringType())
 def predict_value_udf(s):
     def predict_value(s):
@@ -122,6 +124,7 @@ def predict_value_udf(s):
         return r["candidates"][0]["text"]
 
     return s.apply(predict_value)
+
 
 # COMMAND ----------
 

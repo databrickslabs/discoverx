@@ -8,7 +8,7 @@
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
 # MAGIC 2. Run text analysis with MosaicML llama2-70b model & Databricks MLflow
 # MAGIC
-# MAGIC **NOTE**: 
+# MAGIC **NOTE**:
 # MAGIC - This notebook requires >= DBR 13.3 LTS ML Runtime
 # MAGIC - This notebook requires Mlflow gateway route for MosaicML . Please refer to the [example notebook](./mlflow_gateway_routes_examples.py) for the steps to create route
 
@@ -30,7 +30,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("from_tables", "discoverx_sample.*.*", "from tables")
-dbutils.widgets.text("moasicml_route_name","discoverx-mosaicml-llama2-70b-completions","mosaicml route name")
+dbutils.widgets.text("moasicml_route_name", "discoverx-mosaicml-llama2-70b-completions", "mosaicml route name")
 
 # COMMAND ----------
 
@@ -105,6 +105,8 @@ display(unpivoted_df)
 
 import mlflow
 from mlflow import gateway
+
+
 @pandas_udf(StringType())
 def predict_value_udf(s):
     def predict_value(s):
