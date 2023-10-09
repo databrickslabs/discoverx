@@ -8,7 +8,9 @@
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
 # MAGIC 2. Run text analysis with MosaicML llama2-70b model & Databricks MLflow
 # MAGIC
-# MAGIC **NOTE**: This notebook requires >= DBR 13.3 LTS ML Runtime
+# MAGIC **NOTE**: 
+# MAGIC - This notebook requires >= DBR 13.3 LTS ML Runtime
+# MAGIC - This notebook requires Mlflow gateway route for MosaicML . Please refer to the [example notebook](./mlflow_gateway_routes_examples.py) for the steps to create route
 
 # COMMAND ----------
 
@@ -28,6 +30,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("from_tables", "discoverx_sample.*.*", "from tables")
+dbutils.widgets.text("moasicml_route_name","discoverx-mosaicml-llama2-70b-completions","mosaicml route name")
 
 # COMMAND ----------
 
@@ -57,6 +60,7 @@ from typing import Iterator
 # COMMAND ----------
 
 from_tables = dbutils.widgets.get("from_tables")
+moasicml_route_name = dbutils.widgets.get("moasicml_route_name")
 
 # Set the sample rows size
 sample_size = 100
@@ -99,36 +103,8 @@ display(unpivoted_df)
 
 # COMMAND ----------
 
-# # get or create mosaic route
-# import mlflow
-# from mlflow import gateway
-
-# gateway.set_gateway_uri(gateway_uri="databricks")
-
-# mosaic_route_name = "mosaicml-llama2-70b-completions"
-
-# try:
-#     route = gateway.get_route(mosaic_route_name)
-# except:
-#     # Create a route for embeddings with MosaicML
-#     print(f"Creating the route {mosaic_route_name}")
-#     print(
-#         gateway.create_route(
-#             name=mosaic_route_name,
-#             route_type="llm/v1/completions",
-#             model={
-#                 "name": "llama2-70b-chat",
-#                 "provider": "mosaicml",
-#                 "mosaicml_config": {"mosaicml_api_key": dbutils.secrets.get(scope="dbdemos", key="mosaic_ml_api_key")},
-#             },
-#         )
-#     )
-
-# COMMAND ----------
-
 import mlflow
 from mlflow import gateway
-mosaic_route_name = "discoverx-mosaicml-llama2-70b-completions"
 @pandas_udf(StringType())
 def predict_value_udf(s):
     def predict_value(s):
@@ -142,7 +118,7 @@ def predict_value_udf(s):
          [/INST]
         """
         }
-        r = mlflow.gateway.query(route=mosaic_route_name, data=data)
+        r = mlflow.gateway.query(route=moasicml_route_name, data=data)
         return r["candidates"][0]["text"]
 
     return s.apply(predict_value)

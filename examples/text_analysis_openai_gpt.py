@@ -1,12 +1,16 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Text analysis with DiscoverX & Azure OpenAI
+# MAGIC # Text analysis with DiscoverX, Azure OpenAI & Databricks MLflow
 # MAGIC
 # MAGIC This notebooks uses [DiscoverX](https://github.com/databrickslabs/discoverx) to analyze text with [AZURE OpenAI API](https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=command-line&pivots=programming-language-studio) over a set of tables in Unity Catalog.
 # MAGIC
 # MAGIC The notebook will:
 # MAGIC 1. Use DiscoverX to sample a set of tables from Unity Catalog and unpivot all string columns into a long format dataset
-# MAGIC 2. Run text analysis with Azure OpenAI GPT model
+# MAGIC 2. Run text analysis with Azure OpenAI GPT model & Databricks MLflow
+# MAGIC
+# MAGIC **NOTE**: 
+# MAGIC - This notebook requires >= DBR 13.3 LTS ML Runtime
+# MAGIC - This notebook requires Mlflow gateway route for OpenAI. Please refer to the [example notebook](./mlflow_gateway_routes_examples.py) for the steps to create route
 
 # COMMAND ----------
 
@@ -16,6 +20,7 @@
 # COMMAND ----------
 
 # MAGIC %pip install mlflow[gateway]
+# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -24,10 +29,8 @@
 
 # COMMAND ----------
 
-# dbutils.widgets.text("secret_scope", "discoverx", "Secret Scope")
-# dbutils.widgets.text("open_ai_base", "openaibase", "Secret Key of Open API Base")
-# dbutils.widgets.text("open_ai_key", "openaikey", "Secret Key of Open AI API Key")
 dbutils.widgets.text("from_tables", "discoverx_sample.*.*", "from tables")
+dbutils.widgets.text("openai_route_name","discoverx-openai-gpt-3.5-completions","openai route name")
 
 # COMMAND ----------
 
@@ -60,6 +63,7 @@ from typing import Iterator
 # COMMAND ----------
 
 from_tables = dbutils.widgets.get("from_tables")
+openai_route_name = dbutils.widgets.get("openai_route_name")
 
 # Set the sample rows size
 sample_size = 100
@@ -102,43 +106,8 @@ display(unpivoted_df)
 
 # COMMAND ----------
 
-# openai_base_broadcast = sc.broadcast(
-#     dbutils.secrets.get(dbutils.widgets.get("secret_scope"), dbutils.widgets.get("open_ai_base"))
-# )
-# openai_key_broadcast = sc.broadcast(
-#     dbutils.secrets.get(dbutils.widgets.get("secret_scope"), dbutils.widgets.get("open_ai_key"))
-# )
-
-# COMMAND ----------
-
-# # Define the UDF function
-# @pandas_udf(StringType())
-# def predict_value_udf(s):
-#     openai.api_base = openai_base_broadcast.value  # Your Azure OpenAI resource's endpoint value.
-#     openai.api_key = openai_key_broadcast.value
-#     openai.api_type = "azure"
-#     openai.api_version = "2023-05-15"
-
-#     def predict_value(s):
-#         content = f""" Reply strictly with YES/NO
-#         Is this news article related to aquisition/merger? 
-#         News Article: {s}
-#         """
-
-#         response = openai.ChatCompletion.create(
-#             engine="gpt-35-turbo",  # The deployment name you chose when you deployed the GPT-35-Turbo or GPT-4 model.
-#             messages=[{"role": "user", "content": content}],
-#         )
-#         return response["choices"][0]["message"]["content"]
-
-#     return s.apply(predict_value)
-
-
-# COMMAND ----------
-
 import mlflow
 from mlflow import gateway
-openai_route_name = "discoverx-openai-gpt-3.5-completions"
 @pandas_udf(StringType())
 def predict_value_udf(s):
     def predict_value(s):
@@ -156,17 +125,6 @@ def predict_value_udf(s):
 
 # COMMAND ----------
 
-# import mlflow
-# from mlflow import gateway
-# openai_route_name = "discoverx-openai-gpt-3.5-completions"
-# data = {
-#             "prompt": f""" what is databricks"""
-#         }
-# r = mlflow.gateway.query(route=openai_route_name, data=data)
-# print(r)
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ### Run Predictions
 
@@ -179,7 +137,3 @@ df_with_prediction = unpivoted_df.withColumn(
 # COMMAND ----------
 
 display(df_with_prediction)
-
-# COMMAND ----------
-
-
