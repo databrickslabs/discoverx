@@ -81,7 +81,7 @@ except:
 
 # COMMAND ----------
 
-# get or create mosaic route
+# get or create openai route
 import mlflow
 from mlflow import gateway
 
@@ -89,7 +89,7 @@ gateway.set_gateway_uri(gateway_uri="databricks")
 try:
     route = gateway.get_route(openai_route_name)
 except:
-    # Create a route for embeddings with MosaicML
+    # Create a route for embeddings with OpenAI
     print(f"Creating the route {openai_route_name}")
     print(
         gateway.create_route(
