@@ -28,6 +28,7 @@ Operations are applied concurrently across multiple tables
   * [Delete data based on semantic classes](docs/Delete_by_class.md)
 * **Custom**
   * [Arbitrary SQL template execution across multiple tables](docs/Arbitrary_multi-table_SQL.md)
+  * Create Mlflow gateway routes for MosaicML and OpenAI ([example notebook](examples/mlflow_gateway_routes_examples.py))
 
 ## Getting started
 

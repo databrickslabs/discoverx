@@ -10,7 +10,12 @@
 # MAGIC
 # MAGIC **NOTE**:
 # MAGIC - This notebook requires >= DBR 13.3 LTS ML Runtime
-# MAGIC - This notebook requires Mlflow gateway route for MosaicML . Please refer to the [example notebook](./mlflow_gateway_routes_examples.py) for the steps to create route
+# MAGIC - This notebook requires Mlflow gateway route for MosaicML. For examples of creating routes, please refer to the [README.md](https://github.com/databrickslabs/discoverx/blob/master/README.md) file.
+# MAGIC - For detailed information about the cost of API hits, please refer to [MosaicML Inference](https://www.mosaicml.com/inference)
+
+# COMMAND ----------
+
+# MAGIC %run ./mlflow_gateway_routes_examples
 
 # COMMAND ----------
 
