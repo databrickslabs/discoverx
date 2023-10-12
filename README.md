@@ -17,6 +17,8 @@ Operations are applied concurrently across multiple tables
   * Visualise quantity of data written per table per period
 * **Governance**
   * PII detection with Presidio ([example notebook](examples/pii_detection_presidio.py))
+  * Text Analysis with MosaicML and Databricks MLflow ([example notebook](examples/text_analysis_mosaicml_mlflow.py))
+  * Text Analysis with OpenAI GPT ([example notebook](examples/text_analysis_openai_gpt.py))
   * [GDPR right of access: extract user data from all tables at once](docs/GDPR_RoA.md)
   * [GDPR right of erasure: delete user data from all tables at once](docs/GDPR_RoE.md)
   * [Search in any column](docs/Search.md)
@@ -26,6 +28,7 @@ Operations are applied concurrently across multiple tables
   * [Delete data based on semantic classes](docs/Delete_by_class.md)
 * **Custom**
   * [Arbitrary SQL template execution across multiple tables](docs/Arbitrary_multi-table_SQL.md)
+  * Create Mlflow gateway routes for MosaicML and OpenAI ([example notebook](examples/mlflow_gateway_routes_examples.py))
 
 ## Getting started
 
