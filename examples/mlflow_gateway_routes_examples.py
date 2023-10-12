@@ -45,11 +45,11 @@ openai_route_name = dbutils.widgets.get("openai_route_name")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Create MLflow fateway route for MosaicML (llama2 model)
+# MAGIC ### Create MLflow gateway route for MosaicML (llama2 model)
 
 # COMMAND ----------
 
-# get or create mosaic route
+# get or create mosaicml route
 import mlflow
 from mlflow import gateway
 
@@ -77,7 +77,7 @@ except:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Create MLflow fateway route for Open AI (GPT 3.5 model)
+# MAGIC ### Create MLflow gateway route for Open AI (GPT 3.5 model)
 
 # COMMAND ----------
 
