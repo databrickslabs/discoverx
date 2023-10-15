@@ -11,13 +11,17 @@ def info_fetcher(spark):
 
 @pytest.fixture()
 def sample_table_info():
-    return TableInfo("catalog1", "schema1", "table1", [], [])
+    return TableInfo("catalog1", "schema1", "table1", [], None)
 
 
 def test_validate_from_components():
     with pytest.raises(ValueError):
         DataExplorer.validate_from_components("invalid_format")
-    assert DataExplorer.validate_from_components("catalog1.schema1.table1") == ("catalog1", "schema1", "table1")
+    assert DataExplorer.validate_from_components("catalog1.schema1.table1") == (
+        "catalog1",
+        "schema1",
+        "table1",
+    )
 
 
 def test_build_sql(sample_table_info):

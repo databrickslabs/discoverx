@@ -37,7 +37,7 @@ def test_get_table_list(spark):
                 ColumnInfo("interval_col", "INTERVAL", None, []),
                 ColumnInfo("str_part_col", "STRING", 1, []),
             ],
-            [],
+            None,
         )
     ]
 
@@ -132,7 +132,7 @@ def test_generate_sql(spark, rules_input, expected):
         ColumnInfo("id", "number", False, []),
         ColumnInfo("name", "string", False, []),
     ]
-    table_info = TableInfo("meta", "db", "tb", columns, [])
+    table_info = TableInfo("meta", "db", "tb", columns, None)
     rules = rules_input
 
     rules = Rules(custom_rules=rules)
@@ -156,7 +156,7 @@ def test_sql_runs(spark):
         ColumnInfo("ip", "string", None, []),
         ColumnInfo("description", "string", None, []),
     ]
-    table_info = TableInfo(None, "default", "tb_1", columns, [])
+    table_info = TableInfo(None, "default", "tb_1", columns, None)
     rules = [
         RegexRule(name="any_word", description="Any word", definition=r"\w+"),
         RegexRule(name="any_number", description="Any number", definition=r"\d+"),
@@ -204,7 +204,7 @@ def test_scan_custom_rules(spark: SparkSession):
         ColumnInfo("ip", "string", False, []),
         ColumnInfo("description", "string", False, []),
     ]
-    table_list = [TableInfo(None, "default", "tb_1", columns, [])]
+    table_list = [TableInfo(None, "default", "tb_1", columns, None)]
     rules = [
         RegexRule(name="any_word", description="Any word", definition=r"^\w*$"),
         RegexRule(name="any_number", description="Any number", definition=r"^\d*$"),
@@ -317,7 +317,7 @@ def test_scan_non_existing_table_returns_none(spark: SparkSession):
         rule_filter="ip_*",
         information_schema="default",
     )
-    result = scanner.scan_table(TableInfo("", "", "tb_non_existing", [], []))
+    result = scanner.scan_table(TableInfo("", "", "tb_non_existing", [], None))
 
     assert result is None
 
@@ -332,7 +332,7 @@ def test_scan_whatif_returns_none(spark: SparkSession):
         information_schema="default",
         what_if=True,
     )
-    result = scanner.scan_table(TableInfo(None, "default", "tb_1", [], []))
+    result = scanner.scan_table(TableInfo(None, "default", "tb_1", [], None))
 
     assert result is None
 

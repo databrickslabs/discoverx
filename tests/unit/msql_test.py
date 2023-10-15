@@ -24,12 +24,24 @@ def classification_df(spark) -> pd.DataFrame:
             ["c", "db", "tb2", "email_3", "dx_email"],
             ["c", "db", "tb2", "date", "dx_date_partition"],
             ["c", "db2", "tb3", "email_4", "dx_email"],
-            ["c", "db", "tb1", "description", "any_number"],  # any_number not in the class list
+            [
+                "c",
+                "db",
+                "tb1",
+                "description",
+                "any_number",
+            ],  # any_number not in the class list
             ["m_c", "db", "tb1", "email_3", "dx_email"],  # catalog does not match
             ["c", "m_db", "tb1", "email_4", "dx_email"],  # schema does not match
             ["c", "db", "m_tb1", "email_5", "dx_email"],  # table does not match
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name"],
+        columns=[
+            "table_catalog",
+            "table_schema",
+            "table_name",
+            "column_name",
+            "class_name",
+        ],
     )
 
 
@@ -39,7 +51,7 @@ columns = [
     ColumnInfo("email_2", "string", None, ["dx_email"]),
     ColumnInfo("date", "string", 1, ["dx_date_partition"]),
 ]
-table_info = TableInfo("catalog", "prod_db1", "tb1", columns, [])
+table_info = TableInfo("catalog", "prod_db1", "tb1", columns, None)
 
 
 def test_msql_extracts_command():
@@ -69,7 +81,12 @@ def test_msql_validates_command():
 def test_msql_replace_from_clausole():
     msql = "SELECT [dx_pii] AS dx_pii FROM *.*.*"
 
-    expected = SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS dx_pii FROM catalog.prod_db1.tb1")
+    expected = SQLRow(
+        "catalog",
+        "prod_db1",
+        "tb1",
+        "SELECT email_1 AS dx_pii FROM catalog.prod_db1.tb1",
+    )
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 1
@@ -91,8 +108,18 @@ def test_msql_select_repeated_class():
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 2
-    assert actual[0] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_1 AS email FROM catalog.prod_db1.tb1")
-    assert actual[1] == SQLRow("catalog", "prod_db1", "tb1", "SELECT email_2 AS email FROM catalog.prod_db1.tb1")
+    assert actual[0] == SQLRow(
+        "catalog",
+        "prod_db1",
+        "tb1",
+        "SELECT email_1 AS email FROM catalog.prod_db1.tb1",
+    )
+    assert actual[1] == SQLRow(
+        "catalog",
+        "prod_db1",
+        "tb1",
+        "SELECT email_2 AS email FROM catalog.prod_db1.tb1",
+    )
 
 
 def test_msql_select_multi_class():
@@ -197,8 +224,18 @@ def test_msql_delete_command():
 
     actual = Msql(msql).compile_msql(table_info)
     assert len(actual) == 2
-    assert actual[0] == SQLRow("catalog", "prod_db1", "tb1", "DELETE FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'")
-    assert actual[1] == SQLRow("catalog", "prod_db1", "tb1", "DELETE FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'")
+    assert actual[0] == SQLRow(
+        "catalog",
+        "prod_db1",
+        "tb1",
+        "DELETE FROM catalog.prod_db1.tb1 WHERE email_1 = 'a@b.c'",
+    )
+    assert actual[1] == SQLRow(
+        "catalog",
+        "prod_db1",
+        "tb1",
+        "DELETE FROM catalog.prod_db1.tb1 WHERE email_2 = 'a@b.c'",
+    )
 
 
 def test_execute_sql_rows(spark):
@@ -214,7 +251,12 @@ def test_execute_sql_rows_should_not_fail(spark):
     msql = Msql("SELECT description FROM *.*.* ")
     sql_rows = [
         SQLRow(None, "default", "tb_1", "SELECT description FROM default.tb_1"),
-        SQLRow(None, "default", "non_existent_table", "SELECT description FROM default.non_existent_table"),
+        SQLRow(
+            None,
+            "default",
+            "non_existent_table",
+            "SELECT description FROM default.non_existent_table",
+        ),
     ]
     df = msql.execute_sql_rows(sqls=sql_rows, spark=spark)
     assert df.count() == 2
@@ -234,7 +276,12 @@ def test_execute_sql_should_fail_for_no_successful_queries(spark):
     msql = Msql("SELECT description FROM *.*.* ")
     sql_rows = [
         SQLRow(None, "default", "tb_1", "SELECT non_existent_column FROM default.tb_1"),  # Column does not exist
-        SQLRow(None, "default", "non_existent_table_2", "SELECT description FROM default.non_existent_table_2"),
+        SQLRow(
+            None,
+            "default",
+            "non_existent_table_2",
+            "SELECT description FROM default.non_existent_table_2",
+        ),
     ]
     with pytest.raises(ValueError):
         df = msql.execute_sql_rows(sqls=sql_rows, spark=spark)

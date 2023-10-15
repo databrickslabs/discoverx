@@ -148,29 +148,14 @@ class DataExplorer:
         return discover
 
     def map(self, f) -> list[any]:
-        res = []
-        table_list = self._info_fetcher.get_tables_info(
-            self._catalogs,
-            self._schemas,
-            self._tables,
-            self._having_columns,
-            self._with_tags,
-        )
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
-            # Submit tasks to the thread pool
-            futures = [executor.submit(f, table_info) for table_info in table_list]
+        """Runs a function for each table in the data explorer
 
-            # Process completed tasks
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                if result is not None:
-                    res.append(result)
+        Args:
+            f (function): The function to run. The function should accept a TableInfo object as input and return any object as output.
 
-        logger.debug("Finished lakehouse map task")
-
-        return res
-
-    def map(self, f) -> list[any]:
+        Returns:
+            list[any]: A list of the results of running the function for each table
+        """
         res = []
         table_list = self._info_fetcher.get_tables_info(
             self._catalogs,

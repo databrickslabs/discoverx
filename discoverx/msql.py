@@ -97,7 +97,7 @@ class Msql:
                 row[1],
                 row[2],
                 [ColumnInfo(col[0], "", None, col[1]) for col in row[3]],  # col name  # TODO  # TODO  # Classes
-                [],
+                None,
             )
             for _, row in df.iterrows()
             if fnmatch(row[0], self.catalogs) and fnmatch(row[1], self.schemas) and fnmatch(row[2], self.tables)
