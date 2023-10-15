@@ -36,9 +36,7 @@ class Discovery:
         self._scan_result: Optional[ScanResult] = None
         self.rules: Optional[Rules] = Rules(custom_rules=custom_rules, locale=locale)
 
-    def _msql(
-        self, msql: str, what_if: bool = False, min_score: Optional[float] = None
-    ):
+    def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         logger.debug(f"Executing sql template: {msql}")
 
         msql_builder = Msql(msql)
@@ -84,9 +82,7 @@ class Discovery:
 
     def _check_scan_result(self):
         if self._scan_result is None:
-            raise Exception(
-                "You first need to scan your lakehouse using Scanner.scan()"
-            )
+            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
 
     @property
     def scan_result(self):
@@ -140,9 +136,7 @@ class Discovery:
             raise ValueError("search_term has not been provided.")
 
         if not isinstance(search_term, str):
-            raise ValueError(
-                f"The search_term type {type(search_term)} is not valid. Please use a string type."
-            )
+            raise ValueError(f"The search_term type {type(search_term)} is not valid. Please use a string type.")
 
         if by_class is None:
             # Trying to infer the class by the search term
@@ -161,15 +155,11 @@ class Discovery:
                 )
             else:
                 by_class = search_matching_rules[0]
-            logger.friendly(
-                f"Discoverx will search your lakehouse using the class {by_class}"
-            )
+            logger.friendly(f"Discoverx will search your lakehouse using the class {by_class}")
         elif isinstance(by_class, str):
             search_matching_rules = [by_class]
         else:
-            raise ValueError(
-                f"The provided by_class {by_class} must be of string type."
-            )
+            raise ValueError(f"The provided by_class {by_class} must be of string type.")
 
         sql_filter = f"`[{search_matching_rules[0]}]` = '{search_term}'"
         select_statement = (
@@ -219,9 +209,7 @@ class Discovery:
 
         if isinstance(by_classes, str):
             by_classes = [by_classes]
-        elif isinstance(by_classes, list) and all(
-            isinstance(elem, str) for elem in by_classes
-        ):
+        elif isinstance(by_classes, list) and all(isinstance(elem, str) for elem in by_classes):
             by_classes = by_classes
         else:
             raise ValueError(
@@ -279,9 +267,7 @@ class Discovery:
         Msql.validate_from_components(from_tables)
 
         if (by_class is None) or (not isinstance(by_class, str)):
-            raise ValueError(
-                f"Please provide a class to identify the columns to be matched on the provided values."
-            )
+            raise ValueError(f"Please provide a class to identify the columns to be matched on the provided values.")
 
         if values is None:
             raise ValueError(
@@ -293,8 +279,7 @@ class Discovery:
             value_string = "'" + "', '".join(values) + "'"
         else:
             raise ValueError(
-                f"The provided values {values} have the wrong type. Please provide"
-                f" either a str or List[str]."
+                f"The provided values {values} have the wrong type. Please provide" f" either a str or List[str]."
             )
 
         if not yes_i_am_sure:
@@ -313,6 +298,4 @@ class Discovery:
 
         if delete_result is not None:
             delete_result = delete_result.toPandas()
-            logger.friendlyHTML(
-                f"<p>The affected tables are</p>{delete_result.to_html()}"
-            )
+            logger.friendlyHTML(f"<p>The affected tables are</p>{delete_result.to_html()}")

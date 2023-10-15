@@ -17,13 +17,9 @@ logger = logging.Logging()
 
 
 class DataExplorer:
-    FROM_COMPONENTS_EXPR = (
-        r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
-    )
+    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
 
-    def __init__(
-        self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher
-    ) -> None:
+    def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
         self._from_tables = from_tables
         (
             self._catalogs,
@@ -112,9 +108,7 @@ class DataExplorer:
         """
         new_obj = copy.deepcopy(self)
         new_obj._sql_query_template = sql_query_template
-        return DataExplorerActions(
-            new_obj, spark=self._spark, info_fetcher=self._info_fetcher
-        )
+        return DataExplorerActions(new_obj, spark=self._spark, info_fetcher=self._info_fetcher)
 
     def unpivot_string_columns(self, sample_size=None) -> "DataExplorerActions":
         """Returns a DataExplorerActions object that will run a query that will melt all string columns into a pair of columns (column_name, string_value)
@@ -146,9 +140,7 @@ class DataExplorer:
             self._catalogs,
             self._schemas,
             self._tables,
-            self._info_fetcher.get_tables_info(
-                self._catalogs, self._schemas, self._tables, self._having_columns
-            ),
+            self._info_fetcher.get_tables_info(self._catalogs, self._schemas, self._tables, self._having_columns),
             custom_rules=custom_rules,
             locale=locale,
         )
@@ -164,9 +156,7 @@ class DataExplorer:
             self._having_columns,
             self._with_tags,
         )
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self._max_concurrency
-        ) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(f, table_info) for table_info in table_list]
 
@@ -189,9 +179,7 @@ class DataExplorer:
             self._having_columns,
             self._with_tags,
         )
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self._max_concurrency
-        ) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(f, table_info) for table_info in table_list]
 
@@ -223,24 +211,18 @@ class DataExplorerActions:
 
     @staticmethod
     def _get_stack_string_columns_expression(table_info: TableInfo) -> str:
-        string_col_names = [
-            c.name for c in table_info.columns if c.data_type.lower() == "string"
-        ]
+        string_col_names = [c.name for c in table_info.columns if c.data_type.lower() == "string"]
         stack_parameters = ", ".join([f"'{c}', `{c}`" for c in string_col_names])
         return f"stack({len(string_col_names)}, {stack_parameters})"
 
     @staticmethod
     def _build_sql(sql_template: str, table_info: TableInfo) -> str:
         if table_info.catalog and table_info.catalog != "None":
-            full_table_name = (
-                f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
-            )
+            full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
         else:
             full_table_name = f"{table_info.schema}.{table_info.table}"
 
-        stack_string_columns = DataExplorerActions._get_stack_string_columns_expression(
-            table_info
-        )
+        stack_string_columns = DataExplorerActions._get_stack_string_columns_expression(table_info)
 
         sql = sql_template.format(
             table_catalog=table_info.catalog,
@@ -264,15 +246,11 @@ class DataExplorerActions:
             logger.debug(f"Finished running SQL query: {sql}")
             return df
         except Exception as e:
-            logger.error(
-                f"Error running SQL query for: {table_info.catalog}.{table_info.schema}.{table_info.table}."
-            )
+            logger.error(f"Error running SQL query for: {table_info.catalog}.{table_info.schema}.{table_info.table}.")
             logger.error(e)
             return None
 
-    def _get_sql_commands(
-        self, data_explorer: DataExplorer
-    ) -> list[tuple[str, TableInfo]]:
+    def _get_sql_commands(self, data_explorer: DataExplorer) -> list[tuple[str, TableInfo]]:
         logger.debug("Launching lakehouse scanning task\n")
 
         table_list = self._info_fetcher.get_tables_info(
@@ -284,9 +262,7 @@ class DataExplorerActions:
         )
         sql_commands = [
             (
-                DataExplorerActions._build_sql(
-                    data_explorer._sql_query_template, table
-                ),
+                DataExplorerActions._build_sql(data_explorer._sql_query_template, table),
                 table,
             )
             for table in table_list
@@ -302,11 +278,11 @@ class DataExplorerActions:
         sql_explanation = ""
 
         if self._data_explorer._having_columns:
-            column_filter_explanation = f"only for tables that have all the following columns: {self._data_explorer._having_columns}"
-        if self._data_explorer._sql_query_template:
-            sql_explanation = (
-                f"The SQL to be executed is (just a moment, generating it...):"
+            column_filter_explanation = (
+                f"only for tables that have all the following columns: {self._data_explorer._having_columns}"
             )
+        if self._data_explorer._sql_query_template:
+            sql_explanation = f"The SQL to be executed is (just a moment, generating it...):"
 
         explanation = f"""
         DiscoverX will apply the following SQL template
@@ -352,14 +328,9 @@ class DataExplorerActions:
 
         sql_commands = self._get_sql_commands(self._data_explorer)
         dfs = []
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self._data_explorer._max_concurrency
-        ) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self._data_explorer._max_concurrency) as executor:
             # Submit tasks to the thread pool
-            futures = [
-                executor.submit(self._run_sql, sql, table)
-                for sql, table in sql_commands
-            ]
+            futures = [executor.submit(self._run_sql, sql, table) for sql, table in sql_commands]
 
             # Process completed tasks
             for future in concurrent.futures.as_completed(futures):

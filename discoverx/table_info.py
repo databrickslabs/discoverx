@@ -42,11 +42,7 @@ class TableInfo:
     tags: Optional[TagsInfo]
 
     def get_columns_by_class(self, class_name: str):
-        return [
-            ClassifiedColumn(col.name, class_name)
-            for col in self.columns
-            if class_name in col.classes
-        ]
+        return [ClassifiedColumn(col.name, class_name) for col in self.columns if class_name in col.classes]
 
 
 @dataclass
@@ -62,41 +58,28 @@ class InfoFetcher:
 
     @staticmethod
     def _get_tag_info(row: Row) -> TagsInfo:
-        if all(
-            item in row.asDict().keys()
-            for item in ["column_tags", "table_tags", "schema_tags", "catalog_tags"]
-        ):
+        if all(item in row.asDict().keys() for item in ["column_tags", "table_tags", "schema_tags", "catalog_tags"]):
             if row["column_tags"] is None:
                 column_tags = []
             else:
                 column_tags = [
-                    ColumnTagInfo(tag["column_name"], tag["tag_name"], tag["tag_value"])
-                    for tag in row["column_tags"]
+                    ColumnTagInfo(tag["column_name"], tag["tag_name"], tag["tag_value"]) for tag in row["column_tags"]
                 ]
 
             if row["table_tags"] is None:
                 table_tags = []
             else:
-                table_tags = [
-                    TagInfo(tag["tag_name"], tag["tag_value"])
-                    for tag in row["table_tags"]
-                ]
+                table_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["table_tags"]]
 
             if row["schema_tags"] is None:
                 schema_tags = []
             else:
-                schema_tags = [
-                    TagInfo(tag["tag_name"], tag["tag_value"])
-                    for tag in row["schema_tags"]
-                ]
+                schema_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["schema_tags"]]
 
             if row["catalog_tags"] is None:
                 catalog_tags = []
             else:
-                catalog_tags = [
-                    TagInfo(tag["tag_name"], tag["tag_value"])
-                    for tag in row["catalog_tags"]
-                ]
+                catalog_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["catalog_tags"]]
 
             tags = TagsInfo(column_tags, table_tags, schema_tags, catalog_tags)
         else:
@@ -106,8 +89,7 @@ class InfoFetcher:
     @staticmethod
     def _to_info_row(row: Row) -> TableInfo:
         columns = [
-            ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
-            for col in row["table_columns"]
+            ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], []) for col in row["table_columns"]
         ]
 
         return TableInfo(
@@ -131,16 +113,12 @@ class InfoFetcher:
         with_tags=False,
     ) -> list[TableInfo]:
         # Filter tables by matching filter
-        table_list_sql = self._get_table_list_sql(
-            catalogs, schemas, tables, columns, with_tags
-        )
+        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags)
 
         filtered_tables = self.spark.sql(table_list_sql).collect()
 
         if len(filtered_tables) == 0:
-            raise ValueError(
-                f"No tables found matching filter: {catalogs}.{schemas}.{tables}"
-            )
+            raise ValueError(f"No tables found matching filter: {catalogs}.{schemas}.{tables}")
 
         return self._to_info_list(filtered_tables)
 
@@ -161,31 +139,21 @@ class InfoFetcher:
         """
 
         if "*" in catalogs:
-            catalog_sql = (
-                f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
-            )
-            catalog_tags_sql = (
-                f"""AND regexp_like(catalog_name, "^{catalogs.replace("*", ".*")}$")"""
-            )
+            catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
+            catalog_tags_sql = f"""AND regexp_like(catalog_name, "^{catalogs.replace("*", ".*")}$")"""
         else:
             catalog_sql = f"""AND table_catalog = "{catalogs}" """
             catalog_tags_sql = f"""AND catalog_name = "{catalogs}" """
 
         if "*" in schemas:
-            schema_sql = (
-                f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
-            )
-            schema_tags_sql = (
-                f"""AND regexp_like(schema_name, "^{schemas.replace("*", ".*")}$")"""
-            )
+            schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
+            schema_tags_sql = f"""AND regexp_like(schema_name, "^{schemas.replace("*", ".*")}$")"""
         else:
             schema_sql = f"""AND table_schema = "{schemas}" """
             schema_tags_sql = f"""AND schema_name = "{schemas}" """
 
         if "*" in tables:
-            table_sql = (
-                f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
-            )
+            table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
         else:
             table_sql = f"""AND table_name = "{tables}" """
 

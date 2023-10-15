@@ -121,9 +121,7 @@ GROUP BY table_catalog, table_schema, table_name, column_name, class_name"""
         (
             [
                 RegexRule(name="any_word", description="Any word", definition=r"\w."),
-                RegexRule(
-                    name="any_number", description="Any number", definition=r"\d."
-                ),
+                RegexRule(name="any_number", description="Any number", definition=r"\d."),
             ],
             expectedmulti,
         ),
@@ -304,11 +302,7 @@ def test_save_scan(spark: SparkSession):
     # now load the saved results
     scan_result = ScanResult(df=pd.DataFrame(), spark=spark)
     scan_result.load(scan_table_name=scan_table_name)
-    assert (
-        scan_result.df.sort_values(by=["column_name", "class_name"])
-        .reset_index(drop=True)
-        .equals(expected)
-    )
+    assert scan_result.df.sort_values(by=["column_name", "class_name"]).reset_index(drop=True).equals(expected)
 
     spark.sql(f"DROP TABLE IF EXISTS {scan_table_name}")
 

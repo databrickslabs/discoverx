@@ -49,9 +49,11 @@ dx = DX(locale="US")
 
 # COMMAND ----------
 
+
 def my_func(table_info):
-  print(table_info)
-  return table_info.table_tags
+    print(table_info)
+    return table_info.table_tags
+
 
 r = dx.from_tables("discoverx_sample.*.*").map(my_func)
 
@@ -136,9 +138,7 @@ dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.
 
 # COMMAND ----------
 
-dx.delete_by_class(
-    from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.0.0", "0.0.0.1"], yes_i_am_sure=True
-)
+dx.delete_by_class(from_tables="discoverx*.*.*", by_class="ip_v4", values=["0.0.0.0", "0.0.0.1"], yes_i_am_sure=True)
 
 # COMMAND ----------
 
@@ -201,5 +201,3 @@ dx_new.search(search_term="1.2.3.4", from_tables="*.*.*").display()
 help(DX)
 
 # COMMAND ----------
-
-

@@ -73,10 +73,7 @@ def test_sql_template_fails_for_incorrect_sql(spark):
 
     with pytest.raises(Exception) as no_search_term_error:
         dx.from_tables("*.*.*").with_sql("Not-a-SQL-query").apply()
-    assert (
-        no_search_term_error.value.args[0]
-        == "No SQL statements were successfully executed."
-    )
+    assert no_search_term_error.value.args[0] == "No SQL statements were successfully executed."
 
 
 def test_unpivot_string_columns(spark):
@@ -118,12 +115,8 @@ def test_search(spark, dx_ip: DX):
     assert result[0].search_result.ip_v4.column_name == "ip"
 
     # specify catalog, schema and table
-    result_classes_namespace = dx_ip.search(
-        "1.2.3.4", by_class="ip_v4", from_tables="*.default.tb_*"
-    )
-    assert {
-        row.search_result.ip_v4.value for row in result_classes_namespace.collect()
-    } == {"1.2.3.4"}
+    result_classes_namespace = dx_ip.search("1.2.3.4", by_class="ip_v4", from_tables="*.default.tb_*")
+    assert {row.search_result.ip_v4.value for row in result_classes_namespace.collect()} == {"1.2.3.4"}
 
     with pytest.raises(ValueError) as no_search_term_error:
         dx_ip.search(None)
@@ -138,23 +131,16 @@ def test_search(spark, dx_ip: DX):
 
     with pytest.raises(ValueError) as single_bool:
         dx_ip.search("", by_class=True)
-    assert (
-        single_bool.value.args[0]
-        == "The provided by_class True must be of string type."
-    )
+    assert single_bool.value.args[0] == "The provided by_class True must be of string type."
 
 
 def test_select_by_class(spark, dx_ip):
     # search a specific term and auto-detect matching classes/rules
-    result = dx_ip.select_by_classes(
-        from_tables="*.default.tb_*", by_classes="ip_v4"
-    ).collect()
+    result = dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes="ip_v4").collect()
     assert result[0].table_name == "tb_1"
     assert result[0].classified_columns.ip_v4.column_name == "ip"
 
-    result = dx_ip.select_by_classes(
-        from_tables="*.default.tb_*", by_classes=["ip_v4"]
-    ).collect()
+    result = dx_ip.select_by_classes(from_tables="*.default.tb_*", by_classes=["ip_v4"]).collect()
     assert result[0].table_name == "tb_1"
     assert result[0].classified_columns.ip_v4.column_name == "ip"
 
@@ -174,9 +160,7 @@ def test_select_by_class(spark, dx_ip):
 # @pytest.mark.skip(reason="Delete is only working with v2 tables. Needs investigation")
 def test_delete_by_class(spark, dx_ip):
     # search a specific term and auto-detect matching classes/rules
-    dx_ip.delete_by_class(
-        from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9"
-    )
+    dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
     assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {
         "1.2.3.4",
         "3.4.5.60",
@@ -248,11 +232,7 @@ def test_save_and_load_scan_result(spark, dx_ip):
     # now load the saved results
     dx = DX(spark=spark)
     dx.load(full_table_name=scan_result_table)
-    assert (
-        dx.scan_result.sort_values(by=["column_name", "class_name"])
-        .reset_index(drop=True)
-        .equals(expected)
-    )
+    assert dx.scan_result.sort_values(by=["column_name", "class_name"]).reset_index(drop=True).equals(expected)
 
     with pytest.raises(Exception):
         dx.load(full_table_name="xxx")
