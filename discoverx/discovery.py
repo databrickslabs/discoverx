@@ -75,7 +75,7 @@ class Discovery:
             rule_filter=rules,
             sample_size=sample_size,
             what_if=what_if,
-            information_schema=self.INFORMAI,
+            information_schema=self.INFORMATION_SCHEMA,
             max_workers=self.MAX_WORKERS,
         )
 
