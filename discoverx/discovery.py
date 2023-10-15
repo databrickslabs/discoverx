@@ -1,140 +1,75 @@
-import pandas as pd
-from pyspark.sql import SparkSession
-from typing import List, Optional, Union
+from typing import Optional, List, Union
+
 from discoverx import logging
-from discoverx.explorer import DataExplorer, InfoFetcher
 from discoverx.msql import Msql
-from discoverx.rules import Rules, Rule
+from discoverx.table_info import TableInfo
 from discoverx.scanner import Scanner, ScanResult
+from discoverx.rules import Rules, Rule
+from pyspark.sql import SparkSession
+
+logger = logging.Logging()
 
 
-class DX:
-    """DiscoverX scans and searches your lakehouse
-
-    DiscoverX scans your data for patterns which have been pre-defined
-    as rules. You can either use standard rules which come with
-    DiscoverX or define and add custom rules.
-    Attributes:
-        custom_rules (List[Rule], Optional): Custom rules which will be
-            used to detect columns with corresponding patterns in your
-            data
-        spark (SparkSession, optional): The SparkSession which will be
-            used to scan your data. Defaults to None.
-        locale (str, optional): The two-letter country code which will be
-            used to determine the localized scanning rules.
-            Defaults to None.
-    """
+class Discovery:
+    """ """
 
     COLUMNS_TABLE_NAME = "system.information_schema.columns"
-    INFORMATION_SCHEMA = "system.information_schema"
     MAX_WORKERS = 10
 
     def __init__(
         self,
+        spark: SparkSession,
+        catalogs: str,
+        schemas: str,
+        tables: str,
+        table_info_list: list[TableInfo],
         custom_rules: Optional[List[Rule]] = None,
-        spark: Optional[SparkSession] = None,
         locale: str = None,
     ):
-        if spark is None:
-            spark = SparkSession.getActiveSession()
         self.spark = spark
-        self.logger = logging.Logging()
-
-        self.rules = Rules(custom_rules=custom_rules, locale=locale)
-        self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
+        self._catalogs = catalogs
+        self._schemas = schemas
+        self._tables = tables
+        self._table_info_list = table_info_list
 
         self.scanner: Optional[Scanner] = None
         self._scan_result: Optional[ScanResult] = None
+        self.rules: Optional[Rules] = Rules(custom_rules=custom_rules, locale=locale)
 
-        self.intro()
+    def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
+        logger.debug(f"Executing sql template: {msql}")
 
-    def _can_read_columns_table(self) -> bool:
-        try:
-            self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} LIMIT 1")
-            return True
-        except Exception as e:
-            self.logger.error(f"Error while reading table {self.COLUMNS_TABLE_NAME}: {e}")
-            return False
+        msql_builder = Msql(msql)
 
-    def intro(self):
-        # TODO: Decide on how to do the introduction
-        intro_text = """
-        <h1>Hi there, I'm DiscoverX.</h1>
+        # check if classification is available
+        # Check for more specific exception
+        classification_result_pdf = self._scan_result.get_classes(min_score)
+        sql_rows = msql_builder.build(classification_result_pdf)
 
-        <p>
-          I'm here to help you paralelize multi-table operations across your lakehouse.<br />
-          You can start by defining the set of tables to run operations on (use "*" as a wildcard)<br />
-        </p>
-        <pre><code>dx.from_tables("*.*.*")</code></pre>
-        <p>
-            Then you can apply the following operations
-            <ul>
-                <li><code>.with_sql(...)</code> - Runs a SQL template on each table</li>
-                <li><code>.scan(...)</code> - Scan your lakehouse for columns matching the given rules</li>
-                <li><code>.search(...)</code> - Search your lakehouse for columns matching the given search term</li>
-            </ul>
-        </p>
-        <p>
-          For more detailed instructions, check out the <a href="https://github.com/databrickslabs/discoverx">readme</a> or use
-        </p>
-        <pre><code>help(DX)</code></pre>
-        """
+        if what_if:
+            logger.friendly(f"SQL that would be executed:")
 
-        missing_uc_text = """
-        <h1 style="color: red">Uch! DiscoverX needs Unity Catalog to be enabled</h1>
+            for sql_row in sql_rows:
+                logger.friendly(sql_row.sql)
 
-        <p>
-          Please make sure you have Unity Catalog enabled, and that you are running a Cluster that supports Unity Catalog.
-        </p>
-        """
-
-        missing_access_to_columns_table_text = """
-        <h1 style="color: red">DiscoverX needs access to the system tables `system.information_schema.columns`</h1>
-        
-        <p>
-            Please make sure you have access to the system tables `system.information_schema.columns` and that you are running a Cluster that supports Unity Catalog.
-            To grant access to the system tables, execute the following commands:<br />
-            <code>GRANT USE CATALOG ON CATALOG system TO `account users`;</code><br /> 
-            <code>GRANT USE SCHEMA ON CATALOG system TO `account users`;</code><br />
-            <code>GRANT SELECT ON CATALOG system TO `account users`;</code>
-        </p>
-        """
-
-        if not self.uc_enabled:
-            self.logger.friendlyHTML(missing_uc_text)
-        if not self._can_read_columns_table():
-            self.logger.friendlyHTML(missing_access_to_columns_table_text)
+            return None
         else:
-            self.logger.friendlyHTML(intro_text)
-
-    def display_rules(self):
-        """Displays the available rules in a friendly HTML format"""
-        text = self.rules.get_rules_info()
-        self.logger.friendlyHTML(text)
+            logger.debug(f"Executing SQL:\n{sql_rows}")
+            return msql_builder.execute_sql_rows(sql_rows, self.spark)
 
     def scan(
         self,
-        from_tables="*.*.*",
         rules="*",
         sample_size=10000,
         what_if: bool = False,
     ):
-        """Scans the lakehouse for columns matching the given rules
-
-        Args:
-            from_tables (str, optional): The tables to be scanned in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-            rules (str, optional): The rule names to be used to scan the lakehouse, use "*" as a wildcard. Defaults to "*".
-            sample_size (int, optional): The number of rows to be scanned per table. Defaults to 10000.
-            what_if (bool, optional): Whether to run the scan in what-if mode and print the SQL commands instead of executing them. Defaults to False.
-        """
-        catalogs, schemas, tables = Msql.validate_from_components(from_tables)
-
         self.scanner = Scanner(
             self.spark,
             self.rules,
-            catalogs=catalogs,
-            schemas=schemas,
-            tables=tables,
+            catalogs=self._catalogs,
+            schemas=self._schemas,
+            tables=self._tables,
+            table_list=self._table_info_list,
             rule_filter=rules,
             sample_size=sample_size,
             what_if=what_if,
@@ -143,7 +78,7 @@ class DX:
         )
 
         self._scan_result = self.scanner.scan()
-        self.logger.friendlyHTML(self.scanner.summary_html)
+        logger.friendlyHTML(self.scanner.summary_html)
 
     def _check_scan_result(self):
         if self._scan_result is None:
@@ -160,31 +95,10 @@ class DX:
 
         return self._scan_result.df
 
-    def save(self, full_table_name: str):
-        """Saves the scan results to the lakehouse
-
-        Args:
-            full_table_name (str): The full table name to be
-                used to save the scan results.
-        Raises:
-            Exception: If the scan has not been run
-
-        """
-        self._check_scan_result()
-        # save classes
-        self._scan_result.save(full_table_name)
-
-    def load(self, full_table_name: str):
-        """Loads previously saved scan results from a table
-
-        Args:
-            full_table_name (str, optional): The full table name to be
-                used to load the scan results.
-        Raises:
-            Exception: If the table to be loaded does not exist
-        """
-        self._scan_result = ScanResult(df=pd.DataFrame(), spark=self.spark)
-        self._scan_result.load(full_table_name)
+    def display_rules(self):
+        """Displays the available rules in a friendly HTML format"""
+        text = self.rules.get_rules_info()
+        logger.friendlyHTML(text)
 
     def search(
         self,
@@ -226,7 +140,7 @@ class DX:
 
         if by_class is None:
             # Trying to infer the class by the search term
-            self.logger.friendly(
+            logger.friendly(
                 "You did not provide any class to be searched."
                 "We will try to auto-detect matching rules for the given search term"
             )
@@ -241,7 +155,7 @@ class DX:
                 )
             else:
                 by_class = search_matching_rules[0]
-            self.logger.friendly(f"Discoverx will search your lakehouse using the class {by_class}")
+            logger.friendly(f"Discoverx will search your lakehouse using the class {by_class}")
         elif isinstance(by_class, str):
             search_matching_rules = [by_class]
         else:
@@ -368,10 +282,10 @@ class DX:
             )
 
         if not yes_i_am_sure:
-            self.logger.friendly(
+            logger.friendly(
                 f"Please confirm that you want to delete the following values from the table {from_tables} using the class {by_class}: {values}"
             )
-            self.logger.friendly(
+            logger.friendly(
                 f"If you are sure, please run the same command again but set the parameter yes_i_am_sure to True."
             )
 
@@ -383,42 +297,4 @@ class DX:
 
         if delete_result is not None:
             delete_result = delete_result.toPandas()
-            self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
-
-    def from_tables(self, from_tables: str = "*.*.*"):
-        """Returns a DataExplorer object for the given tables
-
-        Args:
-            from_tables (str, optional): The tables to be selected in format
-                "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
-
-        Raises:
-            ValueError: If the from_tables is not valid
-
-        Returns:
-            DataExplorer: A DataExplorer object for the given tables
-
-        """
-
-        return DataExplorer(from_tables, self.spark, InfoFetcher(self.spark, self.INFORMATION_SCHEMA))
-
-    def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
-        self.logger.debug(f"Executing sql template: {msql}")
-
-        msql_builder = Msql(msql)
-
-        # check if classification is available
-        # Check for more specific exception
-        classification_result_pdf = self._scan_result.get_classes(min_score)
-        sql_rows = msql_builder.build(classification_result_pdf)
-
-        if what_if:
-            self.logger.friendly(f"SQL that would be executed:")
-
-            for sql_row in sql_rows:
-                self.logger.friendly(sql_row.sql)
-
-            return None
-        else:
-            self.logger.debug(f"Executing SQL:\n{sql_rows}")
-            return msql_builder.execute_sql_rows(sql_rows, self.spark)
+            logger.friendlyHTML(f"<p>The affected tables are</p>{delete_result.to_html()}")

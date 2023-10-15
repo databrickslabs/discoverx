@@ -9,6 +9,10 @@ For example, if you want to get all data for user `1` from all tables that have 
 ```
 df = dx.from_tables("*.*.*")\
   .having_columns("user_id")\
-  .apply_sql("SELECT `user_id`, to_json(struct(*)) AS row_content FROM {full_table_name} WHERE `user_id` = 1")\
-  .to_union_dataframe()
+  .with_sql("SELECT `user_id`, to_json(struct(*)) AS row_content FROM {full_table_name} WHERE `user_id` = 1")\
+  .apply()
 ```
+
+### Limitations
+
+The current approach only selects tables that contain the specified column, and does not recursively follow the relationships with other tables.

@@ -9,6 +9,7 @@ from pyspark.sql.utils import AnalysisException
 
 from discoverx.common.helper import strip_margin, format_regex
 from discoverx import logging
+from discoverx.table_info import InfoFetcher, TableInfo
 from discoverx.rules import Rules, RuleTypes
 
 logger = logging.Logging()
@@ -52,7 +53,11 @@ class TableInfo:
     tags: Optional[TagsInfo]
 
     def get_columns_by_class(self, class_name: str):
-        return [ClassifiedColumn(col.name, class_name) for col in self.columns if class_name in col.classes]
+        return [
+            ClassifiedColumn(col.name, class_name)
+            for col in self.columns
+            if class_name in col.classes
+        ]
 
 
 @dataclass
@@ -95,14 +100,20 @@ class ScanResult:
 
     @staticmethod
     def count_distinct_cols(df: pd.DataFrame) -> int:
-        return len(df[["table_catalog", "table_schema", "table_name", "column_name"]].drop_duplicates())
+        return len(
+            df[
+                ["table_catalog", "table_schema", "table_name", "column_name"]
+            ].drop_duplicates()
+        )
 
     def n_classified_columns(self, min_score: Optional[float]) -> int:
         return ScanResult.count_distinct_cols(self.get_classes(min_score))
 
     def get_classes(self, min_score: Optional[float]):
         if self.df is None or self.df.empty:
-            raise Exception("No scan result available. Please run dx.scan() or dx.load() first.")
+            raise Exception(
+                "No scan result available. Please run dx.scan() or dx.load() first."
+            )
 
         if min_score is None:
             return self.df[self.df["score"] > 0]
@@ -115,14 +126,24 @@ class ScanResult:
 
     def rule_match_str(self, min_score) -> str:
         rule_match_counts = []
-        df_summary = self.get_classes(min_score=min_score).groupby(["class_name"]).agg({"score": "count"})
-        df_summary = df_summary.reset_index()  # make sure indexes pair with number of rows
+        df_summary = (
+            self.get_classes(min_score=min_score)
+            .groupby(["class_name"])
+            .agg({"score": "count"})
+        )
+        df_summary = (
+            df_summary.reset_index()
+        )  # make sure indexes pair with number of rows
         for _, row in df_summary.iterrows():
-            rule_match_counts.append(f"            <li>{row['score']} {row['class_name']} columns</li>")
+            rule_match_counts.append(
+                f"            <li>{row['score']} {row['class_name']} columns</li>"
+            )
         return "\n".join(rule_match_counts)
 
     def _create_databes_if_not_exists(self, scan_table_name: str):
-        logger.friendly(f"The scan result table {scan_table_name} does not seem to exist. Trying to create it ...")
+        logger.friendly(
+            f"The scan result table {scan_table_name} does not seem to exist. Trying to create it ..."
+        )
         (catalog, schema, table) = scan_table_name.split(".")
         try:
             self.spark.sql(f"DESCRIBE CATALOG {catalog}")
@@ -139,7 +160,9 @@ class ScanResult:
         )
         logger.friendly(f"The scan result table {scan_table_name} has been created.")
 
-    def _get_or_create_result_table_from_delta(self, scan_table_name: str) -> DeltaTable:
+    def _get_or_create_result_table_from_delta(
+        self, scan_table_name: str
+    ) -> DeltaTable:
         try:
             return DeltaTable.forName(self.spark, scan_table_name)
         except Exception:
@@ -166,9 +189,16 @@ class ScanResult:
 
     def load(self, scan_table_name: str):
         try:
-            self.df = DeltaTable.forName(self.spark, scan_table_name).toDF().drop("effective_timestamp").toPandas()
+            self.df = (
+                DeltaTable.forName(self.spark, scan_table_name)
+                .toDF()
+                .drop("effective_timestamp")
+                .toPandas()
+            )
         except Exception as e:
-            logger.error(f"Error while reading the scan result table {scan_table_name}: {e}")
+            logger.error(
+                f"Error while reading the scan result table {scan_table_name}: {e}"
+            )
             raise e
 
 
@@ -180,6 +210,7 @@ class Scanner:
         catalogs: str = "*",
         schemas: str = "*",
         tables: str = "*",
+        table_list: Optional[List[TableInfo]] = None,
         rule_filter: str = "*",
         sample_size: int = 1000,
         what_if: bool = False,
@@ -191,6 +222,7 @@ class Scanner:
         self.catalogs = catalogs
         self.schemas = schemas
         self.tables = tables
+        self.table_list = table_list
         self.rules_filter = rule_filter
         self.sample_size = sample_size
         self.what_if = what_if
@@ -211,7 +243,9 @@ class Scanner:
                 row["table_schema"],
                 row["table_name"],
                 [
-                    ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
+                    ColumnInfo(
+                        col["column_name"], col["data_type"], col["partition_index"], []
+                    )
                     for col in row["table_columns"]
                 ],
                 [],
@@ -230,8 +264,12 @@ class Scanner:
         """
 
         catalog_sql = f"""AND regexp_like(table_catalog, "^{self.catalogs.replace("*", ".*")}$")"""
-        schema_sql = f"""AND regexp_like(table_schema, "^{self.schemas.replace("*", ".*")}$")"""
-        table_sql = f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
+        schema_sql = (
+            f"""AND regexp_like(table_schema, "^{self.schemas.replace("*", ".*")}$")"""
+        )
+        table_sql = (
+            f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
+        )
 
         sql = f"""
         SELECT 
@@ -251,7 +289,15 @@ class Scanner:
         return strip_margin(sql)
 
     def _resolve_scan_content(self) -> ScanContent:
-        table_list = self._get_list_of_tables()
+        if self.table_list:
+            table_list = self.table_list
+        else:
+            info_fetcher = InfoFetcher(
+                self.spark, columns_table_name=self.columns_table_name
+            )
+            table_list = info_fetcher.get_tables_info(
+                self.catalogs, self.schemas, self.tables
+            )
         catalogs = set(map(lambda x: x.catalog, table_list))
         schemas = set(map(lambda x: f"{x.catalog}.{x.schema}", table_list))
 
@@ -260,9 +306,13 @@ class Scanner:
     def scan_table(self, table: TableInfo):
         try:
             if self.what_if:
-                logger.friendly(f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}'")
+                logger.friendly(
+                    f"SQL that would be executed for '{table.catalog}.{table.schema}.{table.table}'"
+                )
             else:
-                logger.friendly(f"Scanning table '{table.catalog}.{table.schema}.{table.table}'")
+                logger.friendly(
+                    f"Scanning table '{table.catalog}.{table.schema}.{table.table}'"
+                )
 
             # Build rule matching SQL
             sql = self._rule_matching_sql(table)
@@ -273,11 +323,15 @@ class Scanner:
                 # Execute SQL and return the result
                 return self.spark.sql(sql).toPandas()
         except Exception as e:
-            logger.error(f"Error while scanning table '{table.catalog}.{table.schema}.{table.table}': {e}")
+            logger.error(
+                f"Error while scanning table '{table.catalog}.{table.schema}.{table.table}': {e}"
+            )
             return None
 
     def scan(self):
-        logger.friendly("""Ok, I'm going to scan your lakehouse for data that matches your rules.""")
+        logger.friendly(
+            """Ok, I'm going to scan your lakehouse for data that matches your rules."""
+        )
         text = f"""
                 This is what you asked for:
 
@@ -299,9 +353,14 @@ class Scanner:
             raise Exception("No tables found matching your filters")
 
         dfs = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.max_workers
+        ) as executor:
             # Submit tasks to the thread pool
-            futures = [executor.submit(self.scan_table, table) for table in self.content.table_list]
+            futures = [
+                executor.submit(self.scan_table, table)
+                for table in self.content.table_list
+            ]
 
             # Process completed tasks
             for future in concurrent.futures.as_completed(futures):
@@ -335,18 +394,23 @@ class Scanner:
         cols = [c for c in table_info.columns if c.data_type.lower() == "string"]
 
         if not cols:
-            raise Exception(f"There are no columns of type string to be scanned in {table_info.table}")
+            raise Exception(
+                f"There are no columns of type string to be scanned in {table_info.table}"
+            )
 
         if not expressions:
             raise Exception(f"There are no rules to scan for.")
 
         catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
         matching_columns = [
-            f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`" for r in expressions
+            f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`"
+            for r in expressions
         ]
         matching_string = ",\n                    ".join(matching_columns)
 
-        unpivot_expressions = ", ".join([f"'{r.name}', `{r.name}`" for r in expressions])
+        unpivot_expressions = ", ".join(
+            [f"'{r.name}', `{r.name}`" for r in expressions]
+        )
         unpivot_columns = ", ".join([f"'{c.name}', `{c.name}`" for c in cols])
 
         sql = f"""
@@ -383,7 +447,9 @@ class Scanner:
         # Summary
         classified_cols = self.scan_result.get_classes(min_score=None)
         classified_cols.index = pd.MultiIndex.from_frame(
-            classified_cols[["table_catalog", "table_schema", "table_name", "column_name"]]
+            classified_cols[
+                ["table_catalog", "table_schema", "table_name", "column_name"]
+            ]
         )
         summary_html_table = classified_cols[["class_name", "score"]].to_html()
 
@@ -402,9 +468,6 @@ class Scanner:
           To be more precise:
         </p>
         {summary_html_table}
-        <p>
-          You can see the full classification output with 'dx.scan_result'.
-        </p>
 
 
         """

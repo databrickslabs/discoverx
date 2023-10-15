@@ -60,8 +60,8 @@ def test_sql_template(spark):
     result = (
         dx.from_tables("*.*.*")
         .having_columns("id")
-        .apply_sql("SELECT 1 AS a FROM {full_table_name} WHERE id = 1")
-        .to_union_dataframe()
+        .with_sql("SELECT 1 AS a FROM {full_table_name} WHERE id = 1")
+        .apply()
         .count()
     )
 
@@ -72,14 +72,14 @@ def test_sql_template_fails_for_incorrect_sql(spark):
     dx = DX(spark=spark)
 
     with pytest.raises(Exception) as no_search_term_error:
-        dx.from_tables("*.*.*").apply_sql("Not-a-SQL-query").execute()
+        dx.from_tables("*.*.*").with_sql("Not-a-SQL-query").apply()
     assert no_search_term_error.value.args[0] == "No SQL statements were successfully executed."
 
 
 def test_unpivot_string_columns(spark):
     dx = DX(spark=spark)
 
-    df = dx.from_tables("*.*.*").unpivot_string_columns().to_union_dataframe()
+    df = dx.from_tables("*.*.*").unpivot_string_columns().apply()
 
     assert df.filter(col("column_name") == "ip.v2").count() > 1
 
@@ -87,7 +87,7 @@ def test_unpivot_string_columns(spark):
 def test_unpivot_string_columns_with_sampling(spark):
     dx = DX(spark=spark)
 
-    df = dx.from_tables("*.*.*").unpivot_string_columns(sample_size=1).to_union_dataframe()
+    df = dx.from_tables("*.*.*").unpivot_string_columns(sample_size=1).apply()
 
     assert df.filter(col("column_name") == "ip.v2").count() == 1
 

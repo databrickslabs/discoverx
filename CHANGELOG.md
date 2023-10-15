@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.6
+Refactored scan() in order to be chainable with from_tables()
+Improved metadata fetching speed for table information
+Refactored to remove duplicated SQL code from scanner class
+Updated intro messages and documentation
+Added example for detecting tables with many small files
+
 ## v0.0.5
 * Added support for multi-table SQL execution dx.from_tables(...).apply_sql(...)
 * Added example of VACUUM command to multiple tables

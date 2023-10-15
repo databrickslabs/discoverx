@@ -7,7 +7,7 @@
 # MAGIC As a rule of thumb, if a table has more than `100` files and average file size smaller than `10 MB`, then we can consider it having too many small files.
 # MAGIC
 # MAGIC Some common causes of too many small files are:
-# MAGIC * Overpartitioning: the cardinality of the partition columns is too high 
+# MAGIC * Overpartitioning: the cardinality of the partition columns is too high
 # MAGIC * Lack of scheduled maintenance operations like `OPTIMIZE`
 # MAGIC * Missing auto optimize on write
 # MAGIC
@@ -38,16 +38,13 @@ dx = DX()
 
 from pyspark.sql.functions import col, lit
 
-dx.from_tables(from_tables)\
-  .apply_sql("DESCRIBE DETAIL {full_table_name}")\
-  .to_union_dataframe()\
-  .withColumn("average_file_size_MB", col("sizeInBytes") / col("numFiles") / 1024 / 1024)\
-  .withColumn("has_too_many_small_files", 
-              (col("average_file_size_MB") < small_file_max_size_MB) & 
-              (col("numFiles") > min_file_number))\
-  .filter("has_too_many_small_files")\
-  .display()
+dx.from_tables(from_tables).with_sql("DESCRIBE DETAIL {full_table_name}").apply().withColumn(
+    "average_file_size_MB", col("sizeInBytes") / col("numFiles") / 1024 / 1024
+).withColumn(
+    "has_too_many_small_files",
+    (col("average_file_size_MB") < small_file_max_size_MB) & (col("numFiles") > min_file_number),
+).filter(
+    "has_too_many_small_files"
+).display()
 
 # COMMAND ----------
-
-

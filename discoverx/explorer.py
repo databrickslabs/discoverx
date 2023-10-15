@@ -1,14 +1,17 @@
 import concurrent.futures
 import copy
 import re
-import pandas as pd
+from typing import Optional, List
 from discoverx import logging
 from discoverx.common import helper
-from discoverx.scanner import ColumnInfo, ColumnTagInfo, TableInfo, TagInfo, TagsInfo
+from discoverx.discovery import Discovery
+from discoverx.rules import Rule
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
-from pyspark.sql.types import Row
+
+from discoverx.table_info import InfoFetcher, TableInfo
+
 
 logger = logging.Logging()
 
@@ -20,28 +23,41 @@ class InfoFetcher:
 
     @staticmethod
     def _get_tag_info(row: Row) -> TagsInfo:
-        if all(item in row.asDict().keys() for item in ["column_tags", "table_tags", "schema_tags", "catalog_tags"]):
+        if all(
+            item in row.asDict().keys()
+            for item in ["column_tags", "table_tags", "schema_tags", "catalog_tags"]
+        ):
             if row["column_tags"] is None:
                 column_tags = []
             else:
                 column_tags = [
-                    ColumnTagInfo(tag["column_name"], tag["tag_name"], tag["tag_value"]) for tag in row["column_tags"]
+                    ColumnTagInfo(tag["column_name"], tag["tag_name"], tag["tag_value"])
+                    for tag in row["column_tags"]
                 ]
 
             if row["table_tags"] is None:
                 table_tags = []
             else:
-                table_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["table_tags"]]
+                table_tags = [
+                    TagInfo(tag["tag_name"], tag["tag_value"])
+                    for tag in row["table_tags"]
+                ]
 
             if row["schema_tags"] is None:
                 schema_tags = []
             else:
-                schema_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["schema_tags"]]
+                schema_tags = [
+                    TagInfo(tag["tag_name"], tag["tag_value"])
+                    for tag in row["schema_tags"]
+                ]
 
             if row["catalog_tags"] is None:
                 catalog_tags = []
             else:
-                catalog_tags = [TagInfo(tag["tag_name"], tag["tag_value"]) for tag in row["catalog_tags"]]
+                catalog_tags = [
+                    TagInfo(tag["tag_name"], tag["tag_value"])
+                    for tag in row["catalog_tags"]
+                ]
 
             tags = TagsInfo(column_tags, table_tags, schema_tags, catalog_tags)
         else:
@@ -51,7 +67,8 @@ class InfoFetcher:
     @staticmethod
     def _to_info_row(row: Row) -> TableInfo:
         columns = [
-            ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], []) for col in row["table_columns"]
+            ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
+            for col in row["table_columns"]
         ]
 
         return TableInfo(
@@ -67,20 +84,34 @@ class InfoFetcher:
         return filtered_tables
 
     def get_tables_info(
-        self, catalogs: str, schemas: str, tables: str, columns: list[str] = [], with_tags=False
+        self,
+        catalogs: str,
+        schemas: str,
+        tables: str,
+        columns: list[str] = [],
+        with_tags=False,
     ) -> list[TableInfo]:
         # Filter tables by matching filter
-        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags)
+        table_list_sql = self._get_table_list_sql(
+            catalogs, schemas, tables, columns, with_tags
+        )
 
         filtered_tables = self.spark.sql(table_list_sql).collect()
 
         if len(filtered_tables) == 0:
-            raise ValueError(f"No tables found matching filter: {catalogs}.{schemas}.{tables}")
+            raise ValueError(
+                f"No tables found matching filter: {catalogs}.{schemas}.{tables}"
+            )
 
         return self._to_info_list(filtered_tables)
 
     def _get_table_list_sql(
-        self, catalogs: str, schemas: str, tables: str, columns: list[str] = [], with_tags=False
+        self,
+        catalogs: str,
+        schemas: str,
+        tables: str,
+        columns: list[str] = [],
+        with_tags=False,
     ) -> str:
         """
         Returns a SQL expression which returns a list of columns matching
@@ -91,21 +122,31 @@ class InfoFetcher:
         """
 
         if "*" in catalogs:
-            catalog_sql = f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
-            catalog_tags_sql = f"""AND regexp_like(catalog_name, "^{catalogs.replace("*", ".*")}$")"""
+            catalog_sql = (
+                f"""AND regexp_like(table_catalog, "^{catalogs.replace("*", ".*")}$")"""
+            )
+            catalog_tags_sql = (
+                f"""AND regexp_like(catalog_name, "^{catalogs.replace("*", ".*")}$")"""
+            )
         else:
             catalog_sql = f"""AND table_catalog = "{catalogs}" """
             catalog_tags_sql = f"""AND catalog_name = "{catalogs}" """
 
         if "*" in schemas:
-            schema_sql = f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
-            schema_tags_sql = f"""AND regexp_like(schema_name, "^{schemas.replace("*", ".*")}$")"""
+            schema_sql = (
+                f"""AND regexp_like(table_schema, "^{schemas.replace("*", ".*")}$")"""
+            )
+            schema_tags_sql = (
+                f"""AND regexp_like(schema_name, "^{schemas.replace("*", ".*")}$")"""
+            )
         else:
             schema_sql = f"""AND table_schema = "{schemas}" """
             schema_tags_sql = f"""AND schema_name = "{schemas}" """
 
         if "*" in tables:
-            table_sql = f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+            table_sql = (
+                f"""AND regexp_like(table_name, "^{tables.replace("*", ".*")}$")"""
+            )
         else:
             table_sql = f"""AND table_name = "{tables}" """
 
@@ -270,11 +311,19 @@ class InfoFetcher:
 
 
 class DataExplorer:
-    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
+    FROM_COMPONENTS_EXPR = (
+        r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
+    )
 
-    def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
+    def __init__(
+        self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher
+    ) -> None:
         self._from_tables = from_tables
-        self._catalogs, self._schemas, self._tables = DataExplorer.validate_from_components(from_tables)
+        (
+            self._catalogs,
+            self._schemas,
+            self._tables,
+        ) = DataExplorer.validate_from_components(from_tables)
         self._spark = spark
         self._info_fetcher = info_fetcher
         self._having_columns = []
@@ -331,8 +380,21 @@ class DataExplorer:
         new_obj._with_tags = use_tags
         return new_obj
 
-    def apply_sql(self, sql_query_template: str) -> "DataExplorerActions":
+    def with_sql(self, sql_query_template: str) -> "DataExplorerActions":
         """Sets the SQL query template to use for the data exploration
+
+        Args:
+            sql_query_template (str): The SQL query template to use. The template might contain the following variables:
+                - table_catalog: The table catalog name
+                - table_schema: The table schema name
+                - table_name: The table name
+                - full_table_name: The full table name (catalog.schema.table)
+                - stack_string_columns: A SQL expression that returns a table with two columns: column_name and string_value
+        """
+        return self.apply_sql(sql_query_template)
+
+    def apply_sql(self, sql_query_template: str) -> "DataExplorerActions":
+        """[DEPRECATED] Sets the SQL query template to use for the data exploration
 
         Args:
             sql_query_template (str): The SQL query template to use. The template might contain the following variables:
@@ -344,7 +406,9 @@ class DataExplorer:
         """
         new_obj = copy.deepcopy(self)
         new_obj._sql_query_template = sql_query_template
-        return DataExplorerActions(new_obj, spark=self._spark, info_fetcher=self._info_fetcher)
+        return DataExplorerActions(
+            new_obj, spark=self._spark, info_fetcher=self._info_fetcher
+        )
 
     def unpivot_string_columns(self, sample_size=None) -> "DataExplorerActions":
         """Returns a DataExplorerActions object that will run a query that will melt all string columns into a pair of columns (column_name, string_value)
@@ -361,14 +425,67 @@ class DataExplorer:
         if sample_size is not None:
             sql_query_template += f"TABLESAMPLE ({sample_size} ROWS)"
 
-        return self.apply_sql(sql_query_template)
+        return self.with_sql(sql_query_template)
+
+    def scan(
+        self,
+        rules="*",
+        sample_size=10000,
+        what_if: bool = False,
+        custom_rules: Optional[List[Rule]] = None,
+        locale: str = None,
+    ):
+        discover = Discovery(
+            self._spark,
+            self._catalogs,
+            self._schemas,
+            self._tables,
+            self._info_fetcher.get_tables_info(
+                self._catalogs, self._schemas, self._tables, self._having_columns
+            ),
+            custom_rules=custom_rules,
+            locale=locale,
+        )
+        discover.scan(rules=rules, sample_size=sample_size, what_if=what_if)
+        return discover
 
     def map(self, f) -> list[any]:
         res = []
         table_list = self._info_fetcher.get_tables_info(
-            self._catalogs, self._schemas, self._tables, self._having_columns, self._with_tags
+            self._catalogs,
+            self._schemas,
+            self._tables,
+            self._having_columns,
+            self._with_tags,
         )
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self._max_concurrency
+        ) as executor:
+            # Submit tasks to the thread pool
+            futures = [executor.submit(f, table_info) for table_info in table_list]
+
+            # Process completed tasks
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result is not None:
+                    res.append(result)
+
+        logger.debug("Finished lakehouse map task")
+
+        return res
+
+    def map(self, f) -> list[any]:
+        res = []
+        table_list = self._info_fetcher.get_tables_info(
+            self._catalogs,
+            self._schemas,
+            self._tables,
+            self._having_columns,
+            self._with_tags,
+        )
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self._max_concurrency
+        ) as executor:
             # Submit tasks to the thread pool
             futures = [executor.submit(f, table_info) for table_info in table_list]
 
@@ -385,7 +502,10 @@ class DataExplorer:
 
 class DataExplorerActions:
     def __init__(
-        self, data_explorer: DataExplorer, spark: SparkSession = None, info_fetcher: InfoFetcher = None
+        self,
+        data_explorer: DataExplorer,
+        spark: SparkSession = None,
+        info_fetcher: InfoFetcher = None,
     ) -> None:
         self._data_explorer = data_explorer
         if spark is None:
@@ -397,18 +517,24 @@ class DataExplorerActions:
 
     @staticmethod
     def _get_stack_string_columns_expression(table_info: TableInfo) -> str:
-        string_col_names = [c.name for c in table_info.columns if c.data_type.lower() == "string"]
+        string_col_names = [
+            c.name for c in table_info.columns if c.data_type.lower() == "string"
+        ]
         stack_parameters = ", ".join([f"'{c}', `{c}`" for c in string_col_names])
         return f"stack({len(string_col_names)}, {stack_parameters})"
 
     @staticmethod
     def _build_sql(sql_template: str, table_info: TableInfo) -> str:
         if table_info.catalog and table_info.catalog != "None":
-            full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
+            full_table_name = (
+                f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
+            )
         else:
             full_table_name = f"{table_info.schema}.{table_info.table}"
 
-        stack_string_columns = DataExplorerActions._get_stack_string_columns_expression(table_info)
+        stack_string_columns = DataExplorerActions._get_stack_string_columns_expression(
+            table_info
+        )
 
         sql = sql_template.format(
             table_catalog=table_info.catalog,
@@ -432,11 +558,15 @@ class DataExplorerActions:
             logger.debug(f"Finished running SQL query: {sql}")
             return df
         except Exception as e:
-            logger.error(f"Error running SQL query for: {table_info.catalog}.{table_info.schema}.{table_info.table}.")
+            logger.error(
+                f"Error running SQL query for: {table_info.catalog}.{table_info.schema}.{table_info.table}."
+            )
             logger.error(e)
             return None
 
-    def _get_sql_commands(self, data_explorer: DataExplorer) -> list[tuple[str, TableInfo]]:
+    def _get_sql_commands(
+        self, data_explorer: DataExplorer
+    ) -> list[tuple[str, TableInfo]]:
         logger.debug("Launching lakehouse scanning task\n")
 
         table_list = self._info_fetcher.get_tables_info(
@@ -447,7 +577,13 @@ class DataExplorerActions:
             data_explorer._with_tags,
         )
         sql_commands = [
-            (DataExplorerActions._build_sql(data_explorer._sql_query_template, table), table) for table in table_list
+            (
+                DataExplorerActions._build_sql(
+                    data_explorer._sql_query_template, table
+                ),
+                table,
+            )
+            for table in table_list
         ]
         return sql_commands
 
@@ -460,11 +596,11 @@ class DataExplorerActions:
         sql_explanation = ""
 
         if self._data_explorer._having_columns:
-            column_filter_explanation = (
-                f"only for tables that have all the following columns: {self._data_explorer._having_columns}"
-            )
+            column_filter_explanation = f"only for tables that have all the following columns: {self._data_explorer._having_columns}"
         if self._data_explorer._sql_query_template:
-            sql_explanation = f"The SQL to be executed is (just a moment, generating it...):"
+            sql_explanation = (
+                f"The SQL to be executed is (just a moment, generating it...):"
+            )
 
         explanation = f"""
         DiscoverX will apply the following SQL template
@@ -489,22 +625,35 @@ class DataExplorerActions:
 
             logger.friendlyHTML(detailed_explanation)
 
-    def execute(self) -> None:
+    def display(self) -> None:
         """Executes the data exploration queries and displays a sample of results"""
+        return self.execute()
+
+    def execute(self) -> None:
+        """[DEPRECATED] Executes the data exploration queries and displays a sample of results"""
         df = self.to_union_dataframe()
         try:
             df.display()
         except Exception as e:
             df.show(truncate=False)
 
-    def to_union_dataframe(self) -> DataFrame:
+    def apply(self) -> DataFrame:
         """Executes the data exploration queries and returns a DataFrame with the results"""
+        return self.to_union_dataframe()
+
+    def to_union_dataframe(self) -> DataFrame:
+        """[DEPRECATED] Executes the data exploration queries and returns a DataFrame with the results"""
 
         sql_commands = self._get_sql_commands(self._data_explorer)
         dfs = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self._data_explorer._max_concurrency) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self._data_explorer._max_concurrency
+        ) as executor:
             # Submit tasks to the thread pool
-            futures = [executor.submit(self._run_sql, sql, table) for sql, table in sql_commands]
+            futures = [
+                executor.submit(self._run_sql, sql, table)
+                for sql, table in sql_commands
+            ]
 
             # Process completed tasks
             for future in concurrent.futures.as_completed(futures):

@@ -1,6 +1,4 @@
 import pytest
-from unittest.mock import Mock, patch
-from pyspark.sql import SparkSession
 from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, TableInfo
 
 
@@ -34,7 +32,7 @@ def test_run_sql(spark, info_fetcher):
 
     result = (
         DataExplorerActions(data_explorer=data_explorer, spark=spark, info_fetcher=info_fetcher)
-        .to_union_dataframe()
+        .apply()
         .groupBy("table_name")
         .count()
         .collect()
@@ -46,7 +44,7 @@ def test_execute(spark, info_fetcher, capfd):
     data_explorer = DataExplorer("*.*.tb_1", spark, info_fetcher)
     data_explorer._sql_query_template = "SELECT 12345 AS a FROM {full_table_name}"
 
-    result = DataExplorerActions(data_explorer=data_explorer, spark=spark, info_fetcher=info_fetcher).execute()
+    result = DataExplorerActions(data_explorer=data_explorer, spark=spark, info_fetcher=info_fetcher).display()
     captured = capfd.readouterr()
     assert "12345" in captured.out
 
