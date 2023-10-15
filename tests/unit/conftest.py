@@ -46,7 +46,10 @@ class DBUtilsFixture:
     def ls(self, path: str):
         _paths = Path(path).glob("*")
         _objects = [
-            FileInfoFixture(str(p.absolute()), p.name, p.stat().st_size, int(p.stat().st_mtime)) for p in _paths
+            FileInfoFixture(
+                str(p.absolute()), p.name, p.stat().st_size, int(p.stat().st_mtime)
+            )
+            for p in _paths
         ]
         return _objects
 
@@ -139,7 +142,9 @@ def sample_datasets(spark: SparkSession, request):
     # tb_2
     test_file_path = module_path.parent / "data/tb_2.csv"
     (
-        spark.read.option("header", True).schema("id integer,`ip.v2` string").csv(str(test_file_path.resolve()))
+        spark.read.option("header", True)
+        .schema("id integer,`ip.v2` string")
+        .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("view_tb_2")
     spark.sql(
         f"CREATE TABLE IF NOT EXISTS default.tb_2 USING delta LOCATION '{warehouse_dir}/tb_2' AS SELECT * FROM view_tb_2 "
@@ -175,7 +180,9 @@ def sample_datasets(spark: SparkSession, request):
     test_file_path = module_path.parent / "data/table_tags.csv"
     (
         spark.read.option("header", True)
-        .schema("catalog_name string,schema_name string,table_name string,tag_name string,tag_value string")
+        .schema(
+            "catalog_name string,schema_name string,table_name string,tag_name string,tag_value string"
+        )
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("table_tags_temp_view")
     spark.sql(
@@ -186,7 +193,9 @@ def sample_datasets(spark: SparkSession, request):
     test_file_path = module_path.parent / "data/schema_tags.csv"
     (
         spark.read.option("header", True)
-        .schema("catalog_name string,schema_name string,tag_name string,tag_value string")
+        .schema(
+            "catalog_name string,schema_name string,tag_name string,tag_value string"
+        )
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("schema_tags_temp_view")
     spark.sql(
@@ -262,8 +271,7 @@ def monkeymodule():
 
 @pytest.fixture(autouse=True, scope="module")
 def mock_uc_functionality(monkeymodule):
-    # apply the monkeypatch for the columns_table_name
-    monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns")
+    # apply the monkeypatch for the information_schema
     monkeymodule.setattr(DX, "INFORMATION_SCHEMA", "default")
 
     # mock classifier method _get_classification_table_from_delta as we don't
@@ -280,4 +288,8 @@ def mock_uc_functionality(monkeymodule):
         )
         return DeltaTable.forName(self.spark, scan_table_name)
 
-    monkeymodule.setattr(ScanResult, "_get_or_create_result_table_from_delta", get_or_create_classification_table_mock)
+    monkeymodule.setattr(
+        ScanResult,
+        "_get_or_create_result_table_from_delta",
+        get_or_create_classification_table_mock,
+    )

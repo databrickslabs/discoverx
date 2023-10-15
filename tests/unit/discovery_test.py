@@ -5,7 +5,7 @@ from discoverx.discovery import Discovery
 
 @pytest.fixture()
 def info_fetcher(spark):
-    return InfoFetcher(spark=spark, columns_table_name="default.columns_mock")
+    return InfoFetcher(spark=spark, information_schema="default")
 
 
 @pytest.fixture(name="discover_ip")
@@ -23,12 +23,18 @@ def test_noscan(spark, info_fetcher):
         data_explorer._schemas,
         data_explorer._tables,
         data_explorer._info_fetcher.get_tables_info(
-            data_explorer._catalogs, data_explorer._schemas, data_explorer._tables, data_explorer._having_columns
+            data_explorer._catalogs,
+            data_explorer._schemas,
+            data_explorer._tables,
+            data_explorer._having_columns,
         ),
     )
     with pytest.raises(Exception) as scan_first_error:
         scan_result = discover.scan_result
-    assert scan_first_error.value.args[0] == "You first need to scan your lakehouse using Scanner.scan()"
+    assert (
+        scan_first_error.value.args[0]
+        == "You first need to scan your lakehouse using Scanner.scan()"
+    )
 
 
 def test_discover_scan_msql(discover_ip):
@@ -49,8 +55,12 @@ def test_discover_search(discover_ip):
     assert result[0].search_result.ip_v4.column_name == "ip"
 
     # specify catalog, schema and table
-    result_classes_namespace = discover_ip.search("1.2.3.4", by_class="ip_v4", from_tables="*.default.tb_*")
-    assert {row.search_result.ip_v4.value for row in result_classes_namespace.collect()} == {"1.2.3.4"}
+    result_classes_namespace = discover_ip.search(
+        "1.2.3.4", by_class="ip_v4", from_tables="*.default.tb_*"
+    )
+    assert {
+        row.search_result.ip_v4.value for row in result_classes_namespace.collect()
+    } == {"1.2.3.4"}
 
     with pytest.raises(ValueError) as no_search_term_error:
         discover_ip.search(None)
@@ -72,16 +82,23 @@ def test_discover_search(discover_ip):
 
     with pytest.raises(ValueError) as single_bool:
         discover_ip.search("", by_class=True)
-    assert single_bool.value.args[0] == "The provided by_class True must be of string type."
+    assert (
+        single_bool.value.args[0]
+        == "The provided by_class True must be of string type."
+    )
 
 
 def test_discover_select_by_class(discover_ip):
     # search a specific term and auto-detect matching classes/rules
-    result = discover_ip.select_by_classes(from_tables="*.default.tb_*", by_classes="ip_v4").collect()
+    result = discover_ip.select_by_classes(
+        from_tables="*.default.tb_*", by_classes="ip_v4"
+    ).collect()
     assert result[0].table_name == "tb_1"
     assert result[0].classified_columns.ip_v4.column_name == "ip"
 
-    result = discover_ip.select_by_classes(from_tables="*.default.tb_*", by_classes=["ip_v4"]).collect()
+    result = discover_ip.select_by_classes(
+        from_tables="*.default.tb_*", by_classes=["ip_v4"]
+    ).collect()
     assert result[0].table_name == "tb_1"
     assert result[0].classified_columns.ip_v4.column_name == "ip"
 
@@ -89,7 +106,9 @@ def test_discover_select_by_class(discover_ip):
         discover_ip.select_by_classes(from_tables="*.default.tb_*")
 
     with pytest.raises(ValueError):
-        discover_ip.select_by_classes(from_tables="*.default.tb_*", by_classes=[1, 3, "ip"])
+        discover_ip.select_by_classes(
+            from_tables="*.default.tb_*", by_classes=[1, 3, "ip"]
+        )
 
     with pytest.raises(ValueError):
         discover_ip.select_by_classes(from_tables="*.default.tb_*", by_classes=True)
@@ -111,10 +130,20 @@ def test_discover_display_rules(capfd, discover_ip):
 
 def test_discover_delete_by_class(spark, discover_ip):
     # search a specific term and auto-detect matching classes/rules
-    discover_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
-    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {"1.2.3.4", "3.4.5.60"}
+    discover_ip.delete_by_class(
+        from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9"
+    )
+    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {
+        "1.2.3.4",
+        "3.4.5.60",
+    }
 
-    discover_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="1.2.3.4", yes_i_am_sure=True)
+    discover_ip.delete_by_class(
+        from_tables="*.default.tb_*",
+        by_class="ip_v4",
+        values="1.2.3.4",
+        yes_i_am_sure=True,
+    )
     assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {"3.4.5.60"}
 
     with pytest.raises(ValueError):
@@ -124,16 +153,24 @@ def test_discover_delete_by_class(spark, discover_ip):
         discover_ip.delete_by_class(from_tables="*.default.tb_*", values="x")
 
     with pytest.raises(ValueError):
-        discover_ip.delete_by_class(from_tables="*.default.tb_*", by_class=["ip"], values="x")
+        discover_ip.delete_by_class(
+            from_tables="*.default.tb_*", by_class=["ip"], values="x"
+        )
 
     with pytest.raises(ValueError):
-        discover_ip.delete_by_class(from_tables="*.default.tb_*", by_class=True, values="x")
+        discover_ip.delete_by_class(
+            from_tables="*.default.tb_*", by_class=True, values="x"
+        )
 
     with pytest.raises(ValueError):
-        discover_ip.delete_by_class(from_tables="invalid from", by_class="email", values="x")
+        discover_ip.delete_by_class(
+            from_tables="invalid from", by_class="email", values="x"
+        )
 
     with pytest.raises(ValueError):
-        discover_ip.delete_by_class(from_tables="invalid from", by_class="email", values=1)
+        discover_ip.delete_by_class(
+            from_tables="invalid from", by_class="email", values=1
+        )
 
 
 def test_discover_scan_result(discover_ip):

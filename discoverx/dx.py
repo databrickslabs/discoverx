@@ -25,7 +25,6 @@ class DX:
             Defaults to None.
     """
 
-    COLUMNS_TABLE_NAME = "system.information_schema.columns"
     INFORMATION_SCHEMA = "system.information_schema"
     MAX_WORKERS = 10
 
@@ -41,7 +40,10 @@ class DX:
         self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules, locale=locale)
-        self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
+        self.uc_enabled = (
+            self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false")
+            == "true"
+        )
 
         self.scanner: Optional[Scanner] = None
         self._scan_result: Optional[ScanResult] = None
@@ -50,10 +52,12 @@ class DX:
 
     def _can_read_columns_table(self) -> bool:
         try:
-            self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} LIMIT 1")
+            self.spark.sql(f"SELECT * FROM {self.INFORMATION_SCHEMA}.columns LIMIT 1")
             return True
         except Exception as e:
-            self.logger.error(f"Error while reading table {self.COLUMNS_TABLE_NAME}: {e}")
+            self.logger.error(
+                f"Error while reading table {self.INFORMATION_SCHEMA}.columns: {e}"
+            )
             return False
 
     def intro(self):
@@ -138,7 +142,7 @@ class DX:
             rule_filter=rules,
             sample_size=sample_size,
             what_if=what_if,
-            columns_table_name=self.COLUMNS_TABLE_NAME,
+            information_schema=self.INFORMATION_SCHEMA,
             max_workers=self.MAX_WORKERS,
         )
 
@@ -147,7 +151,9 @@ class DX:
 
     def _check_scan_result(self):
         if self._scan_result is None:
-            raise Exception("You first need to scan your lakehouse using Scanner.scan()")
+            raise Exception(
+                "You first need to scan your lakehouse using Scanner.scan()"
+            )
 
     @property
     def scan_result(self):
@@ -222,7 +228,9 @@ class DX:
             raise ValueError("search_term has not been provided.")
 
         if not isinstance(search_term, str):
-            raise ValueError(f"The search_term type {type(search_term)} is not valid. Please use a string type.")
+            raise ValueError(
+                f"The search_term type {type(search_term)} is not valid. Please use a string type."
+            )
 
         if by_class is None:
             # Trying to infer the class by the search term
@@ -241,11 +249,15 @@ class DX:
                 )
             else:
                 by_class = search_matching_rules[0]
-            self.logger.friendly(f"Discoverx will search your lakehouse using the class {by_class}")
+            self.logger.friendly(
+                f"Discoverx will search your lakehouse using the class {by_class}"
+            )
         elif isinstance(by_class, str):
             search_matching_rules = [by_class]
         else:
-            raise ValueError(f"The provided by_class {by_class} must be of string type.")
+            raise ValueError(
+                f"The provided by_class {by_class} must be of string type."
+            )
 
         sql_filter = f"`[{search_matching_rules[0]}]` = '{search_term}'"
         select_statement = (
@@ -295,7 +307,9 @@ class DX:
 
         if isinstance(by_classes, str):
             by_classes = [by_classes]
-        elif isinstance(by_classes, list) and all(isinstance(elem, str) for elem in by_classes):
+        elif isinstance(by_classes, list) and all(
+            isinstance(elem, str) for elem in by_classes
+        ):
             by_classes = by_classes
         else:
             raise ValueError(
@@ -315,7 +329,8 @@ class DX:
         )
 
         return self._msql(
-            f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}", min_score=min_score
+            f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}",
+            min_score=min_score,
         )
 
     def delete_by_class(
@@ -352,7 +367,9 @@ class DX:
         Msql.validate_from_components(from_tables)
 
         if (by_class is None) or (not isinstance(by_class, str)):
-            raise ValueError(f"Please provide a class to identify the columns to be matched on the provided values.")
+            raise ValueError(
+                f"Please provide a class to identify the columns to be matched on the provided values."
+            )
 
         if values is None:
             raise ValueError(
@@ -364,7 +381,8 @@ class DX:
             value_string = "'" + "', '".join(values) + "'"
         else:
             raise ValueError(
-                f"The provided values {values} have the wrong type. Please provide" f" either a str or List[str]."
+                f"The provided values {values} have the wrong type. Please provide"
+                f" either a str or List[str]."
             )
 
         if not yes_i_am_sure:
@@ -383,7 +401,9 @@ class DX:
 
         if delete_result is not None:
             delete_result = delete_result.toPandas()
-            self.logger.friendlyHTML(f"<p>The affcted tables are</p>{delete_result.to_html()}")
+            self.logger.friendlyHTML(
+                f"<p>The affcted tables are</p>{delete_result.to_html()}"
+            )
 
     def from_tables(self, from_tables: str = "*.*.*"):
         """Returns a DataExplorer object for the given tables
@@ -400,9 +420,13 @@ class DX:
 
         """
 
-        return DataExplorer(from_tables, self.spark, InfoFetcher(self.spark, self.INFORMATION_SCHEMA))
+        return DataExplorer(
+            from_tables, self.spark, InfoFetcher(self.spark, self.INFORMATION_SCHEMA)
+        )
 
-    def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
+    def _msql(
+        self, msql: str, what_if: bool = False, min_score: Optional[float] = None
+    ):
         self.logger.debug(f"Executing sql template: {msql}")
 
         msql_builder = Msql(msql)

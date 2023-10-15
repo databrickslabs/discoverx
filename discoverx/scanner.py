@@ -9,61 +9,10 @@ from pyspark.sql.utils import AnalysisException
 
 from discoverx.common.helper import strip_margin, format_regex
 from discoverx import logging
-from discoverx.table_info import InfoFetcher, TableInfo
+from discoverx.table_info import InfoFetcher, TableInfo, ColumnInfo
 from discoverx.rules import Rules, RuleTypes
 
 logger = logging.Logging()
-
-
-@dataclass
-class ColumnInfo:
-    name: str
-    data_type: str
-    partition_index: int
-    classes: list[str]
-
-
-@dataclass
-class TagInfo:
-    tag_name: str
-    tag_value: str
-
-
-@dataclass
-class ColumnTagInfo:
-    column_name: str
-    tag_name: str
-    tag_value: str
-
-
-@dataclass
-class TagsInfo:
-    column_tags: Optional[list[ColumnTagInfo]]
-    table_tags: Optional[list[TagInfo]]
-    schema_tags: Optional[list[TagInfo]]
-    catalog_tags: Optional[list[TagInfo]]
-
-
-@dataclass
-class TableInfo:
-    catalog: Optional[str]
-    schema: str
-    table: str
-    columns: list[ColumnInfo]
-    tags: Optional[TagsInfo]
-
-    def get_columns_by_class(self, class_name: str):
-        return [
-            ClassifiedColumn(col.name, class_name)
-            for col in self.columns
-            if class_name in col.classes
-        ]
-
-
-@dataclass
-class ClassifiedColumn:
-    name: str
-    class_name: str
 
 
 @dataclass
@@ -214,7 +163,7 @@ class Scanner:
         rule_filter: str = "*",
         sample_size: int = 1000,
         what_if: bool = False,
-        columns_table_name: str = "",
+        information_schema: str = "",
         max_workers: int = 10,
     ):
         self.spark = spark
@@ -226,7 +175,7 @@ class Scanner:
         self.rules_filter = rule_filter
         self.sample_size = sample_size
         self.what_if = what_if
-        self.columns_table_name = columns_table_name
+        self.information_schema = information_schema
         self.max_workers = max_workers
 
         self.content: ScanContent = self._resolve_scan_content()
@@ -277,7 +226,7 @@ class Scanner:
             table_schema, 
             table_name, 
             collect_list(struct(column_name, data_type, partition_index)) as table_columns
-        FROM {self.columns_table_name}
+        FROM {self.information_schema}.columns
         WHERE 
             table_schema != "information_schema" 
             {catalog_sql if self.catalogs != "*" else ""}
@@ -293,7 +242,7 @@ class Scanner:
             table_list = self.table_list
         else:
             info_fetcher = InfoFetcher(
-                self.spark, columns_table_name=self.columns_table_name
+                self.spark, information_schema=self.information_schema
             )
             table_list = info_fetcher.get_tables_info(
                 self.catalogs, self.schemas, self.tables

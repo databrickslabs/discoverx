@@ -50,7 +50,7 @@ def test_get_table_list(spark):
         tables="*_all_types",
         rule_filter="*",
         sample_size=100,
-        columns_table_name="default.columns",
+        information_schema="default",
     )
     actual = scanner._get_list_of_tables()
 
@@ -143,7 +143,7 @@ def test_generate_sql(spark, rules_input, expected):
         rules=rules,
         rule_filter="any_*",
         sample_size=100,
-        columns_table_name="default.columns",
+        information_schema="default",
     )
 
     actual = scanner._rule_matching_sql(table_info)
@@ -170,7 +170,7 @@ def test_sql_runs(spark):
         rules=rules,
         rule_filter="any_*",
         sample_size=100,
-        columns_table_name="default.columns",
+        information_schema="default",
     )
     actual = scanner._rule_matching_sql(table_info)
 
@@ -219,7 +219,7 @@ def test_scan_custom_rules(spark: SparkSession):
         tables="tb_1",
         rule_filter="any_*",
         sample_size=100,
-        columns_table_name="default.columns",
+        information_schema="default",
     )
     scanner.scan()
 
@@ -254,7 +254,7 @@ def test_scan(spark: SparkSession):
         rules=rules,
         tables="tb_1",
         rule_filter="ip_*",
-        columns_table_name="default.columns",
+        information_schema="default",
     )
     scanner.scan()
 
@@ -269,7 +269,7 @@ def test_save_scan(spark: SparkSession):
         rules=rules,
         tables="tb_1",
         rule_filter="ip_*",
-        columns_table_name="default.columns",
+        information_schema="default",
     )
     scanner.scan()
     scan_table_name = "_discoverx.scan_result_test"
@@ -321,7 +321,7 @@ def test_scan_non_existing_table_returns_none(spark: SparkSession):
         rules=rules,
         tables="tb_1",
         rule_filter="ip_*",
-        columns_table_name="default.columns",
+        information_schema="default",
     )
     result = scanner.scan_table(TableInfo("", "", "tb_non_existing", [], []))
 
@@ -335,7 +335,7 @@ def test_scan_whatif_returns_none(spark: SparkSession):
         rules=rules,
         tables="tb_1",
         rule_filter="ip_*",
-        columns_table_name="default.columns",
+        information_schema="default",
         what_if=True,
     )
     result = scanner.scan_table(TableInfo(None, "default", "tb_1", [], []))
