@@ -9,34 +9,10 @@ from pyspark.sql.utils import AnalysisException
 
 from discoverx.common.helper import strip_margin, format_regex
 from discoverx import logging
+from discoverx.table_info import InfoFetcher, TableInfo
 from discoverx.rules import Rules, RuleTypes
 
 logger = logging.Logging()
-
-
-@dataclass
-class ColumnInfo:
-    name: str
-    data_type: str
-    partition_index: int
-    classes: list[str]
-
-
-@dataclass
-class TableInfo:
-    catalog: Optional[str]
-    schema: str
-    table: str
-    columns: list[ColumnInfo]
-
-    def get_columns_by_class(self, class_name: str):
-        return [ClassifiedColumn(col.name, class_name) for col in self.columns if class_name in col.classes]
-
-
-@dataclass
-class ClassifiedColumn:
-    name: str
-    class_name: str
 
 
 @dataclass
@@ -181,59 +157,12 @@ class Scanner:
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
         self.scan_result: Optional[ScanResult] = None
 
-    def _get_list_of_tables(self) -> List[TableInfo]:
-        table_list_sql = self._get_table_list_sql()
-
-        rows = self.spark.sql(table_list_sql).collect()
-        filtered_tables = [
-            TableInfo(
-                row["table_catalog"],
-                row["table_schema"],
-                row["table_name"],
-                [
-                    ColumnInfo(col["column_name"], col["data_type"], col["partition_index"], [])
-                    for col in row["table_columns"]
-                ],
-            )
-            for row in rows
-        ]
-        return filtered_tables
-
-    def _get_table_list_sql(self):
-        """
-        Returns a SQL expression which returns a list of columns matching
-        the specified filters
-
-        Returns:
-            string: The SQL expression
-        """
-
-        catalog_sql = f"""AND regexp_like(table_catalog, "^{self.catalogs.replace("*", ".*")}$")"""
-        schema_sql = f"""AND regexp_like(table_schema, "^{self.schemas.replace("*", ".*")}$")"""
-        table_sql = f"""AND regexp_like(table_name, "^{self.tables.replace("*", ".*")}$")"""
-
-        sql = f"""
-        SELECT 
-            table_catalog, 
-            table_schema, 
-            table_name, 
-            collect_list(struct(column_name, data_type, partition_index)) as table_columns
-        FROM {self.columns_table_name}
-        WHERE 
-            table_schema != "information_schema" 
-            {catalog_sql if self.catalogs != "*" else ""}
-            {schema_sql if self.schemas != "*" else ""}
-            {table_sql if self.tables != "*" else ""}
-        GROUP BY table_catalog, table_schema, table_name
-        """
-
-        return strip_margin(sql)
-
     def _resolve_scan_content(self) -> ScanContent:
         if self.table_list:
             table_list = self.table_list
         else:
-            table_list = self._get_list_of_tables()
+            info_fetcher = InfoFetcher(self.spark, columns_table_name=self.columns_table_name)
+            table_list = info_fetcher.get_tables_info(self.catalogs, self.schemas, self.tables)
         catalogs = set(map(lambda x: x.catalog, table_list))
         schemas = set(map(lambda x: f"{x.catalog}.{x.schema}", table_list))
 
@@ -384,9 +313,6 @@ class Scanner:
           To be more precise:
         </p>
         {summary_html_table}
-        <p>
-          You can see the full classification output with 'dx.scan_result'.
-        </p>
 
 
         """

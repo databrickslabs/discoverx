@@ -51,8 +51,8 @@ As an illustration, consider the scenario where you need to retrieve a single ro
 
 ```
 dx.from_tables("dev_*.*.*sample*")\
-  .apply_sql("SELECT to_json(struct(*)) AS row FROM {full_table_name} LIMIT 1")\
-  .execute()
+  .with_sql("SELECT to_json(struct(*)) AS row FROM {full_table_name} LIMIT 1")\
+  .apply()
 ```
 
 ## Available functionality
@@ -62,7 +62,7 @@ The available `dx` functions are
 * `from_tables("<catalog>.<schema>.<table>")` selects tables based on the specified pattern (use `*` as a wildcard). Returns a `DataExplorer` object with methods
   * `having_columns` restricts the selection to tables that have the specified columns
   * `with_concurrency` defines how many queries are executed concurrently (10 by defailt)
-  * `apply_sql` applies a SQL template to all tables. After this command you can apply an [action](#from_tables-actions). See in-depth documentation [here](docs/Arbitrary_multi-table_SQL.md).
+  * `with_sql` applies a SQL template to all tables. After this command you can apply an [action](#from_tables-actions). See in-depth documentation [here](docs/Arbitrary_multi-table_SQL.md).
   * `unpivot_string_columns` returns a melted (unpivoted) dataframe with all string columns from the selected tables. After this command you can apply an [action](#from_tables-actions)
   * `scan` (experimental) scans the lakehouse with regex expressions defined by the rules and to power the semantic classification.
 * `intro` gives an introduction to the library
@@ -75,12 +75,11 @@ The available `dx` functions are
 
 ### from_tables Actions
 
-After a `apply_sql` or `unpivot_string_columns` command, you can apply the following actions:
+After a `with_sql` or `unpivot_string_columns` command, you can apply the following actions:
 
 * `explain` explains the queries that would be executed
-* `execute` executes the queries and shows the result in a unioned dataframe
-* `to_union_dataframe` unions all the dataframes that result from the queries
-
+* `display` executes the queries and shows the first 1000 rows of the result in a unioned dataframe
+* `apply` returns a unioned dataframe with the result from the queries
 
 ## Requirements
 

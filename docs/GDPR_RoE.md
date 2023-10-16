@@ -9,9 +9,9 @@ For example, if you want to delete users `1`, `2`, and `3` from all tables that 
 ```
 dx.from_tables("*.*.*")\
   .having_columns("user_id")\
-  .apply_sql("DELETE FROM {full_table_name} WHERE `user_id` IN (1, 2, 3)"")\
-  .execute() 
-  # You can use .explain() instead of .execute() to preview the generated SQL 
+  .with_sql("DELETE FROM {full_table_name} WHERE `user_id` IN (1, 2, 3)"")\
+  .display() 
+  # You can use .explain() instead of .display() to preview the generated SQL 
 ```
 
 ## Vaccum
