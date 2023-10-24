@@ -77,7 +77,7 @@ class DataExplorer:
         return new_obj
 
     def with_tags(self, use_tags=True) -> "DataExplorer":
-        """Sets the maximum number of concurrent queries to run"""
+        """Defines if tags should be collected when getting table metadata"""
         new_obj = copy.deepcopy(self)
         new_obj._with_tags = use_tags
         return new_obj
