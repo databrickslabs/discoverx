@@ -23,20 +23,21 @@ dx = DX()
 
 from discoverx.table_info import TableInfo
 
+
 def my_function(table_info: TableInfo):
 
-  # TODO: Add your logic here
-  print(f"{table_info.catalog}.{table_info.schema}.{table_info.table} has {len(table_info.columns)} columns")
-  
-  if table_info.tags:
-    print(f" - catalog_tags: {table_info.tags.catalog_tags}")
-    print(f" - schema_tags: {table_info.tags.schema_tags}")
-    print(f" - table_tags: {table_info.tags.table_tags}")
-    print(f" - column_tags: {table_info.tags.column_tags}")
+    # TODO: Add your logic here
+    print(f"{table_info.catalog}.{table_info.schema}.{table_info.table} has {len(table_info.columns)} columns")
 
-  # The returned objects will be concatenated in the map result
-  return table_info
-  
+    if table_info.tags:
+        print(f" - catalog_tags: {table_info.tags.catalog_tags}")
+        print(f" - schema_tags: {table_info.tags.schema_tags}")
+        print(f" - table_tags: {table_info.tags.table_tags}")
+        print(f" - column_tags: {table_info.tags.column_tags}")
+
+    # The returned objects will be concatenated in the map result
+    return table_info
+
 
 # COMMAND ----------
 
@@ -45,10 +46,10 @@ def my_function(table_info: TableInfo):
 
 # COMMAND ----------
 
-result = (dx
-          .from_tables(from_tables)
-          .with_concurrency(1) # You can increase the concurrency with this parameter
-          .map(my_function)
+result = (
+    dx.from_tables(from_tables)
+    .with_concurrency(1)  # You can increase the concurrency with this parameter
+    .map(my_function)
 )
 
 # COMMAND ----------
@@ -62,11 +63,11 @@ len(result)
 
 # COMMAND ----------
 
-result = (dx
-              .from_tables(from_tables)
-              .with_concurrency(1) # You can increase the concurrency with this parameter
-              .with_tags() # This will ensure we add tag information to the table info
-              .map(my_function)
+result = (
+    dx.from_tables(from_tables)
+    .with_concurrency(1)  # You can increase the concurrency with this parameter
+    .with_tags()  # This will ensure we add tag information to the table info
+    .map(my_function)
 )
 
 # COMMAND ----------
@@ -74,5 +75,3 @@ result = (dx
 len(result)
 
 # COMMAND ----------
-
-
