@@ -1,7 +1,7 @@
 import pandas as pd
 from pyspark.sql import SparkSession
 from typing import List, Optional, Union
-from discoverx import logging
+from discoverx import logs
 from discoverx.explorer import DataExplorer, InfoFetcher
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
@@ -37,7 +37,7 @@ class DX:
         if spark is None:
             spark = SparkSession.getActiveSession()
         self.spark = spark
-        self.logger = logging.Logging()
+        self.logger = logs.Logging()
 
         self.rules = Rules(custom_rules=custom_rules, locale=locale)
         self.uc_enabled = self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
@@ -49,6 +49,7 @@ class DX:
 
     def _can_read_columns_table(self) -> bool:
         try:
+            self.logger.debug(f'Verifying if can read from {self.COLUMNS_TABLE_NAME}')
             self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} LIMIT 1")
             return True
         except Exception as e:

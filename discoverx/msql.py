@@ -1,7 +1,7 @@
 """This module contains the M-SQL compiler"""
 from dataclasses import dataclass
 from functools import reduce
-from discoverx import logging
+from discoverx import logs
 from discoverx.table_info import ColumnInfo, TableInfo
 from discoverx.common.helper import strip_margin
 from fnmatch import fnmatch
@@ -40,7 +40,7 @@ class Msql:
         # Extract command
         self.command = self._extract_command()
 
-        self.logger = logging.Logging()
+        self.logger = logs.Logging()
 
     def compile_msql(self, table_info: TableInfo) -> list[SQLRow]:
         """

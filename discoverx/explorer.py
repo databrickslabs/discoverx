@@ -2,7 +2,7 @@ import concurrent.futures
 import copy
 import re
 from typing import Optional, List
-from discoverx import logging
+from discoverx import logs
 from discoverx.common import helper
 from discoverx.discovery import Discovery
 from discoverx.rules import Rule
@@ -13,7 +13,7 @@ from pyspark.sql.functions import lit
 from discoverx.table_info import InfoFetcher, TableInfo
 
 
-logger = logging.Logging()
+logger = logs.Logging()
 
 
 class DataExplorer:

@@ -8,11 +8,11 @@ from typing import Optional, List, Set
 from pyspark.sql.utils import AnalysisException
 
 from discoverx.common.helper import strip_margin, format_regex
-from discoverx import logging
+from discoverx import logs
 from discoverx.table_info import InfoFetcher, TableInfo
 from discoverx.rules import Rules, RuleTypes
 
-logger = logging.Logging()
+logger = logs.Logging()
 
 
 @dataclass

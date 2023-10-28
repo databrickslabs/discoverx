@@ -1,11 +1,12 @@
 import logging
 import re
 
+logger = logging.getLogger('databricks.labs.discoverx')
 
 class Logging:
     def friendly(self, message):
         print(re.sub("<[^<]+?>", "", message))
-        logging.info(message)
+        logger.info(message)
 
     def friendlyHTML(self, message):
         try:
@@ -15,15 +16,15 @@ class Logging:
         except:
             # Strip HTML classes
             print(re.sub("<[^<]+?>", "", message))
-        logging.info(message)
+        logger.info(message)
 
     def info(self, message):
         print(message)
-        logging.info(message)
+        logger.info(message)
 
     def debug(self, message):
-        logging.debug(message)
+        logger.debug(message)
 
     def error(self, message):
         print(message)
-        logging.error(message)
+        logger.error(message)
