@@ -1,7 +1,7 @@
 ---
 name: discoverx
 description: Multi-table operations over the Lakehouse
-entrypoint: discoverx/cli.py
+main: discoverx/cli.py
 min_python: 3.10
 install:
   min_runtime_version: 13.1
