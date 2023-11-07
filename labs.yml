@@ -1,0 +1,28 @@
+---
+name: discoverx
+description: Multi-table operations over the Lakehouse
+install:
+  min_runtime_version: 13.1
+  require_running_cluster: true
+  require_databricks_connect: true
+entrypoint: discoverx/cli.py
+min_python: 3.10
+commands:
+  - name: scan
+    description: Scans the lakehouse
+    flags:
+      - name: locale
+        default: US
+        description: Locale for scanning
+      - name: from_tables
+        default: '*.*.*'
+        description: The tables to be scanned in format "catalog.schema.table", use "*" as a wildcard. Defaults to "*.*.*".
+      - name: rules
+        default: '*'
+        description: The rule names to be used to scan the lakehouse, use "*" as a wildcard. Defaults to "*".
+      - name: sample_size
+        default: 10000
+        description: The number of rows to be scanned per table. Defaults to 10000.
+      - name: what_if
+        default: false
+        description:  Whether to run the scan in what-if mode and print the SQL commands instead of executing them. Defaults to False.

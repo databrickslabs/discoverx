@@ -1,10 +1,10 @@
 import pandas as pd
 import pytest
 from discoverx.dx import DX
-from discoverx import logging
+from discoverx import logs
 from pyspark.sql.functions import col
 
-logger = logging.Logging()
+logger = logs.Logging()
 
 
 @pytest.fixture(scope="module", name="dx_ip")

@@ -49,3 +49,4 @@ derby.log
 # Databricks typings
 typings/
 .databricks
+.databricks-login.json
