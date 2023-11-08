@@ -203,9 +203,9 @@ class DataExplorerActions:
     @staticmethod
     def _build_sql(sql_template: str, table_info: TableInfo) -> str:
         if table_info.catalog and table_info.catalog != "None":
-            full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
+            full_table_name = f"`{table_info.catalog}`.`{table_info.schema}`.`{table_info.table}`"
         else:
-            full_table_name = f"{table_info.schema}.{table_info.table}"
+            full_table_name = f"`{table_info.schema}`.`{table_info.table}`"
 
         stack_string_columns = DataExplorerActions._get_stack_string_columns_expression(table_info)
 
