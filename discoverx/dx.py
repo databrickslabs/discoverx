@@ -49,7 +49,7 @@ class DX:
 
     def _can_read_columns_table(self) -> bool:
         try:
-            self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} LIMIT 1")
+            self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} WHERE table_catalog = 'system' LIMIT 1")
             return True
         except Exception as e:
             self.logger.error(f"Error while reading table {self.COLUMNS_TABLE_NAME}: {e}")
@@ -314,7 +314,8 @@ class DX:
         )
 
         return self._msql(
-            f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}", min_score=min_score
+            f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}",
+            min_score=min_score,
         )
 
     def delete_by_class(
