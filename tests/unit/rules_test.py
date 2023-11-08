@@ -55,7 +55,7 @@ def test_rule_validation():
             match_example=["192.0.2.1", "0.0.0.0"],
         )
     except ValueError:
-        pytest.fail("The example does not match the rule definition")    
+        pytest.fail("The example does not match the rule definition")
 
     # The definition of the following rule should not match the nomatch-example
     try:
@@ -69,8 +69,7 @@ def test_rule_validation():
     except ValueError:
         pytest.fail("The example does not match the rule definition")
 
-
-   # The definition of the following rule should allow case-insentive matches
+    # The definition of the following rule should allow case-insentive matches
     try:
         us_state_rule_test = RegexRule(
             name="ip_v4_test",
@@ -80,7 +79,7 @@ def test_rule_validation():
             nomatch_example="192",
         )
     except ValueError:
-        pytest.fail("The example does not match the rule definition")     
+        pytest.fail("The example does not match the rule definition")
 
     # The next tests should fail and result in a ValueError
     with pytest.raises(ValueError):

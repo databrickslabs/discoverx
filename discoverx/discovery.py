@@ -13,7 +13,7 @@ logger = logging.Logging()
 class Discovery:
     """ """
 
-    COLUMNS_TABLE_NAME = "system.information_schema.columns"
+    INFORMATION_SCHEMA = "system.information_schema"
     MAX_WORKERS = 10
 
     def __init__(
@@ -73,7 +73,7 @@ class Discovery:
             rule_filter=rules,
             sample_size=sample_size,
             what_if=what_if,
-            columns_table_name=self.COLUMNS_TABLE_NAME,
+            information_schema=self.INFORMATION_SCHEMA,
             max_workers=self.MAX_WORKERS,
         )
 
@@ -229,7 +229,8 @@ class Discovery:
         )
 
         return self._msql(
-            f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}", min_score=min_score
+            f"SELECT {from_statement}, to_json(struct(*)) AS row_content FROM {from_tables}",
+            min_score=min_score,
         )
 
     def delete_by_class(

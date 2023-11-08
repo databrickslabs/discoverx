@@ -16,7 +16,7 @@ def scan_ip_in_tb1(spark, mock_uc_functionality):
 
 def test_can_read_columns_table(spark):
     dx = DX(spark=spark)
-    dx.COLUMNS_TABLE_NAME = "db.non_existent_table"
+    dx.INFORMATION_SCHEMA = "nonexistent_db"
     dx.intro()
     assert dx._can_read_columns_table() == False
 
@@ -161,9 +161,17 @@ def test_select_by_class(spark, dx_ip):
 def test_delete_by_class(spark, dx_ip):
     # search a specific term and auto-detect matching classes/rules
     dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
-    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {"1.2.3.4", "3.4.5.60"}
+    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {
+        "1.2.3.4",
+        "3.4.5.60",
+    }
 
-    dx_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="1.2.3.4", yes_i_am_sure=True)
+    dx_ip.delete_by_class(
+        from_tables="*.default.tb_*",
+        by_class="ip_v4",
+        values="1.2.3.4",
+        yes_i_am_sure=True,
+    )
     assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {"3.4.5.60"}
 
     with pytest.raises(ValueError):
@@ -210,7 +218,14 @@ def test_save_and_load_scan_result(spark, dx_ip):
             ["None", "default", "tb_1", "mac", "ip_v4", 0.0],
             ["None", "default", "tb_1", "mac", "ip_v6", 0.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
+        columns=[
+            "table_catalog",
+            "table_schema",
+            "table_name",
+            "column_name",
+            "class_name",
+            "score",
+        ],
     )
     assert result.reset_index(drop=True).equals(expected)
 
@@ -232,7 +247,14 @@ def test_save_and_load_scan_result(spark, dx_ip):
             ["None", "default", "tb_1", "mac", "ip_v4", 3.0],
             ["None", "default", "tb_1", "mac", "ip_v6", 0.0],
         ],
-        columns=["table_catalog", "table_schema", "table_name", "column_name", "class_name", "score"],
+        columns=[
+            "table_catalog",
+            "table_schema",
+            "table_name",
+            "column_name",
+            "class_name",
+            "score",
+        ],
     )
     dx_ip.scan_result.update(updated_df)
     dx_ip.save(full_table_name=scan_result_table)

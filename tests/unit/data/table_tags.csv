@@ -1,0 +1,3 @@
+﻿catalog_name,schema_name,table_name,tag_name,tag_value
+hive_metastore,default,tb_all_types,int_col,my_int_tag
+,default,tb_1,pii,true

@@ -155,7 +155,53 @@ def sample_datasets(spark: SparkSession, request):
         .csv(str(test_file_path.resolve()))
     ).createOrReplaceTempView("view_columns_mock")
     spark.sql(
-        f"CREATE TABLE IF NOT EXISTS default.columns_mock USING delta LOCATION '{warehouse_dir}/columns_mock' AS SELECT * FROM view_columns_mock"
+        f"CREATE TABLE IF NOT EXISTS default.columns USING delta LOCATION '{warehouse_dir}/columns' AS SELECT * FROM view_columns_mock"
+    )
+
+    # column_tags
+    test_file_path = module_path.parent / "data/column_tags.csv"
+    (
+        spark.read.option("header", True)
+        .schema(
+            "catalog_name string, schema_name string, table_name string, column_name string, tag_name string, tag_value string"
+        )
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("column_tags_temp_view")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.column_tags USING delta LOCATION '{warehouse_dir}/column_tags' AS SELECT * FROM column_tags_temp_view"
+    )
+
+    # table_tags
+    test_file_path = module_path.parent / "data/table_tags.csv"
+    (
+        spark.read.option("header", True)
+        .schema("catalog_name string,schema_name string,table_name string,tag_name string,tag_value string")
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("table_tags_temp_view")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.table_tags USING delta LOCATION '{warehouse_dir}/table_tags' AS SELECT * FROM table_tags_temp_view"
+    )
+
+    # schema_tags
+    test_file_path = module_path.parent / "data/schema_tags.csv"
+    (
+        spark.read.option("header", True)
+        .schema("catalog_name string,schema_name string,tag_name string,tag_value string")
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("schema_tags_temp_view")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.schema_tags USING delta LOCATION '{warehouse_dir}/schema_tags' AS SELECT * FROM schema_tags_temp_view"
+    )
+
+    # catalog_tags
+    test_file_path = module_path.parent / "data/catalog_tags.csv"
+    (
+        spark.read.option("header", True)
+        .schema("catalog_name string,tag_name string,tag_value string")
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("catalog_tags_temp_view")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.catalog_tags USING delta LOCATION '{warehouse_dir}/catalog_tags' AS SELECT * FROM catalog_tags_temp_view"
     )
 
     logging.info("Sample datasets created")
@@ -166,7 +212,11 @@ def sample_datasets(spark: SparkSession, request):
 
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
     spark.sql("DROP TABLE IF EXISTS default.tb_2")
-    spark.sql("DROP TABLE IF EXISTS default.columns_mock")
+    spark.sql("DROP TABLE IF EXISTS default.columns")
+    spark.sql("DROP TABLE IF EXISTS default.column_tags")
+    spark.sql("DROP TABLE IF EXISTS default.table_tags")
+    spark.sql("DROP TABLE IF EXISTS default.schema_tags")
+    spark.sql("DROP TABLE IF EXISTS default.catalog_tags")
     if Path(warehouse_dir).exists():
         shutil.rmtree(warehouse_dir)
 
@@ -212,14 +262,14 @@ def monkeymodule():
 
 @pytest.fixture(autouse=True, scope="module")
 def mock_uc_functionality(monkeymodule):
-    # apply the monkeypatch for the columns_table_name
-    monkeymodule.setattr(DX, "COLUMNS_TABLE_NAME", "default.columns_mock")
+    # apply the monkeypatch for the information_schema
+    monkeymodule.setattr(DX, "INFORMATION_SCHEMA", "default")
 
     # mock classifier method _get_classification_table_from_delta as we don't
     # have catalogs in open source spark
     def get_or_create_classification_table_mock(self, scan_table_name: str):
         (schema, table) = scan_table_name.split(".")
-        #Test fails without drop if table already exists
+        # Test fails without drop if table already exists
         self.spark.sql(f"DROP DATABASE IF EXISTS {schema} CASCADE")
         self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {schema}")
         self.spark.sql(
@@ -229,4 +279,8 @@ def mock_uc_functionality(monkeymodule):
         )
         return DeltaTable.forName(self.spark, scan_table_name)
 
-    monkeymodule.setattr(ScanResult, "_get_or_create_result_table_from_delta", get_or_create_classification_table_mock)
+    monkeymodule.setattr(
+        ScanResult,
+        "_get_or_create_result_table_from_delta",
+        get_or_create_classification_table_mock,
+    )

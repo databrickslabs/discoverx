@@ -5,7 +5,7 @@ from discoverx.discovery import Discovery
 
 @pytest.fixture()
 def info_fetcher(spark):
-    return InfoFetcher(spark=spark, columns_table_name="default.columns_mock")
+    return InfoFetcher(spark=spark, information_schema="default")
 
 
 @pytest.fixture(name="discover_ip")
@@ -23,7 +23,10 @@ def test_noscan(spark, info_fetcher):
         data_explorer._schemas,
         data_explorer._tables,
         data_explorer._info_fetcher.get_tables_info(
-            data_explorer._catalogs, data_explorer._schemas, data_explorer._tables, data_explorer._having_columns
+            data_explorer._catalogs,
+            data_explorer._schemas,
+            data_explorer._tables,
+            data_explorer._having_columns,
         ),
     )
     with pytest.raises(Exception) as scan_first_error:
@@ -112,9 +115,17 @@ def test_discover_display_rules(capfd, discover_ip):
 def test_discover_delete_by_class(spark, discover_ip):
     # search a specific term and auto-detect matching classes/rules
     discover_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="9.9.9.9")
-    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {"1.2.3.4", "3.4.5.60"}
+    assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {
+        "1.2.3.4",
+        "3.4.5.60",
+    }
 
-    discover_ip.delete_by_class(from_tables="*.default.tb_*", by_class="ip_v4", values="1.2.3.4", yes_i_am_sure=True)
+    discover_ip.delete_by_class(
+        from_tables="*.default.tb_*",
+        by_class="ip_v4",
+        values="1.2.3.4",
+        yes_i_am_sure=True,
+    )
     assert {row.ip for row in spark.sql("select * from tb_1").collect()} == {"3.4.5.60"}
 
     with pytest.raises(ValueError):

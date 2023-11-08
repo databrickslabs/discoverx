@@ -25,7 +25,7 @@ class DX:
             Defaults to None.
     """
 
-    COLUMNS_TABLE_NAME = "system.information_schema.columns"
+    INFORMATION_SCHEMA = "system.information_schema"
     MAX_WORKERS = 10
 
     def __init__(
@@ -49,10 +49,10 @@ class DX:
 
     def _can_read_columns_table(self) -> bool:
         try:
-            self.spark.sql(f"SELECT * FROM {self.COLUMNS_TABLE_NAME} WHERE table_catalog = 'system' LIMIT 1")
+            self.spark.sql(f"SELECT * FROM {self.INFORMATION_SCHEMA}.columns WHERE table_catalog = 'system' LIMIT 1")
             return True
         except Exception as e:
-            self.logger.error(f"Error while reading table {self.COLUMNS_TABLE_NAME}: {e}")
+            self.logger.error(f"Error while reading table {self.INFORMATION_SCHEMA}.columns: {e}")
             return False
 
     def intro(self):
@@ -137,7 +137,7 @@ class DX:
             rule_filter=rules,
             sample_size=sample_size,
             what_if=what_if,
-            columns_table_name=self.COLUMNS_TABLE_NAME,
+            information_schema=self.INFORMATION_SCHEMA,
             max_workers=self.MAX_WORKERS,
         )
 
@@ -400,7 +400,7 @@ class DX:
 
         """
 
-        return DataExplorer(from_tables, self.spark, InfoFetcher(self.spark, self.COLUMNS_TABLE_NAME))
+        return DataExplorer(from_tables, self.spark, InfoFetcher(self.spark, self.INFORMATION_SCHEMA))
 
     def _msql(self, msql: str, what_if: bool = False, min_score: Optional[float] = None):
         self.logger.debug(f"Executing sql template: {msql}")

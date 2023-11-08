@@ -6,18 +6,22 @@ from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, T
 # sample_table_info = TableInfo("catalog1", "schema1", "table1", [])
 @pytest.fixture()
 def info_fetcher(spark):
-    return InfoFetcher(spark=spark, columns_table_name="default.columns_mock")
+    return InfoFetcher(spark=spark, information_schema="default")
 
 
 @pytest.fixture()
 def sample_table_info():
-    return TableInfo("catalog1", "schema1", "table1", [])
+    return TableInfo("catalog1", "schema1", "table1", [], None)
 
 
 def test_validate_from_components():
     with pytest.raises(ValueError):
         DataExplorer.validate_from_components("invalid_format")
-    assert DataExplorer.validate_from_components("catalog1.schema1.table1") == ("catalog1", "schema1", "table1")
+    assert DataExplorer.validate_from_components("catalog1.schema1.table1") == (
+        "catalog1",
+        "schema1",
+        "table1",
+    )
 
 
 def test_build_sql(sample_table_info):
@@ -59,3 +63,29 @@ def test_explain(capfd, spark, info_fetcher):
     captured = capfd.readouterr()
     assert "SELECT `something` FROM " in captured.out
     assert "ip.v2" in captured.out
+
+
+def test_map(spark, info_fetcher):
+    data_explorer = DataExplorer("*.default.tb_1", spark, info_fetcher)
+    result = data_explorer.map(lambda table_info: table_info)
+    assert len(result) == 1
+    assert result[0].table == "tb_1"
+    assert result[0].schema == "default"
+    assert result[0].catalog == None
+    assert result[0].tags == None
+
+
+def test_map_with_tags(spark, info_fetcher):
+    data_explorer = DataExplorer("*.default.tb_1", spark, info_fetcher).with_tags()
+    result = data_explorer.map(lambda table_info: table_info)
+    assert len(result) == 1
+    assert result[0].table == "tb_1"
+    assert result[0].schema == "default"
+    assert result[0].catalog == None
+    assert len(result[0].tags.table_tags) == 1
+
+
+def test_no_tables_matching_filter(spark, info_fetcher):
+    data_explorer = DataExplorer("some_catalog.default.non_existent_table", spark, info_fetcher)
+    with pytest.raises(ValueError):
+        data_explorer.map(lambda table_info: table_info)

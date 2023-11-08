@@ -6,10 +6,10 @@ from discoverx import logging
 from discoverx.common import helper
 from discoverx.discovery import Discovery
 from discoverx.rules import Rule
+from discoverx.table_info import TagsInfo, ColumnTagInfo, TagInfo, ColumnInfo, TableInfo
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
-
 from discoverx.table_info import InfoFetcher, TableInfo
 
 
@@ -21,12 +21,17 @@ class DataExplorer:
 
     def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
         self._from_tables = from_tables
-        self._catalogs, self._schemas, self._tables = DataExplorer.validate_from_components(from_tables)
+        (
+            self._catalogs,
+            self._schemas,
+            self._tables,
+        ) = DataExplorer.validate_from_components(from_tables)
         self._spark = spark
         self._info_fetcher = info_fetcher
         self._having_columns = []
         self._sql_query_template = None
         self._max_concurrency = 10
+        self._with_tags = False
 
     @staticmethod
     def validate_from_components(from_tables: str):
@@ -48,6 +53,7 @@ class DataExplorer:
         new_obj._having_columns = copy.deepcopy(self._having_columns)
         new_obj._sql_query_template = copy.deepcopy(self._sql_query_template)
         new_obj._max_concurrency = copy.deepcopy(self._max_concurrency)
+        new_obj._with_tags = copy.deepcopy(self._with_tags)
 
         new_obj._spark = self._spark
         new_obj._info_fetcher = self._info_fetcher
@@ -68,6 +74,12 @@ class DataExplorer:
         """Sets the maximum number of concurrent queries to run"""
         new_obj = copy.deepcopy(self)
         new_obj._max_concurrency = max_concurrency
+        return new_obj
+
+    def with_tags(self, use_tags=True) -> "DataExplorer":
+        """Defines if tags should be collected when getting table metadata"""
+        new_obj = copy.deepcopy(self)
+        new_obj._with_tags = use_tags
         return new_obj
 
     def with_sql(self, sql_query_template: str) -> "DataExplorerActions":
@@ -135,10 +147,44 @@ class DataExplorer:
         discover.scan(rules=rules, sample_size=sample_size, what_if=what_if)
         return discover
 
+    def map(self, f) -> list[any]:
+        """Runs a function for each table in the data explorer
+
+        Args:
+            f (function): The function to run. The function should accept a TableInfo object as input and return any object as output.
+
+        Returns:
+            list[any]: A list of the results of running the function for each table
+        """
+        res = []
+        table_list = self._info_fetcher.get_tables_info(
+            self._catalogs,
+            self._schemas,
+            self._tables,
+            self._having_columns,
+            self._with_tags,
+        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
+            # Submit tasks to the thread pool
+            futures = [executor.submit(f, table_info) for table_info in table_list]
+
+            # Process completed tasks
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result is not None:
+                    res.append(result)
+
+        logger.debug("Finished lakehouse map task")
+
+        return res
+
 
 class DataExplorerActions:
     def __init__(
-        self, data_explorer: DataExplorer, spark: SparkSession = None, info_fetcher: InfoFetcher = None
+        self,
+        data_explorer: DataExplorer,
+        spark: SparkSession = None,
+        info_fetcher: InfoFetcher = None,
     ) -> None:
         self._data_explorer = data_explorer
         if spark is None:
@@ -193,10 +239,18 @@ class DataExplorerActions:
         logger.debug("Launching lakehouse scanning task\n")
 
         table_list = self._info_fetcher.get_tables_info(
-            data_explorer._catalogs, data_explorer._schemas, data_explorer._tables, data_explorer._having_columns
+            data_explorer._catalogs,
+            data_explorer._schemas,
+            data_explorer._tables,
+            data_explorer._having_columns,
+            data_explorer._with_tags,
         )
         sql_commands = [
-            (DataExplorerActions._build_sql(data_explorer._sql_query_template, table), table) for table in table_list
+            (
+                DataExplorerActions._build_sql(data_explorer._sql_query_template, table),
+                table,
+            )
+            for table in table_list
         ]
         return sql_commands
 
