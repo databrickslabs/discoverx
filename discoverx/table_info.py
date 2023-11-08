@@ -111,6 +111,7 @@ class InfoFetcher:
         tables: str,
         columns: list[str] = [],
         with_tags=False,
+        having_tags=[],
     ) -> list[TableInfo]:
         # Filter tables by matching filter
         table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags)
@@ -120,7 +121,28 @@ class InfoFetcher:
         if len(filtered_tables) == 0:
             raise ValueError(f"No tables found matching filter: {catalogs}.{schemas}.{tables}")
 
-        return self._to_info_list(filtered_tables)
+        info_list = self._to_info_list(filtered_tables)
+        return [info for info in info_list if InfoFetcher._contains_all_tags(info.tags, having_tags)]
+
+    @staticmethod
+    def _contains_all_tags(tags_info: TagsInfo, tags: list[TagInfo]) -> bool:
+        if not tags_info:
+            return False
+        if not tags:
+            return True
+
+        all_tags = []
+
+        if tags_info.catalog_tags:
+            all_tags.extend(tags_info.catalog_tags)
+
+        if tags_info.schema_tags:
+            all_tags.extend(tags_info.schema_tags)
+
+        if tags_info.table_tags:
+            all_tags.extend(tags_info.table_tags)
+
+        return all([tag in all_tags for tag in tags])
 
     def _get_table_list_sql(
         self,

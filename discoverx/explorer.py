@@ -32,6 +32,7 @@ class DataExplorer:
         self._sql_query_template = None
         self._max_concurrency = 10
         self._with_tags = False
+        self._having_tags = []
 
     @staticmethod
     def validate_from_components(from_tables: str):
@@ -68,6 +69,19 @@ class DataExplorer:
         """
         new_obj = copy.deepcopy(self)
         new_obj._having_columns.extend(columns)
+        return new_obj
+
+    def having_tag(self, tag_name: str, tag_value: str = None) -> "DataExplorer":
+        """Will select tables tagged with the provided tag name and optionally value
+        either at table, schema, or catalog level.
+
+        Args:
+            tag_name (str): Tag name
+            tag_value (str, optional): Tag value. Defaults to None.
+        """
+        new_obj = copy.deepcopy(self)
+        new_obj._having_tags.extend(TagInfo(tag_name, tag_value))
+        new_obj._with_tags = True
         return new_obj
 
     def with_concurrency(self, max_concurrency) -> "DataExplorer":
@@ -140,7 +154,9 @@ class DataExplorer:
             self._catalogs,
             self._schemas,
             self._tables,
-            self._info_fetcher.get_tables_info(self._catalogs, self._schemas, self._tables, self._having_columns),
+            self._info_fetcher.get_tables_info(
+                self._catalogs, self._schemas, self._tables, self._having_columns, self._having_tags
+            ),
             custom_rules=custom_rules,
             locale=locale,
         )
@@ -163,6 +179,7 @@ class DataExplorer:
             self._tables,
             self._having_columns,
             self._with_tags,
+            self._having_tags,
         )
         with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool
@@ -244,6 +261,7 @@ class DataExplorerActions:
             data_explorer._tables,
             data_explorer._having_columns,
             data_explorer._with_tags,
+            data_explorer._having_tags,
         )
         sql_commands = [
             (
