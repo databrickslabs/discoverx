@@ -110,8 +110,8 @@ class InfoFetcher:
         schemas: str,
         tables: str,
         columns: list[str] = [],
-        with_tags=False,
-        having_tags=[],
+        with_tags: bool = False,
+        having_tags: list[TagInfo] = [],
     ) -> list[TableInfo]:
         # Filter tables by matching filter
         table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags)
@@ -126,10 +126,10 @@ class InfoFetcher:
 
     @staticmethod
     def _contains_all_tags(tags_info: TagsInfo, tags: list[TagInfo]) -> bool:
-        if not tags_info:
-            return False
         if not tags:
             return True
+        if not tags_info:
+            return False
 
         all_tags = []
 
