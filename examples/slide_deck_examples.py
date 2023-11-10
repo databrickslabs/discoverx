@@ -79,12 +79,47 @@ from pyspark.sql.functions import col, lit
 
 result = (dx
   .from_tables("sample_data_discoverx.*.*")
-  .scan()
+  .scan() # Returns a Discovery object
 )
+
+# Ideally, this should look like this:
+# (dx
+#   .from_tables("sample_data_discoverx.*.*")
+#   .scan() # This should return a DataExplorerActions object
+#   .apply() # This should return a Dataframe
+# )
+
+# and optionally
+# classes = (dx
+#   .from_tables("sample_data_discoverx.*.*")
+#   .scan() # This should return a DataExplorerActions object
+#   .apply() # This should return a Dataframe
+# )
+# dx.apply_tags(classes)
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Which tables contain the email address “erni@databricks.com”?
 
 # COMMAND ----------
 
 result.search("erni@databricks.com").display()
+
+# Ideally this should look like
+# (dx
+#   .from_tables("sample_data_discoverx.*.*")
+#   .search("erni@databricks.com") # This should return a DataExplorerActions object
+#   .apply() # This should return a Dataframe
+# )
+
+# and optionally
+# (dx
+#   .from_tables("sample_data_discoverx.*.*")
+#   .search("erni@databricks.com", in_columns_tagged_with=["email"]) # This should return a DataExplorerActions object
+#   .apply() # This should return a Dataframe
+# )
 
 # COMMAND ----------
 
