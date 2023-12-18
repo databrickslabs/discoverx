@@ -222,7 +222,7 @@ class DataExplorer:
         dfs_pd: Iterable[pd.DataFrame] = self.map(
             dh.scan
         )
-        return reduce(lambda x, y: x.union(y), dfs_pd)  # TODO create DeltaHousekeepingActions and implement `apply`
+        return pd.concat(dfs_pd)  # TODO create DeltaHousekeepingActions and implement `apply`
 
 
 class DataExplorerActions:
