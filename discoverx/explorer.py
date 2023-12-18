@@ -2,6 +2,7 @@ import concurrent.futures
 import copy
 import re
 import more_itertools
+import pandas as pd
 from typing import Optional, List, Callable, Iterable
 from discoverx import logging
 from discoverx.common import helper
@@ -213,14 +214,15 @@ class DataExplorer:
 
         return res
 
-    def delta_housekeeping(self) -> DataFrame:
+    def delta_housekeeping(self) -> pd.DataFrame:
         """
-
+        Gathers stats and recommendations on Delta Housekeeping
         """
         dh = DeltaHousekeeping(self._spark)
-        return self.map(
+        dfs_pd: Iterable[pd.DataFrame] = self.map(
             dh.scan
         )
+        return reduce(lambda x, y: x.union(y), dfs_pd)  # TODO create DeltaHousekeepingActions and implement `apply`
 
 
 class DataExplorerActions:

@@ -22,8 +22,8 @@ result = (
     .with_concurrency(1)  # You can increase the concurrency with this parameter
     .delta_housekeeping()
 )
-print(len(result))
 
 # COMMAND ----------
 
+display(result)
 

@@ -2,6 +2,8 @@ from typing import Iterable
 from functools import reduce
 from discoverx.table_info import TableInfo
 
+import pandas as pd
+
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.window import Window
 import pyspark.sql.types as T
@@ -19,7 +21,9 @@ class DeltaHousekeeping:
         ])
 
     @staticmethod
-    def _process_describe_history(describe_detail_df, describe_history_df) -> DataFrame:
+    def _process_describe_history(
+        describe_detail_df: DataFrame, describe_history_df: DataFrame
+    ) -> DataFrame:
         """
         processes the DESCRIBE HISTORY result of potentially several tables in different schemas/catalogs
         Provides
@@ -94,11 +98,11 @@ class DeltaHousekeeping:
         return out
 
     def scan(
-            self,
-            table_info_list: Iterable[TableInfo],
-            housekeeping_table_name: str = "lorenzorubi.default.housekeeping_summary_v2",  # TODO remove
-            do_save_as_table: bool = True,
-    ):
+        self,
+        table_info_list: Iterable[TableInfo],
+        housekeeping_table_name: str = "lorenzorubi.default.housekeeping_summary_v2",  # TODO remove
+        do_save_as_table: bool = True,
+    ) -> pd.DataFrame:
         """
         Scans a table_info / table_info_list to fetch Delta stats
         - DESCRIBE DETAIL
@@ -117,8 +121,6 @@ class DeltaHousekeeping:
                 dd = self._spark.sql(f"""
                     DESCRIBE DETAIL {table_info.catalog}.{table_info.schema}.{table_info.table};
                 """)
-
-                # prepares a DESCRIBE HISTORY statement per table (will be run outside of the loop)
                 dd = (
                     dd
                     .withColumn("split", F.split(F.col('name'), '\.'))
@@ -134,6 +136,8 @@ class DeltaHousekeeping:
                     ])
                 )
                 dd_list.append(dd)
+
+                # prepares a DESCRIBE HISTORY statement per table (will be run outside of the loop)
                 statements.append(f"""
                     SELECT 
                     '{table_info.catalog}' AS catalog,
@@ -175,6 +179,7 @@ class DeltaHousekeeping:
             )
 
         out = dh.unionByName(errors_df, allowMissingColumns=True)
+
         if do_save_as_table:
             (
                 out
@@ -184,5 +189,5 @@ class DeltaHousekeeping:
                 .option("mergeSchema", "true")
                 .saveAsTable(housekeeping_table_name)
             )
-        return out
 
+        return out.toPandas()
