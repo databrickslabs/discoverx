@@ -1,20 +1,22 @@
 from typing import Iterable
+from functools import reduce
 from discoverx.table_info import TableInfo
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.window import Window
 import pyspark.sql.types as T
 import pyspark.sql.functions as F
 
 
-
-
 class DeltaHousekeeping:
-    empty_schema = T.StructType([
-        T.StructField("catalog", T.StringType()),
-        T.StructField("database", T.StringType()),
-        T.StructField("tableName", T.StringType()),
-    ])
+    
+    def __init__(self, spark: SparkSession) -> None:
+        self._spark = spark
+        self.empty_schema = T.StructType([
+            T.StructField("catalog", T.StringType()),
+            T.StructField("database", T.StringType()),
+            T.StructField("tableName", T.StringType()),
+        ])
 
     @staticmethod
     def _process_describe_history(describe_detail_df, describe_history_df) -> DataFrame:
@@ -97,6 +99,11 @@ class DeltaHousekeeping:
             housekeeping_table_name: str = "lorenzorubi.default.housekeeping_summary_v2",  # TODO remove
             do_save_as_table: bool = True,
     ):
+        """
+        Scans a table_info / table_info_list to fetch Delta stats
+        - DESCRIBE DETAIL
+        - DESCRIBE HISTORY
+        """
         dd_list = []
         statements = []
         errors = []
@@ -106,10 +113,12 @@ class DeltaHousekeeping:
 
         for table_info in table_info_list:
             try:
-                dd = spark.sql(f"""
+                # runs a describe detail per table, figures out if exception
+                dd = self._spark.sql(f"""
                     DESCRIBE DETAIL {table_info.catalog}.{table_info.schema}.{table_info.table};
                 """)
 
+                # prepares a DESCRIBE HISTORY statement per table (will be run outside of the loop)
                 dd = (
                     dd
                     .withColumn("split", F.split(F.col('name'), '\.'))
@@ -140,25 +149,25 @@ class DeltaHousekeeping:
                     WHERE operation in ('OPTIMIZE', 'VACUUM END')
                 """)
             except Exception as e:
-                errors.append(spark.createDataFrame(
+                errors.append(self._spark.createDataFrame(
                     [(table_info.catalog, table_info.schema, table_info.table, str(e))],
                     ["catalog", "database", "tableName", "error"]
                 ))
 
+        # statement to UNION all DESCRIBE HISTORY together
         statement = " UNION ".join(statements)
 
-        dh = spark.createDataFrame([], self.empty_schema)
+        dh = self._spark.createDataFrame([], self.empty_schema)
         if statements:
-            dh = self.process_describe_history(
+            dh = self._process_describe_history(
                 reduce(
                     lambda left, right: left.union(right),
                     dd_list
                 ),
-                spark.sql(statement),
-                None
+                self._spark.sql(statement),
             )
 
-        errors_df = spark.createDataFrame([], self.empty_schema)
+        errors_df = self._spark.createDataFrame([], self.empty_schema)
         if errors:
             errors_df = reduce(
                 lambda left, right: left.union(right),

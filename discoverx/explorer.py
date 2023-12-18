@@ -217,8 +217,8 @@ class DataExplorer:
         """
 
         """
-        dh = DeltaHousekeeping()
-        self.map(
+        dh = DeltaHousekeeping(self._spark)
+        return self.map(
             dh.scan
         )
 

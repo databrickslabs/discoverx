@@ -17,9 +17,6 @@ dx = DX()
 
 # COMMAND ----------
 
-
-# COMMAND ----------
-
 result = (
     dx.from_tables("lorenzorubi.*.*")
     .with_concurrency(1)  # You can increase the concurrency with this parameter
@@ -28,4 +25,5 @@ result = (
 print(len(result))
 
 # COMMAND ----------
+
 
