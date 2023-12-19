@@ -13,7 +13,7 @@ from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
 from discoverx.table_info import InfoFetcher, TableInfo
-from discoverx.delta_housekeeping import DeltaHousekeeping
+from discoverx.delta_housekeeping import DeltaHousekeeping, DeltaHousekeepingActions
 
 
 logger = logging.Logging()
@@ -219,10 +219,8 @@ class DataExplorer:
         Gathers stats and recommendations on Delta Housekeeping
         """
         dh = DeltaHousekeeping(self._spark)
-        dfs_pd: Iterable[pd.DataFrame] = self.map(
-            dh.scan
-        )
-        return pd.concat(dfs_pd)  # TODO create DeltaHousekeepingActions and implement `apply`
+        dfs_pd: Iterable[pd.DataFrame] = self.map(dh.scan)
+        return DeltaHousekeepingActions(dfs_pd)
 
 
 class DataExplorerActions:

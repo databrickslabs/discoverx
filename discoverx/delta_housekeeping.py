@@ -191,3 +191,40 @@ class DeltaHousekeeping:
             )
 
         return out.toPandas()
+
+
+class DeltaHousekeepingActions:
+    def __init__(
+        self,
+        # delta_housekeeping: DeltaHousekeeping,
+        mapped_pd_dfs: Iterable[pd.DataFrame],
+        # spark: SparkSession = None,
+        min_table_size_optimize: int = 128*1024*1024,
+        stats: pd.DataFrame = None,  # for testability only
+    ) -> None:
+        # self._delta_housekeeping = delta_housekeeping
+        if stats is None:
+            self._mapped_pd_dfs = mapped_pd_dfs
+            stats = pd.concat(self._mapped_pd_dfs)
+        self._stats: pd.DataFrame = stats
+        # if spark is None:
+        #     spark = SparkSession.builder.getOrCreate()
+        # self._spark = spark
+        self.min_table_size_optimize = min_table_size_optimize
+        self.tables_not_optimized_legend = "Tables that are never OPTIMIZED and would benefit from it"
+
+    def stats(self) -> pd.DataFrame:
+        return self._stats
+
+    def _need_optimize(self) -> pd.DataFrame:
+        stats = self._stats
+        return (
+            stats.loc[stats.max_optimize_timestamp.isnull() & (stats.bytes > self.min_table_size_optimize)]
+        )
+
+    def apply(self):
+        return [
+            {self.tables_not_optimized_legend: self._need_optimize()}
+        ]
+
+
