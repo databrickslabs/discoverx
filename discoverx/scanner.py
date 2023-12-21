@@ -311,9 +311,9 @@ class Scanner:
 
         sql = f"""
             SELECT 
-                '{table_info.catalog}' as table_catalog,
-                '{table_info.schema}' as table_schema,
-                '{table_info.table}' as table_name, 
+                `{table_info.catalog}` as table_catalog,
+                `{table_info.schema}` as table_schema,
+                `{table_info.table}` as table_name, 
                 column_name,
                 class_name,
                 (sum(value) / count(value)) as score
