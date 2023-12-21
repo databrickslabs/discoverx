@@ -255,7 +255,7 @@ class DeltaHousekeepingActions:
         stats = self._stats.copy()
         stats['max_optimize_timestamp'] = pd.to_datetime(stats['max_optimize_timestamp'])
         stats['optimize_lag'] = (
-            datetime.utcnow().replace(tzinfo=stats.dtypes["max_optimize_timestamp"].tz) - stats['max_optimize_timestamp']
+            datetime.utcnow() - stats['max_optimize_timestamp']  # TODO careful
         ).dt.days
         return (
             stats[stats['optimize_lag'] < self.min_days_not_optimized]
@@ -280,7 +280,7 @@ class DeltaHousekeepingActions:
         stats = self._stats.copy()
         stats['max_vacuum_timestamp'] = pd.to_datetime(stats['max_vacuum_timestamp'])
         stats['vacuum_lag'] = (
-            datetime.utcnow().replace(tzinfo=stats.dtypes["max_vacuum_timestamp"].tz) - stats['max_vacuum_timestamp']
+            datetime.utcnow() - stats['max_vacuum_timestamp']  # TODO careful
         ).dt.days
         return (
             stats[stats['vacuum_lag'] < self.min_days_not_vacuumed]
@@ -300,7 +300,7 @@ class DeltaHousekeepingActions:
         stats = stats.loc[stats['max_optimize_timestamp'].notnull() &
                           stats['p50_file_size'].notnull() &
                           (stats['number_of_files'] > 1)]
-        stats = stats.loc[(stats['p50_file_size'] < self.small_file_threshold)]
+        stats = stats.loc[(stats['p50_file_size'].astype(int) < self.small_file_threshold)]
         return (
             stats.sort_values(by=['database', 'tableName', 'number_of_files'], ascending=[True, True, False])
         )
@@ -364,3 +364,5 @@ class DeltaHousekeepingActions:
                 title_s.string = k
                 body.insert(0, v.to_html())
                 body.insert(0, title_s)
+
+        return soup
