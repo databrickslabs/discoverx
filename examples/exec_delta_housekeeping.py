@@ -5,6 +5,7 @@
 
 # COMMAND ----------
 
+# TODO remove
 # MAGIC %reload_ext autoreload
 # MAGIC %autoreload 2
 
@@ -19,11 +20,29 @@ dx = DX()
 
 result = (
     dx.from_tables("lorenzorubi.*.*")
-    .with_concurrency(1)  # You can increase the concurrency with this parameter
     .delta_housekeeping()
+    .stats()
+)
+display(result)
+
+# COMMAND ----------
+
+result = (
+    dx.from_tables("lorenzorubi.*.*")
+    .delta_housekeeping()
+    .apply()
 )
 
 # COMMAND ----------
 
-display(result)
+result = (
+    dx.from_tables("lorenzorubi.*.*")
+    .delta_housekeeping()
+    .html()
+)
+
+displayHTML(result)
+
+# COMMAND ----------
+
 
