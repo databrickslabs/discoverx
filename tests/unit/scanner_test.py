@@ -77,7 +77,7 @@ FROM
         FROM (
             SELECT
                 stack(1, 'name', `name`) AS (column_name, value)
-            FROM meta.db.tb
+            FROM `meta`.`db`.`tb`
             TABLESAMPLE (100 ROWS)
         )
     )
@@ -103,7 +103,7 @@ FROM
         FROM (
             SELECT
                 stack(1, 'name', `name`) AS (column_name, value)
-            FROM meta.db.tb
+            FROM `meta`.`db`.`tb`
             TABLESAMPLE (100 ROWS)
         )
     )
