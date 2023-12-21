@@ -226,7 +226,7 @@ class Scanner:
 
             # Build rule matching SQL
             sql = self._rule_matching_sql(table)
-
+            logger.friendly(sql)
             if self.what_if:
                 logger.friendly(sql)
             else:
