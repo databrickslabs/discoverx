@@ -17,7 +17,7 @@ logger = logging.Logging()
 
 
 class DataExplorer:
-    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
+    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*-]+)\.([0-9a-zA-Z_\*-]+)\.([0-9a-zA-Z_\*-]+))$"
 
     def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
         self._from_tables = from_tables

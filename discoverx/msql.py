@@ -22,8 +22,8 @@ class SQLRow:
 class Msql:
     """This class compiles M-SQL expressions into regular SQL"""
 
-    from_statement_expr = r"(FROM\s+)(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))"
-    from_components_expr = r"^(([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+).([0-9a-zA-Z_\*]+))$"
+    from_statement_expr = r"(FROM\s+)(([0-9a-zA-Z_\*-]+).([0-9a-zA-Z_\*-]+).([0-9a-zA-Z_\*-]+))"
+    from_components_expr = r"^(([0-9a-zA-Z_\*-]+).([0-9a-zA-Z_\*-]+).([0-9a-zA-Z_\*-]+))$"
     command_expr = r"^\s*(\w+)\s"
     class_regex = r"\[([\w_-]+)\]"
     valid_commands = ["SELECT", "DELETE"]
