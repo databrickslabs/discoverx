@@ -284,25 +284,25 @@ class InfoFetcher:
 
         tags AS (
           SELECT 
-            tb_list.table_catalog,
-            tb_list.table_schema,
-            tb_list.table_name,
+            filtered_tbl_list.table_catalog,
+            filtered_tbl_list.table_schema,
+            filtered_tbl_list.table_name,
             catalog_tags.catalog_tags,
             schema_tags.schema_tags,
             table_tags.table_tags,
             column_tags.column_tags
-          FROM tb_list
+          FROM filtered_tbl_list
           LEFT OUTER JOIN table_tags ON (
-            table_tags.table_catalog <=> tb_list.table_catalog AND 
-            table_tags.table_schema = tb_list.table_schema AND 
-            table_tags.table_name = tb_list.table_name
+            table_tags.table_catalog <=> filtered_tbl_list.table_catalog AND 
+            table_tags.table_schema = filtered_tbl_list.table_schema AND 
+            table_tags.table_name = filtered_tbl_list.table_name
             )
           LEFT OUTER JOIN schema_tags
-          ON tb_list.table_catalog <=> schema_tags.table_catalog AND tb_list.table_schema = schema_tags.table_schema 
+          ON filtered_tbl_list.table_catalog <=> schema_tags.table_catalog AND filtered_tbl_list.table_schema = schema_tags.table_schema 
           LEFT OUTER JOIN column_tags
-          ON tb_list.table_catalog <=> column_tags.table_catalog AND tb_list.table_schema = column_tags.table_schema AND tb_list.table_name = column_tags.table_name
+          ON filtered_tbl_list.table_catalog <=> column_tags.table_catalog AND filtered_tbl_list.table_schema = column_tags.table_schema AND filtered_tbl_list.table_name = column_tags.table_name
           LEFT OUTER JOIN catalog_tags
-          ON catalog_tags.table_catalog <=> tb_list.table_catalog
+          ON catalog_tags.table_catalog <=> filtered_tbl_list.table_catalog
         )
 
         
@@ -337,5 +337,4 @@ class InfoFetcher:
                 """
             )
 
-        print(sql)
         return helper.strip_margin(sql)
