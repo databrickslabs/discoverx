@@ -226,7 +226,6 @@ class Scanner:
 
             # Build rule matching SQL
             sql = self._rule_matching_sql(table)
-
             if self.what_if:
                 logger.friendly(sql)
             else:
@@ -300,7 +299,7 @@ class Scanner:
         if not expressions:
             raise Exception(f"There are no rules to scan for.")
 
-        catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
+        catalog_str = f"`{table_info.catalog}`." if table_info.catalog else ""
         matching_columns = [
             f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`" for r in expressions
         ]
@@ -328,7 +327,7 @@ class Scanner:
                     FROM (
                         SELECT
                             stack({len(cols)}, {unpivot_columns}) AS (column_name, value)
-                        FROM {catalog_str}{table_info.schema}.{table_info.table}
+                        FROM {catalog_str}`{table_info.schema}`.`{table_info.table}`
                         TABLESAMPLE ({self.sample_size} ROWS)
                     )
                 )
