@@ -1,0 +1,4 @@
+table_catalog,table_schema,table_name,table_type,data_source_format
+,default,tb_1,MANAGED,DELTA
+,default,tb_2,MANAGED,DELTA
+hive_metastore,default,tb_all_types,MANAGED,DELTA

@@ -162,7 +162,7 @@ class InfoFetcher:
             columns_sql = f"""AND regexp_like(column_name, "^{match_any_col}$")"""
 
         with_column_info_sql = f"""
-        WITH tb_list AS (
+        WITH all_user_tbl_list AS (
             SELECT DISTINCT
                 table_catalog, 
                 table_schema, 
@@ -174,6 +174,29 @@ class InfoFetcher:
                 {schema_sql if schemas != "*" else ""}
                 {table_sql if tables != "*" else ""}
                 {columns_sql if columns else ""}
+        ),
+        
+        req_tbl_list AS (
+        SELECT DISTINCT
+            table_catalog,
+            table_schema,
+            table_name
+            FROM {self.information_schema}.tables
+            WHERE
+                table_schema != "information_schema"
+                and table_type != "VIEW"
+        ),
+        
+        filtered_tbl_list AS (
+            SELECT a.* 
+            FROM all_user_tbl_list a
+            INNER JOIN
+            req_tbl_list r ON(
+            a.table_catalog = r.table_catalog AND
+            a.table_schema = r.table_schema AND
+            a.table_name = r.table_name
+            )
+        
         ),
 
         col_list AS (
@@ -195,10 +218,10 @@ class InfoFetcher:
           SELECT
               col_list.*
           FROM col_list
-          INNER JOIN tb_list ON (
-              col_list.table_catalog <=> tb_list.table_catalog AND
-              col_list.table_schema = tb_list.table_schema AND
-              col_list.table_name = tb_list.table_name)
+          INNER JOIN filtered_tbl_list ON (
+              col_list.table_catalog <=> filtered_tbl_list.table_catalog AND
+              col_list.table_schema = filtered_tbl_list.table_schema AND
+              col_list.table_name = filtered_tbl_list.table_name)
         )
 
         """
@@ -314,4 +337,5 @@ class InfoFetcher:
                 """
             )
 
+        print(sql)
         return helper.strip_margin(sql)
