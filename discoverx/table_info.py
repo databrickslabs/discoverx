@@ -192,7 +192,7 @@ class InfoFetcher:
             FROM all_user_tbl_list a
             INNER JOIN
             req_tbl_list r ON(
-            a.table_catalog = r.table_catalog AND
+            a.table_catalog <=> r.table_catalog AND
             a.table_schema = r.table_schema AND
             a.table_name = r.table_name
             )
