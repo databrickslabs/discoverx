@@ -214,7 +214,10 @@ class Scanner:
         else:
             info_fetcher = InfoFetcher(self.spark, information_schema=self.information_schema)
             table_list = info_fetcher.get_tables_info(
-                self.catalogs, self.schemas, self.tables, self.data_source_formats
+                catalogs=self.catalogs,
+                schemas=self.schemas,
+                tables=self.tables,
+                data_source_formats=self.data_source_formats,
             )
         catalogs = set(map(lambda x: x.catalog, table_list))
         schemas = set(map(lambda x: f"{x.catalog}.{x.schema}", table_list))

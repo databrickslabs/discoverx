@@ -162,6 +162,7 @@ class InfoFetcher:
         if columns:
             match_any_col = "|".join([f'({c.replace("*", ".*")})' for c in columns])
             columns_sql = f"""AND regexp_like(column_name, "^{match_any_col}$")"""
+
         data_source_formats_values = ",".join("'{0}'".format(f) for f in data_source_formats)
 
         with_column_info_sql = f"""
