@@ -145,6 +145,18 @@ def sample_datasets(spark: SparkSession, request):
         f"CREATE TABLE IF NOT EXISTS default.tb_2 USING delta LOCATION '{warehouse_dir}/tb_2' AS SELECT * FROM view_tb_2 "
     )
 
+    # tables_mock
+    test_file_path = module_path.parent / "data/tables_mock.csv"
+    (
+        spark.read.option("header", True)
+        .schema(
+            "table_catalog string,table_schema string,table_name string,table_type string,data_source_format string"
+        )
+        .csv(str(test_file_path.resolve()))
+    ).createOrReplaceTempView("view_tables_mock")
+    spark.sql(
+        f"CREATE TABLE IF NOT EXISTS default.tables USING delta LOCATION '{warehouse_dir}/tables' AS SELECT * FROM view_tables_mock"
+    )
     # columns_mock
     test_file_path = module_path.parent / "data/columns_mock.csv"
     (
@@ -213,6 +225,7 @@ def sample_datasets(spark: SparkSession, request):
     spark.sql("DROP TABLE IF EXISTS default.tb_1")
     spark.sql("DROP TABLE IF EXISTS default.tb_2")
     spark.sql("DROP TABLE IF EXISTS default.columns")
+    spark.sql("DROP TABLE IF EXISTS default.tables")
     spark.sql("DROP TABLE IF EXISTS default.column_tags")
     spark.sql("DROP TABLE IF EXISTS default.table_tags")
     spark.sql("DROP TABLE IF EXISTS default.schema_tags")

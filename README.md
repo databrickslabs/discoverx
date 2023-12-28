@@ -29,6 +29,7 @@ Operations are applied concurrently across multiple tables
 * **Custom**
   * [Arbitrary SQL template execution across multiple tables](docs/Arbitrary_multi-table_SQL.md)
   * Create Mlflow gateway routes for MosaicML and OpenAI ([example notebook](examples/mlflow_gateway_routes_examples.py))
+  * Scan using User Specified Data Source Formats ([example notebook](examples/scan_with_user_specified_data_source_formats.py))
 
 ## Getting started
 
