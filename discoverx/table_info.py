@@ -111,9 +111,10 @@ class InfoFetcher:
         tables: str,
         columns: list[str] = [],
         with_tags=False,
+        data_source_formats: list[str] = ["DELTA"],
     ) -> list[TableInfo]:
         # Filter tables by matching filter
-        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags)
+        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags, data_source_formats)
 
         filtered_tables = self.spark.sql(table_list_sql).collect()
 
@@ -129,6 +130,7 @@ class InfoFetcher:
         tables: str,
         columns: list[str] = [],
         with_tags=False,
+        data_source_formats: list[str] = ["DELTA"],
     ) -> str:
         """
         Returns a SQL expression which returns a list of columns matching
@@ -160,6 +162,7 @@ class InfoFetcher:
         if columns:
             match_any_col = "|".join([f'({c.replace("*", ".*")})' for c in columns])
             columns_sql = f"""AND regexp_like(column_name, "^{match_any_col}$")"""
+        data_source_formats_values = ",".join("'{0}'".format(f) for f in data_source_formats)
 
         with_column_info_sql = f"""
         WITH all_user_tbl_list AS (
@@ -184,7 +187,11 @@ class InfoFetcher:
             FROM {self.information_schema}.tables
             WHERE
                 table_schema != "information_schema"
-                and table_type != "VIEW"
+                {catalog_sql if catalogs != "*" else ""}
+                {schema_sql if schemas != "*" else ""}
+                {table_sql if tables != "*" else ""}
+                and table_type in ('MANAGED','EXTERNAL','MANAGED_SHALLOW_CLONE','EXTERNAL_SHALLOW_CLONE')
+                and data_source_format in ({data_source_formats_values})
         ),
         
         filtered_tbl_list AS (

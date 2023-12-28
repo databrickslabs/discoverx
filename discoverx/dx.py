@@ -117,6 +117,7 @@ class DX:
         rules="*",
         sample_size=10000,
         what_if: bool = False,
+        data_source_formats: list[str] = ["DELTA"],
     ):
         """Scans the lakehouse for columns matching the given rules
 
@@ -139,6 +140,7 @@ class DX:
             what_if=what_if,
             information_schema=self.INFORMATION_SCHEMA,
             max_workers=self.MAX_WORKERS,
+            data_source_formats=data_source_formats,
         )
 
         self._scan_result = self.scanner.scan()

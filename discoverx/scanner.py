@@ -140,6 +140,7 @@ class Scanner:
         what_if: bool = False,
         information_schema: str = "",
         max_workers: int = 10,
+        data_source_formats: list[str] = ["DELTA"],
     ):
         self.spark = spark
         self.rules = rules
@@ -152,6 +153,7 @@ class Scanner:
         self.what_if = what_if
         self.information_schema = information_schema
         self.max_workers = max_workers
+        self.data_source_formats = data_source_formats
 
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
@@ -211,7 +213,9 @@ class Scanner:
             table_list = self.table_list
         else:
             info_fetcher = InfoFetcher(self.spark, information_schema=self.information_schema)
-            table_list = info_fetcher.get_tables_info(self.catalogs, self.schemas, self.tables)
+            table_list = info_fetcher.get_tables_info(
+                self.catalogs, self.schemas, self.tables, self.data_source_formats
+            )
         catalogs = set(map(lambda x: x.catalog, table_list))
         schemas = set(map(lambda x: f"{x.catalog}.{x.schema}", table_list))
 
