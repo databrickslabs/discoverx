@@ -177,6 +177,7 @@ class DataExplorer:
             self._tables,
             self._having_columns,
             self._with_tags,
+            self._data_source_formats,
         )
         with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool
