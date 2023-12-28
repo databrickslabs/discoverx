@@ -73,7 +73,11 @@ class DataExplorer:
         return new_obj
 
     def with_data_source_formats(self, data_source_formats: list[str] = ["DELTA"]) -> "DataExplorer":
-        """Sets the maximum number of concurrent queries to run"""
+        """Filter tables with provided data source formats. Defaults to DELTA only. Possible Values 'DELTA', 'CSV', 'JSON', 'PARQUET', 'TEXT', 'ORC' etc
+
+        Args:
+            data_source_formats (list[str]): The list of data source formats to filter by
+        """
         new_obj = copy.deepcopy(self)
         new_obj._data_source_formats = data_source_formats
         return new_obj
