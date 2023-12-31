@@ -16,7 +16,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install presidio_analyzer==2.2.33 dbl-discoverx==0.0.7
+# MAGIC %pip install presidio_analyzer==2.2.33 dbl-discoverx
 
 # COMMAND ----------
 
@@ -66,7 +66,7 @@ dx = DX()
 
 unpivoted_df = (
     dx.from_tables(from_tables)
-    .unpivot_string_columns(sample_size=sample_size)
+    .unpivot_all_columns(sample_size=sample_size)
     .apply()
     .localCheckpoint()  # Checkpointing to reduce the query plan size
 )
