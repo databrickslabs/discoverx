@@ -140,6 +140,7 @@ class Scanner:
         what_if: bool = False,
         information_schema: str = "",
         max_workers: int = 10,
+        data_source_formats: list[str] = ["DELTA"],
     ):
         self.spark = spark
         self.rules = rules
@@ -152,6 +153,7 @@ class Scanner:
         self.what_if = what_if
         self.information_schema = information_schema
         self.max_workers = max_workers
+        self.data_source_formats = data_source_formats
 
         self.content: ScanContent = self._resolve_scan_content()
         self.rule_list = self.rules.get_rules(rule_filter=self.rules_filter)
@@ -211,7 +213,12 @@ class Scanner:
             table_list = self.table_list
         else:
             info_fetcher = InfoFetcher(self.spark, information_schema=self.information_schema)
-            table_list = info_fetcher.get_tables_info(self.catalogs, self.schemas, self.tables)
+            table_list = info_fetcher.get_tables_info(
+                catalogs=self.catalogs,
+                schemas=self.schemas,
+                tables=self.tables,
+                data_source_formats=self.data_source_formats,
+            )
         catalogs = set(map(lambda x: x.catalog, table_list))
         schemas = set(map(lambda x: f"{x.catalog}.{x.schema}", table_list))
 
@@ -226,7 +233,6 @@ class Scanner:
 
             # Build rule matching SQL
             sql = self._rule_matching_sql(table)
-
             if self.what_if:
                 logger.friendly(sql)
             else:
@@ -300,7 +306,7 @@ class Scanner:
         if not expressions:
             raise Exception(f"There are no rules to scan for.")
 
-        catalog_str = f"{table_info.catalog}." if table_info.catalog else ""
+        catalog_str = f"`{table_info.catalog}`." if table_info.catalog else ""
         matching_columns = [
             f"INT(regexp_like(value, '{format_regex(r.definition)}')) AS `{r.name}`" for r in expressions
         ]
@@ -328,7 +334,7 @@ class Scanner:
                     FROM (
                         SELECT
                             stack({len(cols)}, {unpivot_columns}) AS (column_name, value)
-                        FROM {catalog_str}{table_info.schema}.{table_info.table}
+                        FROM {catalog_str}`{table_info.schema}`.`{table_info.table}`
                         TABLESAMPLE ({self.sample_size} ROWS)
                     )
                 )
