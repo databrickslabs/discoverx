@@ -76,6 +76,14 @@ def test_sql_template_fails_for_incorrect_sql(spark):
     assert no_search_term_error.value.args[0] == "No SQL statements were successfully executed."
 
 
+def test_unpivot_all_columns(spark):
+    dx = DX(spark=spark)
+
+    df = dx.from_tables("*.*.tb_1").unpivot_all_columns().apply()
+
+    assert df.filter(col("column_name") == "id").count() >= 1
+
+
 def test_unpivot_string_columns(spark):
     dx = DX(spark=spark)
 
