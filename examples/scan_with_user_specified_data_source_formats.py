@@ -5,6 +5,16 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### Install discoverx lib
+
+# COMMAND ----------
+
+# %pip install dbl-discoverx
+# dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### Declare Variables
 
 # COMMAND ----------
