@@ -186,7 +186,7 @@ class DataExplorer:
         """
         dh = DeltaHousekeeping(self._spark)
         dfs_pd: Iterable[pd.DataFrame] = self.map(dh.scan)
-        return DeltaHousekeepingActions(dfs_pd)
+        return DeltaHousekeepingActions(dfs_pd, spark=self._spark)
 
 
 class DataExplorerActions:

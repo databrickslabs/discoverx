@@ -28,19 +28,13 @@ output = (
 
 # COMMAND ----------
 
-# DBTITLE 1,Display the stats per table
-stats = output.stats()
-stats.display()
-
-# COMMAND ----------
-
-# DBTITLE 1,apply() operation generates a list of dictionaries (if you need to postprocess the output)
+# DBTITLE 1,apply() operation generates a spark dataframe with recommendations
 result = output.apply()
-result.display()
+result.select("catalog", "database", "tableName", "recommendation").display()
 
 # COMMAND ----------
 
-# DBTITLE 1,display() runs apply and displays the result
+# DBTITLE 1,display() runs apply and displays the full result (including stats per table)
 output.display()
 
 # COMMAND ----------

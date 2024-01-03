@@ -214,6 +214,7 @@ class DeltaHousekeepingActions:
     def __init__(
         self,
         mapped_pd_dfs: Iterable[pd.DataFrame],
+        spark: SparkSession = None,
         min_table_size_optimize: int = 128*1024*1024,  # i.e. 128 MB
         min_days_not_optimized: int = 7,
         min_days_not_vacuumed: int = 31,
@@ -227,6 +228,11 @@ class DeltaHousekeepingActions:
             self._mapped_pd_dfs = mapped_pd_dfs
             stats = pd.concat(self._mapped_pd_dfs)
         self._stats: pd.DataFrame = stats
+        
+        if spark is None:
+            spark = SparkSession.builder.getOrCreate()
+        self._spark = spark
+        
         self.min_table_size_optimize = min_table_size_optimize
         self.min_days_not_optimized = min_days_not_optimized
         self.min_days_not_vacuumed = min_days_not_vacuumed
@@ -331,9 +337,7 @@ class DeltaHousekeepingActions:
 
     def stats(self) -> DataFrame:
         """Ouputs the stats per table"""
-        import pyspark.pandas as ps
-
-        return ps.from_pandas(self._stats)
+        return self._spark.createDataFrame(self._stats)
 
     def display(self) -> None:
         """Executes the Delta housekeeping analysis and displays a sample of results"""
@@ -341,12 +345,10 @@ class DeltaHousekeepingActions:
 
     def apply(self) -> DataFrame:
         """Displays recommendations in a DataFrame format"""
-        import pyspark.pandas as ps
-
         out = None
         for recomm in self.generate_recommendations():
             for legend, df in recomm.items():
-                out_df = ps.from_pandas(df).withColumn("recommendation", F.lit(legend))
+                out_df = self._spark.createDataFrame(df).withColumn("recommendation", F.lit(legend))
                 if out is None:
                     out = out_df
                 else:
@@ -389,6 +391,7 @@ class DeltaHousekeepingActions:
     def explain(self) -> None:
         # TODO better formatting!
         from bs4 import BeautifulSoup
+        from databricks.sdk.runtime import displayHTML
 
 
         soup = BeautifulSoup(features='xml')
