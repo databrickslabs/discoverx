@@ -119,46 +119,29 @@ class DeltaHousekeeping:
             .saveAsTable(housekeeping_table_name)
         )
 
-    def scan(
-        self,
-        table_info_list: Iterable[TableInfo],
-    ) -> pd.DataFrame:
-        """
-        Scans a table_info / table_info_list to fetch Delta stats
-        - DESCRIBE DETAIL
-        - DESCRIBE HISTORY
-        """
-        dd_list = []
-        statements = []
-        errors = []
+    def get_describe_detail(self, table_info: TableInfo):
+        dd = self._spark.sql(f"""
+            DESCRIBE DETAIL {table_info.catalog}.{table_info.schema}.{table_info.table};
+        """)
+        dd = (
+            dd
+            .withColumn("split", F.split(F.col('name'), '\.'))
+            .withColumn("catalog", F.col("split").getItem(0))
+            .withColumn("database", F.col("split").getItem(1))
+            .withColumn("tableName", F.col("split").getItem(2))
+            .select([
+                F.col("catalog"),
+                F.col("database"),
+                F.col("tableName"),
+                F.col("numFiles").alias("number_of_files"),
+                F.col("sizeInBytes").alias("bytes"),
+            ])
+        )
+        return dd
 
-        if not isinstance(table_info_list, Iterable):
-            table_info_list = [table_info_list]
-
-        for table_info in table_info_list:
-            try:
-                # runs a describe detail per table, figures out if exception
-                dd = self._spark.sql(f"""
-                    DESCRIBE DETAIL {table_info.catalog}.{table_info.schema}.{table_info.table};
-                """)
-                dd = (
-                    dd
-                    .withColumn("split", F.split(F.col('name'), '\.'))
-                    .withColumn("catalog", F.col("split").getItem(0))
-                    .withColumn("database", F.col("split").getItem(1))
-                    .withColumn("tableName", F.col("split").getItem(2))
-                    .select([
-                        F.col("catalog"),
-                        F.col("database"),
-                        F.col("tableName"),
-                        F.col("numFiles").alias("number_of_files"),
-                        F.col("sizeInBytes").alias("bytes"),
-                    ])
-                )
-                dd_list.append(dd)
-
-                # prepares a DESCRIBE HISTORY statement per table (will be run outside of the loop)
-                statements.append(f"""
+    @staticmethod
+    def get_describe_history_statement(table_info: TableInfo):
+        return f"""
                     SELECT 
                     '{table_info.catalog}' AS catalog,
                     '{table_info.schema}' AS database, 
@@ -171,36 +154,35 @@ class DeltaHousekeeping:
                     operationParameters.zOrderBy AS z_order_by 
                     FROM (DESCRIBE HISTORY {table_info.catalog}.{table_info.schema}.{table_info.table})
                     WHERE operation in ('OPTIMIZE', 'VACUUM END')
-                """)
-            except Exception as e:
-                errors.append(self._spark.createDataFrame(
-                    [(table_info.catalog or "", table_info.schema, table_info.table, str(e))],
-                    ["catalog", "database", "tableName", "error"]
-                ))
+                """
 
-        # statement to UNION all DESCRIBE HISTORY together
-        statement = " UNION ".join(statements)
+    def scan(
+        self,
+        table_info: TableInfo,
+    ) -> pd.DataFrame:
+        """
+        Scans a table_info to fetch Delta stats
+        - DESCRIBE DETAIL
+        - DESCRIBE HISTORY
+        """
+        try:
+            # runs a describe detail per table, figures out if exception
+            dd = self.get_describe_detail(table_info)
 
-        dh = self._spark.createDataFrame([], self.empty_schema)
-        if statements:
-            dh = self._process_describe_history(
-                reduce(
-                    lambda left, right: left.union(right),
-                    dd_list
-                ),
+            # prepares a DESCRIBE HISTORY statement per table (will be run outside the try-catch)
+            statement = self.get_describe_history_statement(table_info)
+
+            return self._process_describe_history(
+                dd,
                 self._spark.sql(statement),
+            ).toPandas()
+
+        except Exception as e:
+            errors_df = self._spark.createDataFrame(
+                [(table_info.catalog or "", table_info.schema, table_info.table, str(e))],
+                ["catalog", "database", "tableName", "error"]
             )
-
-        errors_df = self._spark.createDataFrame([], self.empty_schema)
-        if errors:
-            errors_df = reduce(
-                lambda left, right: left.union(right),
-                errors
-            )
-
-        out = dh.unionByName(errors_df, allowMissingColumns=True)
-
-        return out.toPandas()
+            return errors_df.toPandas()
 
 
 class DeltaHousekeepingActions:
@@ -390,18 +372,10 @@ class DeltaHousekeepingActions:
 
     def explain(self) -> None:
         # TODO better formatting!
-        from bs4 import BeautifulSoup
-        from databricks.sdk.runtime import displayHTML
+        from databricks.sdk.runtime import display
 
 
-        soup = BeautifulSoup(features='xml')
-        body = soup.new_tag('body')
-        soup.insert(0, body)
         for recomm in self.generate_recommendations():
             for legend, df in recomm.items():
-                title_s = soup.new_tag('title')
-                title_s.string = legend
-                body.insert(0, df.to_html())
-                body.insert(0, title_s)
-
-        displayHTML(soup)
+                display(legend)
+                display(df)
