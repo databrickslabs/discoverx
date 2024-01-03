@@ -1,3 +1,4 @@
+import pandas
 import pytest
 from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, TableInfo
 
@@ -89,3 +90,14 @@ def test_no_tables_matching_filter(spark, info_fetcher):
     data_explorer = DataExplorer("some_catalog.default.non_existent_table", spark, info_fetcher)
     with pytest.raises(ValueError):
         data_explorer.map(lambda table_info: table_info)
+
+
+def test_delta_housekeeeping_call(spark, info_fetcher):
+    data_explorer = DataExplorer("*.default.*", spark, info_fetcher)
+    result: pandas.DataFrame = data_explorer.delta_housekeeping().stats()
+    print(result['tableName'].count())
+    assert result['tableName'].count() == 3
+    for res in result['tableName'].tolist():
+        assert res in ["tb_all_types", "tb_1", "tb_2"]
+    for col in result.columns:
+        assert col in ["catalog", "database", "tableName", "error"]

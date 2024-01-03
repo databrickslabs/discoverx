@@ -1,6 +1,6 @@
 from typing import Iterable
 from functools import reduce
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pd
 
 from discoverx.table_info import TableInfo
@@ -102,7 +102,7 @@ class DeltaHousekeeping:
         self,
         table_info_list: Iterable[TableInfo],
         housekeeping_table_name: str = "lorenzorubi.default.housekeeping_summary_v2",  # TODO remove
-        do_save_as_table: bool = True,
+        do_save_as_table: bool = False,
     ) -> pd.DataFrame:
         """
         Scans a table_info / table_info_list to fetch Delta stats
@@ -155,7 +155,7 @@ class DeltaHousekeeping:
                 """)
             except Exception as e:
                 errors.append(self._spark.createDataFrame(
-                    [(table_info.catalog, table_info.schema, table_info.table, str(e))],
+                    [(table_info.catalog or "", table_info.schema, table_info.table, str(e))],
                     ["catalog", "database", "tableName", "error"]
                 ))
 
@@ -253,9 +253,9 @@ class DeltaHousekeepingActions:
 
     def _not_optimized_last_days(self) -> pd.DataFrame:
         stats = self._stats.copy()
-        stats['max_optimize_timestamp'] = pd.to_datetime(stats['max_optimize_timestamp'])
+        stats['max_optimize_timestamp'] = pd.to_datetime(stats['max_optimize_timestamp'], utc=True)
         stats['optimize_lag'] = (
-            datetime.utcnow() - stats['max_optimize_timestamp']  # TODO careful
+            datetime.now(timezone.utc) - stats['max_optimize_timestamp']
         ).dt.days
         return (
             stats[stats['optimize_lag'] < self.min_days_not_optimized]
@@ -278,9 +278,9 @@ class DeltaHousekeepingActions:
 
     def _not_vacuumed_last_days(self) -> pd.DataFrame:
         stats = self._stats.copy()
-        stats['max_vacuum_timestamp'] = pd.to_datetime(stats['max_vacuum_timestamp'])
+        stats['max_vacuum_timestamp'] = pd.to_datetime(stats['max_vacuum_timestamp'], utc=True)
         stats['vacuum_lag'] = (
-            datetime.utcnow() - stats['max_vacuum_timestamp']  # TODO careful
+            datetime.now(timezone.utc) - stats['max_vacuum_timestamp']
         ).dt.days
         return (
             stats[stats['vacuum_lag'] < self.min_days_not_vacuumed]

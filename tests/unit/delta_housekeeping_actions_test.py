@@ -26,7 +26,7 @@ def test_apply_output(housekeeping_stats, expected_need_optimize):
         stats=housekeeping_stats,
     )
     res = dha.apply()
-    assert len(res) == 7
+    assert len(res) == 6
     need_optimize = [item for item in res if (list(item.keys())[0] == dha.tables_not_optimized_legend)]
     assert len(need_optimize) == 1
     need_optimize_df = list(need_optimize[0].values())[0]
@@ -44,6 +44,6 @@ def test_empty_apply_output(housekeeping_stats):
         min_table_size_optimize=1024*1024*1024*1024
     )
     res = dha.apply()
-    assert len(res) == 6
+    assert len(res) == 5
     need_optimize = [item for item in res if list(item.keys())[0] == dha.tables_not_optimized_legend]
     assert len(need_optimize) == 0
