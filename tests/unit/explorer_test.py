@@ -94,7 +94,7 @@ def test_no_tables_matching_filter(spark, info_fetcher):
 
 def test_delta_housekeeeping_call(spark, info_fetcher):
     data_explorer = DataExplorer("*.default.*", spark, info_fetcher)
-    result: pandas.DataFrame = data_explorer.delta_housekeeping().stats()
+    result: pandas.DataFrame = data_explorer.delta_housekeeping()._stats
     print(result['tableName'].count())
     assert result['tableName'].count() == 3
     for res in result['tableName'].tolist():

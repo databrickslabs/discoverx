@@ -15,6 +15,11 @@ Operations are applied concurrently across multiple tables
   * OPTIMIZE with z-order on tables having specified columns
   * Detect tables having too many small files ([example notebook](examples/detect_small_files.py))
   * Visualise quantity of data written per table per period
+  * Delta housekeeping analysis ([example notebook](examples/exec_delta_housekeeping.py)) which provide:
+    * stats (size of tables and number of files, timestamps of latest OPTIMIZE & VACUUM operations, stats of OPTIMIZE)
+    * recommendations on tables that need to be OPTIMIZED/VACUUM'ed
+    * are tables OPTIMIZED/VACUUM'ed often enough
+    * tables that have small files / tables for which ZORDER is not being effective
 * **Governance**
   * PII detection with Presidio ([example notebook](examples/pii_detection_presidio.py))
   * Text Analysis with MosaicML and Databricks MLflow ([example notebook](examples/text_analysis_mosaicml_mlflow.py))

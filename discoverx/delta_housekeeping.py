@@ -98,11 +98,30 @@ class DeltaHousekeeping:
 
         return out
 
+    @staticmethod
+    def save_as_table(
+        result: DataFrame,
+        housekeeping_table_name: str,
+    ):
+        """
+        Static method to store intermediate results of the scan operation into Delta
+        Would make sense only if using map_chunked from the `DataExplorer` object
+        (otherwise tables are writen one by one into Delta with overhead)
+
+        TODO create function in `DataExplorer` that uses this for a chunked
+        """
+        (
+            result
+            .write
+            .format("delta")
+            .mode("append")
+            .option("mergeSchema", "true")
+            .saveAsTable(housekeeping_table_name)
+        )
+
     def scan(
         self,
         table_info_list: Iterable[TableInfo],
-        housekeeping_table_name: str = "lorenzorubi.default.housekeeping_summary_v2",  # TODO remove
-        do_save_as_table: bool = False,
     ) -> pd.DataFrame:
         """
         Scans a table_info / table_info_list to fetch Delta stats
@@ -181,25 +200,20 @@ class DeltaHousekeeping:
 
         out = dh.unionByName(errors_df, allowMissingColumns=True)
 
-        if do_save_as_table:
-            (
-                out
-                .write
-                .format("delta")
-                .mode("append")
-                .option("mergeSchema", "true")
-                .saveAsTable(housekeeping_table_name)
-            )
-
         return out.toPandas()
 
 
 class DeltaHousekeepingActions:
+    """
+    Processes the output of the `DeltaHousekeeping` object to provide recommendations
+    - tables that need to be OPTIMIZED/VACUUM'ed
+    - are tables OPTIMIZED/VACUUM'ed often enough
+    - tables that have small files / tables for which ZORDER is not being effective
+    """
+
     def __init__(
         self,
-        # delta_housekeeping: DeltaHousekeeping,
         mapped_pd_dfs: Iterable[pd.DataFrame],
-        # spark: SparkSession = None,
         min_table_size_optimize: int = 128*1024*1024,  # i.e. 128 MB
         min_days_not_optimized: int = 7,
         min_days_not_vacuumed: int = 31,
@@ -209,14 +223,10 @@ class DeltaHousekeepingActions:
         min_number_of_files_for_zorder: int = 8,
         stats: pd.DataFrame = None,  # for testability only
     ) -> None:
-        # self._delta_housekeeping = delta_housekeeping
         if stats is None:
             self._mapped_pd_dfs = mapped_pd_dfs
             stats = pd.concat(self._mapped_pd_dfs)
         self._stats: pd.DataFrame = stats
-        # if spark is None:
-        #     spark = SparkSession.builder.getOrCreate()
-        # self._spark = spark
         self.min_table_size_optimize = min_table_size_optimize
         self.min_days_not_optimized = min_days_not_optimized
         self.min_days_not_vacuumed = min_days_not_vacuumed
@@ -233,9 +243,6 @@ class DeltaHousekeepingActions:
         self.tables_do_not_need_optimize = "Tables that are too small to be OPTIMIZED"
         self.tables_to_analyze = "Tables that need more analysis (small_files)"
         self.tables_zorder_not_effective = "Tables for which ZORDER is not being effective"
-
-    def stats(self) -> pd.DataFrame:
-        return self._stats
 
     def _need_optimize(self) -> pd.DataFrame:
         stats = self._stats.copy()
@@ -322,7 +329,37 @@ class DeltaHousekeepingActions:
             stats
         )
 
-    def apply(self):
+    def stats(self) -> DataFrame:
+        """Ouputs the stats per table"""
+        import pyspark.pandas as ps
+
+        return ps.from_pandas(self._stats)
+
+    def display(self) -> None:
+        """Executes the Delta housekeeping analysis and displays a sample of results"""
+        return self.apply().display()
+
+    def apply(self) -> DataFrame:
+        """Displays recommendations in a DataFrame format"""
+        import pyspark.pandas as ps
+
+        out = None
+        for recomm in self.generate_recommendations():
+            for legend, df in recomm.items():
+                out_df = ps.from_pandas(df).withColumn("recommendation", F.lit(legend))
+                if out is None:
+                    out = out_df
+                else:
+                    out = out.unionByName(out_df, allowMissingColumns=True)
+        return out
+
+    def generate_recommendations(self) -> Iterable[dict]:
+        """
+        Generates Delta Housekeeping recommendations as a list of dictionaries (internal use + unit tests only)
+        A dict per recommendation where:
+        - The key is the legend of the recommendation
+        - The value is a pandas df with the affected tables
+        """
         out = []
         for df, legend in zip([
             self._need_optimize(),
@@ -349,20 +386,19 @@ class DeltaHousekeepingActions:
                 out.append({legend: df})
         return out
 
-    def to_html(self):
+    def explain(self) -> None:
         # TODO better formatting!
         from bs4 import BeautifulSoup
 
-        res = self.apply()
 
         soup = BeautifulSoup(features='xml')
         body = soup.new_tag('body')
         soup.insert(0, body)
-        for r in res:
-            for k,v in r.items():
+        for recomm in self.generate_recommendations():
+            for legend, df in recomm.items():
                 title_s = soup.new_tag('title')
-                title_s.string = k
-                body.insert(0, v.to_html())
+                title_s.string = legend
+                body.insert(0, df.to_html())
                 body.insert(0, title_s)
 
-        return soup
+        displayHTML(soup)
