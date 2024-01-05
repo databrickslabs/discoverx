@@ -24,7 +24,7 @@ class DeltaHousekeeping:
     @staticmethod
     def _process_describe_history(
         describe_detail_df: DataFrame, describe_history_df: DataFrame
-    ) -> DataFrame:
+    ) -> pd.DataFrame:
         """
         processes the DESCRIBE HISTORY result of potentially several tables in different schemas/catalogs
         Provides
@@ -33,10 +33,13 @@ class DeltaHousekeeping:
         - stats of OPTIMIZE (including ZORDER)
         - timestamp for last & second last VACUUM
 
+        returns a pandas DataFrame, and converts Spark internal dfs to pandas as soon as they are manageable
+        the reason being that DESCRIBE HISTORY / DESCRIBE DETAIL cannot be cached
+
         TODO reconsider if it is better outside of the class
         """
         if not "operation" in describe_history_df.columns:
-            return describe_detail_df
+            return describe_detail_df.toPandas()
 
         # window over operation
         operation_order = (
@@ -46,52 +49,46 @@ class DeltaHousekeeping:
                 Window.partitionBy(["catalog", "database", "tableName", "operation"]).orderBy(F.col("timestamp").desc())
             ))
         )
+
+        if operation_order.isEmpty():
+            return describe_detail_df.toPandas()
+
+        operation_order = operation_order.toPandas()
+
         # max & 2nd timestamp of OPTIMIZE into output
-        out = describe_detail_df.join(
-            operation_order
-            .filter((F.col("operation") == "OPTIMIZE") & (F.col("operation_order") == 1))
-            .select("catalog", "database", "tableName", "timestamp")
-            .withColumnRenamed("timestamp", "max_optimize_timestamp"),
+        out = describe_detail_df.toPandas().merge(
+            operation_order[(operation_order.operation == "OPTIMIZE") & (operation_order.operation_order == 1)]
+            .loc[:, ["catalog", "database", "tableName", "timestamp"]]
+            .rename(columns={'timestamp': 'max_optimize_timestamp'}),
             how="outer", on=["catalog", "database", "tableName"]
         )
-        out = out.join(
-            operation_order
-            .filter((F.col("operation") == "OPTIMIZE") & (F.col("operation_order") == 2))
-            .select("catalog", "database", "tableName", "timestamp")
-            .withColumnRenamed("timestamp", "2nd_optimize_timestamp"),
+        out = out.merge(
+            operation_order[(operation_order.operation == "OPTIMIZE") & (operation_order.operation_order == 2)]
+            .loc[:, ["catalog", "database", "tableName", "timestamp"]]
+            .rename(columns={'timestamp': '2nd_optimize_timestamp'}),
             how="outer", on=["catalog", "database", "tableName"]
         )
         # max timestamp of VACUUM into output
-        out = out.join(
-            operation_order
-            .filter((F.col("operation") == "VACUUM END") & (F.col("operation_order") == 1))
-            .select("catalog", "database", "tableName", "timestamp")
-            .withColumnRenamed("timestamp", "max_vacuum_timestamp"),
+        out = out.merge(
+            operation_order[(operation_order.operation == "VACUUM END") & (operation_order.operation_order == 1)]
+            .loc[:, ["catalog", "database", "tableName", "timestamp"]]
+            .rename(columns={'timestamp': 'max_vacuum_timestamp'}),
             how="outer", on=["catalog", "database", "tableName"]
         )
-        out = out.join(
-            operation_order
-            .filter((F.col("operation") == "VACUUM END") & (F.col("operation_order") == 2))
-            .select("catalog", "database", "tableName", "timestamp")
-            .withColumnRenamed("timestamp", "2nd_vacuum_timestamp"),
+        out = out.merge(
+            operation_order[(operation_order.operation == "VACUUM END") & (operation_order.operation_order == 2)]
+            .loc[:, ["catalog", "database", "tableName", "timestamp"]]
+            .rename(columns={'timestamp': '2nd_vacuum_timestamp'}),
             how="outer", on=["catalog", "database", "tableName"]
         )
         # summary of table metrics
         table_metrics_1 = (
-            operation_order.filter((F.col("operation") == "OPTIMIZE") & (F.col("operation_order") == 1))
-            .select([
-                F.col("catalog"),
-                F.col("database"),
-                F.col("tableName"),
-                F.col("min_file_size"),
-                F.col("p50_file_size"),
-                F.col("max_file_size"),
-                F.col("z_order_by"),
-            ])
+            operation_order[(operation_order['operation'] == 'OPTIMIZE') & (operation_order['operation_order'] == 1)]
+            .loc[:, ['catalog', 'database', 'tableName', 'min_file_size', 'p50_file_size', 'max_file_size', 'z_order_by']]
         )
 
         # write to output
-        out = out.join(
+        out = out.merge(
             table_metrics_1,
             how="outer", on=["catalog", "database", "tableName"]
         )
@@ -175,7 +172,7 @@ class DeltaHousekeeping:
             return self._process_describe_history(
                 dd,
                 self._spark.sql(statement),
-            ).toPandas()
+            )
 
         except Exception as e:
             errors_df = self._spark.createDataFrame(
