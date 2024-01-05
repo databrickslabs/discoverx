@@ -75,13 +75,3 @@ def update_owner(table_info):
 # COMMAND ----------
 
 dx.from_tables(from_table_statement).map(update_owner)
-
-# COMMAND ----------
-
-(dx.from_tables(from_table_statement)
-.with_data_source_formats(["DELTA","JSON"])
-.map(update_owner))
-
-# COMMAND ----------
-
-
