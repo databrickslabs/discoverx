@@ -10,20 +10,18 @@
 
 # COMMAND ----------
 
-# %pip install dbl-discoverx
+# MAGIC %pip install dbl-discoverx
 
 # COMMAND ----------
 
 dbutils.widgets.text("from_tables", "sample_data_discoverx.*.*")
 from_tables = dbutils.widgets.get("from_tables")
 
-
 # COMMAND ----------
 
 from discoverx import DX
 
 dx = DX()
-
 
 # COMMAND ----------
 

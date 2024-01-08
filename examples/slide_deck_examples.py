@@ -1,4 +1,11 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC # General examples
+# MAGIC
+# MAGIC This notebook contains a list of examples of what is possible to do with DiscoverX.
+
+# COMMAND ----------
+
 # MAGIC %pip install dbl-discoverx
 
 # COMMAND ----------
@@ -84,12 +91,8 @@ result = (dx
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Which tables contain the email address “erni@databricks.com”?
+# MAGIC ## Which tables contain the email address "example@databricks.com”?
 
 # COMMAND ----------
 
-result.search("erni@databricks.com").display()
-
-# COMMAND ----------
-
-
+result.search("example@databricks.com").display()
