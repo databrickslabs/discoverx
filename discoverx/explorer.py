@@ -94,7 +94,7 @@ class DataExplorer:
         """
         new_obj = copy.deepcopy(self)
         new_obj._data_source_formats = data_source_formats
-        
+
     def with_concurrency(self, max_concurrency) -> "DataExplorer":
         """Sets the maximum number of concurrent queries to run"""
         new_obj = copy.deepcopy(self)
