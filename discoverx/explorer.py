@@ -17,7 +17,7 @@ logger = logging.Logging()
 
 
 class DataExplorer:
-    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
+    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*-]+)\.([0-9a-zA-Z_\*-]+)\.([0-9a-zA-Z_\*-]+))$"
 
     def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
         self._from_tables = from_tables
@@ -33,6 +33,7 @@ class DataExplorer:
         self._max_concurrency = 10
         self._with_tags = False
         self._having_tags = []
+        self._data_source_formats = ["DELTA"]
 
     @staticmethod
     def validate_from_components(from_tables: str):
@@ -55,6 +56,7 @@ class DataExplorer:
         new_obj._sql_query_template = copy.deepcopy(self._sql_query_template)
         new_obj._max_concurrency = copy.deepcopy(self._max_concurrency)
         new_obj._with_tags = copy.deepcopy(self._with_tags)
+        new_obj._data_source_formats = copy.deepcopy(self._data_source_formats)
 
         new_obj._spark = self._spark
         new_obj._info_fetcher = self._info_fetcher
@@ -84,6 +86,15 @@ class DataExplorer:
         new_obj._with_tags = True
         return new_obj
 
+    def with_data_source_formats(self, data_source_formats: list[str] = ["DELTA"]) -> "DataExplorer":
+        """Filter tables with provided data source formats. Defaults to DELTA only. Possible Values 'DELTA', 'CSV', 'JSON', 'PARQUET', 'TEXT', 'ORC' etc
+
+        Args:
+            data_source_formats (list[str]): The list of data source formats to filter by
+        """
+        new_obj = copy.deepcopy(self)
+        new_obj._data_source_formats = data_source_formats
+        
     def with_concurrency(self, max_concurrency) -> "DataExplorer":
         """Sets the maximum number of concurrent queries to run"""
         new_obj = copy.deepcopy(self)
@@ -155,7 +166,12 @@ class DataExplorer:
             self._schemas,
             self._tables,
             self._info_fetcher.get_tables_info(
-                self._catalogs, self._schemas, self._tables, self._having_columns, self._having_tags
+                catalogs=self._catalogs,
+                schemas=self._schemas,
+                tables=self._tables,
+                columns=self._having_columns,
+                having_tags=self._having_tags,
+                data_source_formats=self._data_source_formats,
             ),
             custom_rules=custom_rules,
             locale=locale,
@@ -180,6 +196,7 @@ class DataExplorer:
             self._having_columns,
             self._with_tags,
             self._having_tags,
+            self._data_source_formats,
         )
         with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool

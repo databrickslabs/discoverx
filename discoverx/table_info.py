@@ -112,9 +112,10 @@ class InfoFetcher:
         columns: list[str] = [],
         with_tags: bool = False,
         having_tags: list[TagInfo] = [],
+        data_source_formats: list[str] = ["DELTA"],
     ) -> list[TableInfo]:
         # Filter tables by matching filter
-        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags)
+        table_list_sql = self._get_table_list_sql(catalogs, schemas, tables, columns, with_tags, data_source_formats)
 
         filtered_tables = self.spark.sql(table_list_sql).collect()
 
@@ -151,6 +152,7 @@ class InfoFetcher:
         tables: str,
         columns: list[str] = [],
         with_tags=False,
+        data_source_formats: list[str] = ["DELTA"],
     ) -> str:
         """
         Returns a SQL expression which returns a list of columns matching
@@ -183,8 +185,10 @@ class InfoFetcher:
             match_any_col = "|".join([f'({c.replace("*", ".*")})' for c in columns])
             columns_sql = f"""AND regexp_like(column_name, "^{match_any_col}$")"""
 
+        data_source_formats_values = ",".join("'{0}'".format(f).upper() for f in data_source_formats)
+
         with_column_info_sql = f"""
-        WITH tb_list AS (
+        WITH all_user_tbl_list AS (
             SELECT DISTINCT
                 table_catalog, 
                 table_schema, 
@@ -196,6 +200,33 @@ class InfoFetcher:
                 {schema_sql if schemas != "*" else ""}
                 {table_sql if tables != "*" else ""}
                 {columns_sql if columns else ""}
+        ),
+        
+        req_tbl_list AS (
+        SELECT DISTINCT
+            table_catalog,
+            table_schema,
+            table_name
+            FROM {self.information_schema}.tables
+            WHERE
+                table_schema != "information_schema"
+                {catalog_sql if catalogs != "*" else ""}
+                {schema_sql if schemas != "*" else ""}
+                {table_sql if tables != "*" else ""}
+                and table_type in ('MANAGED','EXTERNAL','MANAGED_SHALLOW_CLONE','EXTERNAL_SHALLOW_CLONE')
+                and data_source_format in ({data_source_formats_values})
+        ),
+        
+        filtered_tbl_list AS (
+            SELECT a.* 
+            FROM all_user_tbl_list a
+            INNER JOIN
+            req_tbl_list r ON(
+            a.table_catalog <=> r.table_catalog AND
+            a.table_schema = r.table_schema AND
+            a.table_name = r.table_name
+            )
+        
         ),
 
         col_list AS (
@@ -217,10 +248,10 @@ class InfoFetcher:
           SELECT
               col_list.*
           FROM col_list
-          INNER JOIN tb_list ON (
-              col_list.table_catalog <=> tb_list.table_catalog AND
-              col_list.table_schema = tb_list.table_schema AND
-              col_list.table_name = tb_list.table_name)
+          INNER JOIN filtered_tbl_list ON (
+              col_list.table_catalog <=> filtered_tbl_list.table_catalog AND
+              col_list.table_schema = filtered_tbl_list.table_schema AND
+              col_list.table_name = filtered_tbl_list.table_name)
         )
 
         """
@@ -283,25 +314,25 @@ class InfoFetcher:
 
         tags AS (
           SELECT 
-            tb_list.table_catalog,
-            tb_list.table_schema,
-            tb_list.table_name,
+            filtered_tbl_list.table_catalog,
+            filtered_tbl_list.table_schema,
+            filtered_tbl_list.table_name,
             catalog_tags.catalog_tags,
             schema_tags.schema_tags,
             table_tags.table_tags,
             column_tags.column_tags
-          FROM tb_list
+          FROM filtered_tbl_list
           LEFT OUTER JOIN table_tags ON (
-            table_tags.table_catalog <=> tb_list.table_catalog AND 
-            table_tags.table_schema = tb_list.table_schema AND 
-            table_tags.table_name = tb_list.table_name
+            table_tags.table_catalog <=> filtered_tbl_list.table_catalog AND 
+            table_tags.table_schema = filtered_tbl_list.table_schema AND 
+            table_tags.table_name = filtered_tbl_list.table_name
             )
           LEFT OUTER JOIN schema_tags
-          ON tb_list.table_catalog <=> schema_tags.table_catalog AND tb_list.table_schema = schema_tags.table_schema 
+          ON filtered_tbl_list.table_catalog <=> schema_tags.table_catalog AND filtered_tbl_list.table_schema = schema_tags.table_schema 
           LEFT OUTER JOIN column_tags
-          ON tb_list.table_catalog <=> column_tags.table_catalog AND tb_list.table_schema = column_tags.table_schema AND tb_list.table_name = column_tags.table_name
+          ON filtered_tbl_list.table_catalog <=> column_tags.table_catalog AND filtered_tbl_list.table_schema = column_tags.table_schema AND filtered_tbl_list.table_name = column_tags.table_name
           LEFT OUTER JOIN catalog_tags
-          ON catalog_tags.table_catalog <=> tb_list.table_catalog
+          ON catalog_tags.table_catalog <=> filtered_tbl_list.table_catalog
         )
 
         

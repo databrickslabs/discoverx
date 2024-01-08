@@ -16,7 +16,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install presidio_analyzer==2.2.33 dbl-discoverx==0.0.6
+# MAGIC %pip install presidio_analyzer==2.2.33 dbl-discoverx==0.0.7
 
 # COMMAND ----------
 

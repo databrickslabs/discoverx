@@ -22,6 +22,7 @@ Operations are applied concurrently across multiple tables
   * [GDPR right of access: extract user data from all tables at once](docs/GDPR_RoA.md)
   * [GDPR right of erasure: delete user data from all tables at once](docs/GDPR_RoE.md)
   * [Search in any column](docs/Search.md)
+  * Update Owner of Data Objects ([example notebook](examples/update_owner_of_data_objects.py))
 * **Semantic classification**
   * [Semantic classification of columns by semantic class](docs/Semantic_classification.md): email, phone number, IP address, etc.
   * [Select data based on semantic classes](docs/Select_by_class.md)
@@ -29,6 +30,7 @@ Operations are applied concurrently across multiple tables
 * **Custom**
   * [Arbitrary SQL template execution across multiple tables](docs/Arbitrary_multi-table_SQL.md)
   * Create Mlflow gateway routes for MosaicML and OpenAI ([example notebook](examples/mlflow_gateway_routes_examples.py))
+  * Scan using User Specified Data Source Formats ([example notebook](examples/scan_with_user_specified_data_source_formats.py))
 
 ## Getting started
 

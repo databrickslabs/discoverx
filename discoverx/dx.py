@@ -119,6 +119,7 @@ class DX:
         rules="*",
         sample_size=10000,
         what_if: bool = False,
+        data_source_formats: list[str] = ["DELTA"],
     ):
         """Scans the lakehouse for columns matching the given rules
 
@@ -127,6 +128,7 @@ class DX:
             rules (str, optional): The rule names to be used to scan the lakehouse, use "*" as a wildcard. Defaults to "*".
             sample_size (int, optional): The number of rows to be scanned per table. Defaults to 10000.
             what_if (bool, optional): Whether to run the scan in what-if mode and print the SQL commands instead of executing them. Defaults to False.
+            data_source_formats (list[str], optional): Filters the tables with specified data source formats. Defaults to DELTA only. Possible Values 'DELTA', 'CSV', 'JSON', 'PARQUET', 'TEXT', 'ORC' etc
         """
         catalogs, schemas, tables = Msql.validate_from_components(from_tables)
 
@@ -141,6 +143,7 @@ class DX:
             what_if=what_if,
             information_schema=self.INFORMATION_SCHEMA,
             max_workers=self.MAX_WORKERS,
+            data_source_formats=data_source_formats,
         )
 
         self._scan_result = self.scanner.scan()
