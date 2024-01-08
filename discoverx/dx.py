@@ -50,7 +50,7 @@ class DX:
     def _can_read_columns_table(self) -> bool:
         try:
             self.spark.sql(
-                f"SELECT * FROM {self.INFORMATION_SCHEMA}.columns WHERE table_catalog = 'system' AND table_schema = 'columns' LIMIT 1"
+                f"SELECT * FROM {self.INFORMATION_SCHEMA}.columns WHERE table_catalog = 'system' AND table_schema = 'information_schema' LIMIT 1"
             )
             return True
         except Exception as e:
