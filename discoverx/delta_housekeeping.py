@@ -1,5 +1,4 @@
 from typing import Iterable
-from functools import reduce
 from datetime import datetime, timezone
 import pandas as pd
 
@@ -35,8 +34,6 @@ class DeltaHousekeeping:
 
         returns a pandas DataFrame, and converts Spark internal dfs to pandas as soon as they are manageable
         the reason being that DESCRIBE HISTORY / DESCRIBE DETAIL cannot be cached
-
-        TODO reconsider if it is better outside of the class
         """
         if not "operation" in describe_history_df.columns:
             return describe_detail_df.toPandas()
@@ -104,8 +101,6 @@ class DeltaHousekeeping:
         Static method to store intermediate results of the scan operation into Delta
         Would make sense only if using map_chunked from the `DataExplorer` object
         (otherwise tables are writen one by one into Delta with overhead)
-
-        TODO create function in `DataExplorer` that uses this for a chunked
         """
         (
             result

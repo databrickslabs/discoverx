@@ -34,7 +34,6 @@ def test_apply_output(housekeeping_stats, expected_need_optimize):
         need_optimize_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
         expected_need_optimize.loc[:, ["catalog", "database", "tableName"]],
     )
-    # TODO complete all the tests
 
 
 def test_empty_apply_output(housekeeping_stats):

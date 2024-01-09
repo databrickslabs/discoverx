@@ -20,9 +20,9 @@ dx = DX()
 
 # COMMAND ----------
 
-# DBTITLE 1,Run the discoverx DeltaHousekeeping operation -generates an output object you can apply operations to
+# DBTITLE 1,Run the discoverx DeltaHousekeeping operation -generates an output object on which you can run operations
 output = (
-  dx.from_tables("lorenzorubi.*.*")
+  dx.from_tables(f"{dbutils.widgets.get('catalog')}.*.*")
   .delta_housekeeping()
 )
 
