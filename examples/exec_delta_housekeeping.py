@@ -14,6 +14,24 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### Declare Variables
+
+# COMMAND ----------
+
+dbutils.widgets.text("catalogs", "*", "Catalogs")
+dbutils.widgets.text("schemas", "*", "Schemas")
+dbutils.widgets.text("tables", "*", "Tables")
+
+# COMMAND ----------
+
+catalogs = dbutils.widgets.get("catalogs")
+schemas = dbutils.widgets.get("schemas")
+tables = dbutils.widgets.get("tables")
+from_table_statement = ".".join([catalogs, schemas, tables])
+
+# COMMAND ----------
+
 from discoverx import DX
 
 dx = DX()
@@ -22,7 +40,7 @@ dx = DX()
 
 # DBTITLE 1,Run the discoverx DeltaHousekeeping operation -generates an output object on which you can run operations
 output = (
-  dx.from_tables(f"{dbutils.widgets.get('catalog')}.*.*")
+  dx.from_tables(from_table_statement)
   .delta_housekeeping()
 )
 
