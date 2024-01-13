@@ -157,8 +157,8 @@ summarised_detections = (
     detections.groupBy("table_catalog", "table_schema", "table_name", "column_name", "entity_type")
     .agg(count("string_value").alias("value_count"), max("score").alias("max_score"), sum("score").alias("sum_score"))
     .join(unpivoted_stats, ["table_catalog", "table_schema", "table_name", "column_name"])
-    .withColumn("score", col("sum_score") / col("sampled_rows_count"))
-    .select("table_catalog", "table_schema", "table_name", "column_name", "entity_type", "score", "max_score")
+    .withColumn("avg_score", col("sum_score") / col("sampled_rows_count"))
+    .select("table_catalog", "table_schema", "table_name", "column_name", "entity_type", "avg_score", "max_score")
 )
 
 # TODO: Comment out the display when saving the result to table

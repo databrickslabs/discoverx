@@ -15,7 +15,7 @@ import mlflow
 import pytest
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
-from discoverx.dx import DX, Scanner, ScanResult
+from discoverx.dx import DX, ScanResult
 from discoverx.scanner import DeltaTable
 
 

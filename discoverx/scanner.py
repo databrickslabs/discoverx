@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from delta.tables import DeltaTable
 import pandas as pd
 import concurrent.futures
-from pyspark.sql import SparkSession
 import pyspark.sql.functions as func
 from typing import Optional, List, Set
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.utils import AnalysisException
 
 from discoverx.common.helper import strip_margin, format_regex
@@ -36,8 +36,21 @@ class ScanContent:
 
 @dataclass
 class ScanResult:
-    df: pd.DataFrame
+    pdf: pd.DataFrame
     spark: SparkSession
+
+    def __init__(self, pdf: pd.DataFrame, spark: SparkSession):
+        self.pdf = pdf
+        self.spark = spark
+        self.df = self.spark.createDataFrame(
+            self.pdf,
+            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double",
+        )
+
+    @staticmethod
+    def create_from_table(spark: SparkSession, table_name: str):
+        pdf = spark.read.table(table_name).toPandas()
+        return ScanResult(pdf, spark)
 
     @property
     def is_empty(self) -> bool:
@@ -103,10 +116,12 @@ class ScanResult:
     def save(self, scan_table_name: str):
         scan_delta_table = self._get_or_create_result_table_from_delta(scan_table_name)
 
-        scan_result_df = self.spark.createDataFrame(
-            self.df,
-            "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double",
-        ).withColumn("effective_timestamp", func.current_timestamp())
+        self.df.write.saveAsTable(scan_delta_table)
+
+    def save_scd_type2(self, scan_table_name: str):
+        scan_delta_table = self._get_or_create_result_table_from_delta(scan_table_name)
+
+        scan_result_df = self.df.withColumn("effective_timestamp", func.current_timestamp())
 
         logger.friendly(f"Merging results into {scan_table_name}")
 
@@ -118,12 +133,50 @@ class ScanResult:
             and scan_delta_table.column_name = scan_result_df.column_name ",
         ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
 
-    def load(self, scan_table_name: str):
+    def load_scd_type2(self, scan_table_name: str):
         try:
             self.df = DeltaTable.forName(self.spark, scan_table_name).toDF().drop("effective_timestamp").toPandas()
         except Exception as e:
             logger.error(f"Error while reading the scan result table {scan_table_name}: {e}")
             raise e
+
+    def explain(self):
+        """Explains the classification scan result"""
+        classified_cols = self.get_classes(min_score=None)
+        classified_cols.index = pd.MultiIndex.from_frame(
+            classified_cols[["table_catalog", "table_schema", "table_name", "column_name"]]
+        )
+        summary_html_table = classified_cols[["class_name", "score"]].to_html()
+
+        explanation = f"""
+            <h2>Result summary</h2>
+            <p>
+            I've been able to classify {self.n_classified_columns(min_score=None)} out of {self.n_scanned_columns} columns.
+            </p>
+            <p>
+            I've found:
+            <ul>
+                {self.rule_match_str(min_score=None)}
+            </ul>
+            </p>
+            <p>
+            To be more precise:
+            </p>
+            {summary_html_table}
+
+
+        """
+
+        logger.friendlyHTML(explanation)
+
+    def display(self):
+        try:
+            self.df.display()
+        except Exception as e:
+            self.df.show(truncate=False)
+
+    def apply(self) -> DataFrame:
+        return self.df
 
 
 class Scanner:
@@ -343,31 +396,3 @@ class Scanner:
         """
 
         return strip_margin(sql)
-
-    @property
-    def summary_html(self) -> str:
-        # Summary
-        classified_cols = self.scan_result.get_classes(min_score=None)
-        classified_cols.index = pd.MultiIndex.from_frame(
-            classified_cols[["table_catalog", "table_schema", "table_name", "column_name"]]
-        )
-        summary_html_table = classified_cols[["class_name", "score"]].to_html()
-
-        return f"""
-        <h2>Result summary</h2>
-        <p>
-          I've been able to classify {self.scan_result.n_classified_columns(min_score=None)} out of {self.scan_result.n_scanned_columns} columns.
-        </p>
-        <p>
-          I've found:
-          <ul>
-            {self.scan_result.rule_match_str(min_score=None)}
-          </ul>
-        </p>
-        <p>
-          To be more precise:
-        </p>
-        {summary_html_table}
-
-
-        """

@@ -4,9 +4,10 @@ import re
 from typing import Optional, List
 from discoverx import logging
 from discoverx.common import helper
-from discoverx.discovery import Discovery
+from discoverx.discovery import Discovery, DiscoveryExecutor
 from discoverx.rules import Rule
-from discoverx.table_info import TagsInfo, ColumnTagInfo, TagInfo, ColumnInfo, TableInfo
+from discoverx.scanner import ScanResult
+from discoverx.table_info import TableInfo
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
@@ -17,7 +18,10 @@ logger = logging.Logging()
 
 
 class DataExplorer:
+    """ """
+
     FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*-]+)\.([0-9a-zA-Z_\*-]+)\.([0-9a-zA-Z_\*-]+))$"
+    CLASSIFICATION_TABLE = "_discoverx.state.classification"
 
     def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
         self._from_tables = from_tables
@@ -156,7 +160,7 @@ class DataExplorer:
 
         return self.with_sql(sql_query_template)
 
-    def scan(
+    def classify_columns(
         self,
         rules="*",
         sample_size=10000,
@@ -179,8 +183,7 @@ class DataExplorer:
             custom_rules=custom_rules,
             locale=locale,
         )
-        discover.scan(rules=rules, sample_size=sample_size, what_if=what_if)
-        return discover
+        return discover.classify_columns(rules=rules, sample_size=sample_size, what_if=what_if)
 
     def map(self, f) -> list[any]:
         """Runs a function for each table in the data explorer
@@ -213,6 +216,39 @@ class DataExplorer:
         logger.debug("Finished lakehouse map task")
 
         return res
+
+    def search_by_class(
+        self,
+        search_term: str,
+        by_class: Optional[str] = None,
+        min_score: Optional[float] = None,
+        classification_table: str = CLASSIFICATION_TABLE,
+    ):
+        scan_result = ScanResult.create_from_table(classification_table)
+        return DiscoveryExecutor(self._spark, scan_result, self._from_tables).search_by_class(
+            search_term=search_term, by_class=by_class, min_score=min_score
+        )
+
+    def select_by_class(
+        self, by_class: str, min_score: Optional[float] = None, classification_table=CLASSIFICATION_TABLE
+    ):
+        scan_result = ScanResult.create_from_table(classification_table)
+        return DiscoveryExecutor(self._spark, scan_result, self._from_tables).select_by_classes(
+            by_class=by_class, min_score=min_score
+        )
+
+    def delete_by_class(
+        self,
+        by_class: str = None,
+        values: Optional[Union[List[str], str]] = None,
+        yes_i_am_sure: bool = False,
+        min_score: Optional[float] = None,
+        classification_table=CLASSIFICATION_TABLE,
+    ):
+        scan_result = ScanResult.create_from_table(classification_table)
+        return DiscoveryExecutor(self._spark, scan_result, self._from_tables).delete_by_class(
+            by_class=by_class, values=values, yes_i_am_sure=yes_i_am_sure, min_score=min_score
+        )
 
 
 class DataExplorerActions:
@@ -338,10 +374,6 @@ class DataExplorerActions:
 
     def display(self) -> None:
         """Executes the data exploration queries and displays a sample of results"""
-        return self.execute()
-
-    def execute(self) -> None:
-        """[DEPRECATED] Executes the data exploration queries and displays a sample of results"""
         df = self.to_union_dataframe()
         try:
             df.display()
@@ -350,10 +382,6 @@ class DataExplorerActions:
 
     def apply(self) -> DataFrame:
         """Executes the data exploration queries and returns a DataFrame with the results"""
-        return self.to_union_dataframe()
-
-    def to_union_dataframe(self) -> DataFrame:
-        """[DEPRECATED] Executes the data exploration queries and returns a DataFrame with the results"""
 
         sql_commands = self._get_sql_commands(self._data_explorer)
         dfs = []
