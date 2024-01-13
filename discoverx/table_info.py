@@ -110,7 +110,8 @@ class InfoFetcher:
         schemas: str,
         tables: str,
         columns: list[str] = [],
-        with_tags=False,
+        with_tags: bool = False,
+        having_tags: list[TagInfo] = [],
         data_source_formats: list[str] = ["DELTA"],
     ) -> list[TableInfo]:
         # Filter tables by matching filter
@@ -121,7 +122,28 @@ class InfoFetcher:
         if len(filtered_tables) == 0:
             raise ValueError(f"No tables found matching filter: {catalogs}.{schemas}.{tables}")
 
-        return self._to_info_list(filtered_tables)
+        info_list = self._to_info_list(filtered_tables)
+        return [info for info in info_list if InfoFetcher._contains_all_tags(info.tags, having_tags)]
+
+    @staticmethod
+    def _contains_all_tags(tags_info: TagsInfo, tags: list[TagInfo]) -> bool:
+        if not tags:
+            return True
+        if not tags_info:
+            return False
+
+        all_tags = []
+
+        if tags_info.catalog_tags:
+            all_tags.extend(tags_info.catalog_tags)
+
+        if tags_info.schema_tags:
+            all_tags.extend(tags_info.schema_tags)
+
+        if tags_info.table_tags:
+            all_tags.extend(tags_info.table_tags)
+
+        return all([tag in all_tags for tag in tags])
 
     def _get_table_list_sql(
         self,

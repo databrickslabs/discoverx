@@ -26,7 +26,7 @@ def test_validate_from_components():
 
 def test_build_sql(sample_table_info):
     sql_template = "SELECT * FROM {full_table_name}"
-    expected_sql = "SELECT * FROM catalog1.schema1.table1"
+    expected_sql = "SELECT * FROM `catalog1`.`schema1`.`table1`"
     assert DataExplorerActions._build_sql(sql_template, sample_table_info) == expected_sql
 
 

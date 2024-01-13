@@ -22,9 +22,9 @@
 dbutils.widgets.text("catalogs", "*", "Catalogs")
 dbutils.widgets.text("schemas", "*", "Schemas")
 dbutils.widgets.text("tables", "*", "Tables")
-dbutils.widgets.text("owner","sourav.gulati@databricks.com","owner")
-dbutils.widgets.dropdown("if_update_catalog_owner", "YES", ["YES","NO"])
-dbutils.widgets.dropdown("if_update_schema_owner", "YES", ["YES","NO"])
+dbutils.widgets.text("owner", "sourav.gulati@databricks.com", "owner")
+dbutils.widgets.dropdown("if_update_catalog_owner", "YES", ["YES", "NO"])
+dbutils.widgets.dropdown("if_update_schema_owner", "YES", ["YES", "NO"])
 
 # COMMAND ----------
 
@@ -54,23 +54,27 @@ dx = DX()
 
 # COMMAND ----------
 
-def update_owner(table_info):
-  catalog_owner_alter_sql = f""" ALTER CATALOG `{table_info.catalog}` SET OWNER TO `{owner}`"""
-  schema_owner_alter_sql = f""" ALTER SCHEMA `{table_info.catalog}`.`{table_info.schema}` SET OWNER TO `{owner}`"""
-  table_owner_alter_sql = f""" ALTER TABLE `{table_info.catalog}`.`{table_info.schema}`.`{table_info.table}` SET OWNER TO `{owner}`"""
-  try:
-    if(if_update_catalog_owner == 'YES'):
-      print(f"Executing {catalog_owner_alter_sql}")
-      spark.sql(catalog_owner_alter_sql)
-      
-    if(if_update_schema_owner == 'YES'):
-      print(f"Executing {schema_owner_alter_sql}")
-      spark.sql(schema_owner_alter_sql)
 
-    print(f"Executing {table_owner_alter_sql}")
-    spark.sql(table_owner_alter_sql)
-  except Exception as exception: 
-    print(f"  Exception occurred while updating owner: {exception}")
+def update_owner(table_info):
+    catalog_owner_alter_sql = f""" ALTER CATALOG `{table_info.catalog}` SET OWNER TO `{owner}`"""
+    schema_owner_alter_sql = f""" ALTER SCHEMA `{table_info.catalog}`.`{table_info.schema}` SET OWNER TO `{owner}`"""
+    table_owner_alter_sql = (
+        f""" ALTER TABLE `{table_info.catalog}`.`{table_info.schema}`.`{table_info.table}` SET OWNER TO `{owner}`"""
+    )
+    try:
+        if if_update_catalog_owner == "YES":
+            print(f"Executing {catalog_owner_alter_sql}")
+            spark.sql(catalog_owner_alter_sql)
+
+        if if_update_schema_owner == "YES":
+            print(f"Executing {schema_owner_alter_sql}")
+            spark.sql(schema_owner_alter_sql)
+
+        print(f"Executing {table_owner_alter_sql}")
+        spark.sql(table_owner_alter_sql)
+    except Exception as exception:
+        print(f"  Exception occurred while updating owner: {exception}")
+
 
 # COMMAND ----------
 

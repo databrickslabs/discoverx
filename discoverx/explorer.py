@@ -32,6 +32,7 @@ class DataExplorer:
         self._sql_query_template = None
         self._max_concurrency = 10
         self._with_tags = False
+        self._having_tags = []
         self._data_source_formats = ["DELTA"]
 
     @staticmethod
@@ -70,6 +71,19 @@ class DataExplorer:
         """
         new_obj = copy.deepcopy(self)
         new_obj._having_columns.extend(columns)
+        return new_obj
+
+    def having_tag(self, tag_name: str, tag_value: str = None) -> "DataExplorer":
+        """Will select tables tagged with the provided tag name and optionally value
+        either at table, schema, or catalog level.
+
+        Args:
+            tag_name (str): Tag name
+            tag_value (str, optional): Tag value. Defaults to None.
+        """
+        new_obj = copy.deepcopy(self)
+        new_obj._having_tags.extend(TagInfo(tag_name, tag_value))
+        new_obj._with_tags = True
         return new_obj
 
     def with_data_source_formats(self, data_source_formats: list[str] = ["DELTA"]) -> "DataExplorer":
@@ -174,6 +188,7 @@ class DataExplorer:
                 schemas=self._schemas,
                 tables=self._tables,
                 columns=self._having_columns,
+                having_tags=self._having_tags,
                 data_source_formats=self._data_source_formats,
             ),
             custom_rules=custom_rules,
@@ -198,6 +213,7 @@ class DataExplorer:
             self._tables,
             self._having_columns,
             self._with_tags,
+            self._having_tags,
             self._data_source_formats,
         )
         with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
@@ -245,9 +261,9 @@ class DataExplorerActions:
     @staticmethod
     def _build_sql(sql_template: str, table_info: TableInfo) -> str:
         if table_info.catalog and table_info.catalog != "None":
-            full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
+            full_table_name = f"`{table_info.catalog}`.`{table_info.schema}`.`{table_info.table}`"
         else:
-            full_table_name = f"{table_info.schema}.{table_info.table}"
+            full_table_name = f"`{table_info.schema}`.`{table_info.table}`"
 
         stack_string_columns = DataExplorerActions._get_stack_string_columns_expression(table_info)
         stack_all_columns_as_string = DataExplorerActions._get_stack_all_columns_expression(table_info)
@@ -288,6 +304,7 @@ class DataExplorerActions:
             data_explorer._tables,
             data_explorer._having_columns,
             data_explorer._with_tags,
+            data_explorer._having_tags,
         )
         sql_commands = [
             (

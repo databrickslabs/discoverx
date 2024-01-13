@@ -43,7 +43,7 @@ dx = DX()
 
 # COMMAND ----------
 
-# MAGIC %md 
+# MAGIC %md
 # MAGIC ### DiscoverX will scan all delta tables by default
 
 # COMMAND ----------
@@ -52,15 +52,11 @@ dx.from_tables(from_table_statement).scan()
 
 # COMMAND ----------
 
-# MAGIC %md 
+# MAGIC %md
 # MAGIC ### User can specify data source formats as follows
 
 # COMMAND ----------
 
-(dx.from_tables(from_table_statement)
-.with_data_source_formats(["DELTA","JSON"])
-.scan())
+(dx.from_tables(from_table_statement).with_data_source_formats(["DELTA", "JSON"]).scan())
 
 # COMMAND ----------
-
-
