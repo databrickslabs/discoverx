@@ -14,6 +14,11 @@
 
 # COMMAND ----------
 
+# MAGIC %pip install dbl-discoverx==0.0.8
+# MAGIC dbutils.library.restartPython()
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ### Specify a source and a destination catalog
 
@@ -30,10 +35,6 @@ destination_catalog = dbutils.widgets.get("2.destination_catalog")
 # MAGIC %md
 # MAGIC ### Use DiscoverX for cloning
 
-# COMMAND ----------
-
-# %pip install dbl-discoverx==0.0.8
-# dbutils.library.restartPython()
 
 # COMMAND ----------
 
