@@ -14,7 +14,8 @@ Operations are applied concurrently across multiple tables
   * [VACUUM all tables](docs/Vacuum.md) ([example notebook](examples/vacuum_multiple_tables.py))
   * OPTIMIZE with z-order on tables having specified columns
   * Detect tables having too many small files ([example notebook](examples/detect_small_files.py))
-  * Visualise quantity of data written per table per period
+  * Visualise quantity of data written per table per period ([example notebook](examples/table_freshness.py))
+  * Check delta protocol versions ([example notebook](examples/check_delta_protocol_version.py))
 * **Governance**
   * PII detection with Presidio ([example notebook](examples/pii_detection_presidio.py))
   * Text Analysis with MosaicML and Databricks MLflow ([example notebook](examples/text_analysis_mosaicml_mlflow.py))
