@@ -12,7 +12,7 @@ You can execute a SQL template against multiple tables with
 
 DisocoverX will concurrently execute the SQL template against all Delta tables matching the selection pattern and return a Spark DataFrame with the union of all results.
 
-Some useful SQL templates to use are
+Some useful SQL templates are
 * Describe details: `DESCRIBE DETAIL {full_table_name}`
 * Show delta history: `SHOW HISTORY {full_table_name}`
 * Deep clone: `CREATE TABLE IF NOT EXISTS {table_catalog}.{table_schema}_clone.{table_name} DEEP CLONE {full_table_name}`
@@ -23,7 +23,9 @@ Some useful SQL templates to use are
 * Select a sample row as joson from each table: `SELECT to_json(struct(*)) AS row FROM {full_table_name} LIMIT 1`
 * Select all pivoted string columns: `SELECT {stack_string_columns} AS (column_name, string_value) FROM {full_table_name}`
 * Select all pivoted columns casted to string: `SELECT {stack_all_columns_as_string} AS (column_name, string_value) FROM {full_table_name}`
-* Apply liquid clustering: `ALTER TABLE {full_table_name} CLUSTER BY (column1, column2);`
+* Apply liquid clustering: `ALTER TABLE {full_table_name} CLUSTER BY (column1, column2)`
+* Vacuum: `VACUUM {full_table_name}`
+* Optimize: `OPTIMIZE {full_table_name}`
 
 The available variables to use in the SQL templates are
 * `{full_table_name}` - The full table name (catalog.schema.table)
@@ -31,19 +33,33 @@ The available variables to use in the SQL templates are
 * `{table_schema}` - The schema name
 * `{table_name}` - Teh table name
 * `{stack_string_columns}` - A SQL expression ```stack(N, 'col1', `col1`, ... , 'colN', `colN` )``` for all N columns of type string
-* `{stack_all_columns_as_string}` - A SQL expression ```stack(N, 'col1',  cast(`col1` AS string, ... , 'colN',  cast(`colN` AS string)``` for all N columns
+* `{stack_all_columns_as_string}` - A SQL expression ```stack(N, 'col1',  cast(`col1` AS string), ... , 'colN',  cast(`colN` AS string)``` for all N columns
 
-## Using python functions
+### A more advanced SQL example
+
+You can filter tables that only contain a specific column name, and them use the column name in the queries.
+
+<img src="docs/images/DiscoverX_sql_advanced_example.svg" alt="Multi-table operations with SQL template" width="500"/>
+
+## Multi-table operations with python functions
+
+DiscoverX can concurrently apply python funcitons to multiple assets
 
 <img src="docs/images/DiscoverX_python_example.svg" alt="Multi-table operations with python functions" width="500"/>
+
+The properties available in table_info are
+* `catalog` - The catalog name
+* `schema` - The schema name
+* `table` - The table name
+* `columns` - A list of `ColumnInfo`, with `name`, `data_type`, and `partition_index`
+* `tags` - A list of `TagsInfo`, with `column_tags`, `table_tags`, `schema_tags`, and `catalog_tags`. Tags are only populated if the `from_tables(...)` operation is followed by `.with_tags(True)`
 
 ## Example Notebooks
 
 * **Maintenance**
   * [VACUUM all tables](docs/Vacuum.md) ([example notebook](examples/vacuum_multiple_tables.py))
-  * OPTIMIZE with z-order on tables having specified columns
   * Detect tables having too many small files ([example notebook](examples/detect_small_files.py))
-  * Visualise quantity of data written per table per period
+  * Deep clone a catalog ([example notebook](examples/deep_clone_schema.py))
 * **Governance**
   * PII detection with Presidio ([example notebook](examples/pii_detection_presidio.py))
   * Text Analysis with MosaicML and Databricks MLflow ([example notebook](examples/text_analysis_mosaicml_mlflow.py))
@@ -57,7 +73,6 @@ The available variables to use in the SQL templates are
   * [Select data based on semantic classes](docs/Select_by_class.md)
   * [Delete data based on semantic classes](docs/Delete_by_class.md)
 * **Custom**
-  * [Arbitrary SQL template execution across multiple tables](docs/Arbitrary_multi-table_SQL.md)
   * Create Mlflow gateway routes for MosaicML and OpenAI ([example notebook](examples/mlflow_gateway_routes_examples.py))
   * Scan using User Specified Data Source Formats ([example notebook](examples/scan_with_user_specified_data_source_formats.py))
 
