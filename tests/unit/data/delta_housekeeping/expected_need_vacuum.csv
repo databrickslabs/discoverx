@@ -1,0 +1,18 @@
+catalog,database,tableName,number_of_files,bytes,max_optimize_timestamp,2nd_optimize_timestamp,max_vacuum_timestamp,2nd_vacuum_timestamp,min_file_size,p50_file_size,max_file_size,z_order_by,error,rec_optimize,rec_optimize_reason,rec_vacuum,rec_vacuum_reason
+lorenzorubi,default,housekeeping_summary_v3,1.0,3787.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,maxmind_geo,gold_ipv6,1.0,4907069.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,default,housekeeping_summary,1.0,192917.0,2023-12-05T05:50:14Z,2023-12-05T05:21:22Z,,,192917.0,192917.0,192917.0,[],,False,,True,The table has never been VACUUM'ed
+lorenzorubi,default,housekeeping_summary_v2,3.0,12326.0,2023-12-18T11:25:35Z,,,,5273.0,5273.0,5273.0,[],,False,,True,The table has never been VACUUM'ed
+lorenzorubi,maxmind_geo,raw_locations,1.0,6933.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,tpch,customer,1.0,61897021.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,tpch,nation,1.0,3007.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,maxmind_geo,raw_ipv6,1.0,1783720.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,maxmind_geo,gold_ipv4,1.0,7220024.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,dais_dlt_2023,enriched_orders,,,,,,,,,,,[UNSUPPORTED_VIEW_OPERATION.WITHOUT_SUGGESTION] The view `lorenzorubi`.`dais_dlt_2023`.`enriched_orders` does not support DESCRIBE DETAIL. ; line 2 pos 20,False,,True,The table has never been VACUUM'ed
+lorenzorubi,default,click_sales_history,1.0,7710.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,tpch,orders,2406.0,317120666.0,,,,,,,,,,True,The table has not been OPTIMIZED and would benefit from it,True,The table has never been VACUUM'ed
+lorenzorubi,maxmind_geo,raw_ipv4,1.0,3115269.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,gcp_cost_analysis,sku_prices,1.0,835.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,dais_dlt_2023,daily_totalorders_by_nation,,,,,,,,,,,[UNSUPPORTED_VIEW_OPERATION.WITHOUT_SUGGESTION] The view `lorenzorubi`.`dais_dlt_2023`.`daily_totalorders_by_nation` does not support DESCRIBE DETAIL. ; line 2 pos 20,False,,True,The table has never been VACUUM'ed
+lorenzorubi,gcp_cost_analysis,project_ids,2.0,1774.0,,,,,,,,,,False,,True,The table has never been VACUUM'ed
+lorenzorubi,dais_dlt_2023,daily_2nd_high_orderprice,,,,,,,,,,,[UNSUPPORTED_VIEW_OPERATION.WITHOUT_SUGGESTION] The view `lorenzorubi`.`dais_dlt_2023`.`daily_2nd_high_orderprice` does not support DESCRIBE DETAIL. ; line 2 pos 20,False,,True,The table has never been VACUUM'ed

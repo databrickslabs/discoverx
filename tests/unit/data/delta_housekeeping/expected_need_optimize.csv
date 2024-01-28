@@ -1,4 +1,4 @@
-catalog,database,tableName,number_of_files,bytes,max_optimize_timestamp,2nd_optimize_timestamp,max_vacuum_timestamp,2nd_vacuum_timestamp,min_file_size,p50_file_size,max_file_size,z_order_by,error
-lorenzorubi,default,click_sales,6.0,326068799.0,,,2023-12-06T16:40:28Z,2023-12-05T01:19:47Z,,,,,
-lorenzorubi,tpch,orders,2406.0,317120666.0,,,,,,,,,
-lorenzorubi,default,complete_data,6.0,326060019.0,,,2023-12-06T16:40:36Z,2023-12-05T01:19:25Z,,,,,
+catalog,database,tableName,number_of_files,bytes,max_optimize_timestamp,2nd_optimize_timestamp,max_vacuum_timestamp,2nd_vacuum_timestamp,min_file_size,p50_file_size,max_file_size,z_order_by,error,rec_optimize,rec_optimize_reason
+lorenzorubi,default,click_sales,6.0,326068799.0,,,2023-12-06T16:40:28Z,2023-12-05T01:19:47Z,,,,,,True,The table has not been OPTIMIZED and would benefit from it
+lorenzorubi,tpch,orders,2406.0,317120666.0,,,,,,,,,,True,The table has not been OPTIMIZED and would benefit from it
+lorenzorubi,default,complete_data,6.0,326060019.0,,,2023-12-06T16:40:36Z,2023-12-05T01:19:25Z,,,,,,True,The table has not been OPTIMIZED and would benefit from it
