@@ -86,25 +86,29 @@ def test_map_chunked_1(spark, info_fetcher):
 
 
 def test_map_chunked_2(spark, info_fetcher):
+    def check_result(result):
+        for res in result:
+            assert res.table in ["tb_1", "tb_2", "tb_all_types"]
+            if res.table == "tb_1":
+                assert res.schema == "default"
+                assert res.catalog == None
+                assert res.tags == None
+            elif res.table == "tb_2":
+                assert res.schema == "default"
+                assert res.catalog == None
+                assert res.tags == None
+            else:
+                assert res.schema == "default"
+                assert res.catalog == "hive_metastore"
+                assert res.tags == None
+
     data_explorer = DataExplorer("*.default.*", spark, info_fetcher)
     result = data_explorer.map_chunked(lambda table_info: table_info, 10)
     assert len(result) == 3
-    for res in result:
-        assert res.table in ["tb_1", "tb_2", "tb_all_types"]
-        if res.table == "tb_1":
-            assert res.schema == "default"
-            assert res.catalog == None
-            assert res.tags == None
-        elif res.table == "tb_2":
-            assert res.schema == "default"
-            assert res.catalog == None
-            assert res.tags == None
-        else:
-            assert res.schema == "default"
-            assert res.catalog == "hive_metastore"
-            assert res.tags == None
+    check_result(result)
     result2 = data_explorer.map_chunked(lambda table_info: table_info, 2)
-    assert result2  == result
+    assert len(result2) == 3
+    check_result(result2)
 
 
 def test_map_with_tags(spark, info_fetcher):

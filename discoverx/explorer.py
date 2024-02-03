@@ -1,8 +1,8 @@
 import concurrent.futures
 import copy
 import re
-import more_itertools
-from typing import Optional, List, Callable
+import itertools as it
+from typing import Optional, List, Callable, Any
 from discoverx import logging
 from discoverx.common import helper
 from discoverx.discovery import Discovery
@@ -166,7 +166,7 @@ class DataExplorer:
         discover.scan(rules=rules, sample_size=sample_size, what_if=what_if)
         return discover
 
-    def map(self, f: Callable) -> list[any]:
+    def map(self, f: Callable[[TableInfo], Any]) -> list[Any]:
         """Runs a function for each table in the data explorer
 
         Args:
@@ -198,7 +198,7 @@ class DataExplorer:
 
         return res
 
-    def map_chunked(self, f: Callable, tables_per_chunk: int, **kwargs) -> list[any]:
+    def map_chunked(self, f: Callable[[TableInfo, int], Any], tables_per_chunk: int, **kwargs) -> list[Any]:
         """Runs a function for each table in the data explorer
 
         Args:
@@ -217,15 +217,18 @@ class DataExplorer:
         )
         with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool
-            futures = [
-                executor.submit(f, table_chunk, **kwargs) for table_chunk in more_itertools.chunked(table_list, tables_per_chunk)
-            ]
+            table_list = iter(table_list)
+            futures = []
+            while item := [
+                executor.submit(f, table_chunk, **kwargs) for table_chunk in it.islice(table_list, tables_per_chunk)
+            ]:
+                futures.extend(item)
 
             # Process completed tasks
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 if result is not None:
-                    res.extend(result)
+                    res.append(result)
 
         logger.debug("Finished lakehouse map_chunked task")
 
