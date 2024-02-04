@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.8
+* Fixed bug for tables containing `-` character
+* Added example for cloning all catalog/schema content
+* Added filtering for table format (exclude views from queries by default)
+* Added support for PII detection on non-string columns
+* Updated LICENSE file
+
 ## v0.0.7
 * Added filtering for speedup intro message checks
 * Added tags metadata in table info

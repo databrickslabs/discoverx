@@ -86,6 +86,23 @@ def test_map_with_tags(spark, info_fetcher):
     assert len(result[0].tags.table_tags) == 1
 
 
+def test_map_with_source_data_formats(spark, info_fetcher):
+    data_explorer = DataExplorer("*.default.tb_1", spark, info_fetcher).with_data_source_formats(
+        data_source_formats=["DELTA"]
+    )
+    result = data_explorer.map(lambda table_info: table_info)
+    assert len(result) == 1
+    assert result[0].table == "tb_1"
+    assert result[0].schema == "default"
+    assert result[0].catalog == None
+
+    data_explorer = DataExplorer("*.default.tb_1", spark, info_fetcher).with_data_source_formats(
+        data_source_formats=["CSV"]
+    )
+    with pytest.raises(ValueError):
+        data_explorer.map(lambda table_info: table_info)
+
+
 def test_no_tables_matching_filter(spark, info_fetcher):
     data_explorer = DataExplorer("some_catalog.default.non_existent_table", spark, info_fetcher)
     with pytest.raises(ValueError):

@@ -296,6 +296,7 @@ def test_execute_sql_should_fail_for_no_successful_queries(spark):
 def test_validate_from_components():
     assert Msql.validate_from_components("c.d.t") == ("c", "d", "t")
     assert Msql.validate_from_components("*.*.*") == ("*", "*", "*")
+    assert Msql.validate_from_components("c-1.d.t-1") == ("c-1", "d", "t-1")
 
     with pytest.raises(ValueError):
         Msql.validate_from_components("c.d")

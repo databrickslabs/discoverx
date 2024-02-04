@@ -19,7 +19,7 @@ logger = logging.Logging()
 
 
 class DataExplorer:
-    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+)\.([0-9a-zA-Z_\*]+))$"
+    FROM_COMPONENTS_EXPR = r"^(([0-9a-zA-Z_\*-]+)\.([0-9a-zA-Z_\*-]+)\.([0-9a-zA-Z_\*-]+))$"
 
     def __init__(self, from_tables, spark: SparkSession, info_fetcher: InfoFetcher) -> None:
         self._from_tables = from_tables
@@ -34,6 +34,7 @@ class DataExplorer:
         self._sql_query_template = None
         self._max_concurrency = 10
         self._with_tags = False
+        self._data_source_formats = ["DELTA"]
 
     @staticmethod
     def validate_from_components(from_tables: str):
@@ -56,6 +57,7 @@ class DataExplorer:
         new_obj._sql_query_template = copy.deepcopy(self._sql_query_template)
         new_obj._max_concurrency = copy.deepcopy(self._max_concurrency)
         new_obj._with_tags = copy.deepcopy(self._with_tags)
+        new_obj._data_source_formats = copy.deepcopy(self._data_source_formats)
 
         new_obj._spark = self._spark
         new_obj._info_fetcher = self._info_fetcher
@@ -70,6 +72,16 @@ class DataExplorer:
         """
         new_obj = copy.deepcopy(self)
         new_obj._having_columns.extend(columns)
+        return new_obj
+
+    def with_data_source_formats(self, data_source_formats: list[str] = ["DELTA"]) -> "DataExplorer":
+        """Filter tables with provided data source formats. Defaults to DELTA only. Possible Values 'DELTA', 'CSV', 'JSON', 'PARQUET', 'TEXT', 'ORC' etc
+
+        Args:
+            data_source_formats (list[str]): The list of data source formats to filter by
+        """
+        new_obj = copy.deepcopy(self)
+        new_obj._data_source_formats = data_source_formats
         return new_obj
 
     def with_concurrency(self, max_concurrency) -> "DataExplorer":
@@ -129,6 +141,23 @@ class DataExplorer:
 
         return self.with_sql(sql_query_template)
 
+    def unpivot_all_columns(self, sample_size=None) -> "DataExplorerActions":
+        """Returns a DataExplorerActions object that will run a query that will melt all columns into a pair of columns (column_name, string_value)
+
+        Args:
+            sample_size (int, optional): The number of rows to sample. Defaults to None (Return all rows).
+        """
+
+        sql_query_template = """
+        SELECT
+            {stack_all_columns_as_string} AS (column_name, string_value)
+        FROM {full_table_name}
+        """
+        if sample_size is not None:
+            sql_query_template += f"TABLESAMPLE ({sample_size} ROWS)"
+
+        return self.with_sql(sql_query_template)
+
     def scan(
         self,
         rules="*",
@@ -142,7 +171,13 @@ class DataExplorer:
             self._catalogs,
             self._schemas,
             self._tables,
-            self._info_fetcher.get_tables_info(self._catalogs, self._schemas, self._tables, self._having_columns),
+            self._info_fetcher.get_tables_info(
+                catalogs=self._catalogs,
+                schemas=self._schemas,
+                tables=self._tables,
+                columns=self._having_columns,
+                data_source_formats=self._data_source_formats,
+            ),
             custom_rules=custom_rules,
             locale=locale,
         )
@@ -165,6 +200,7 @@ class DataExplorer:
             self._tables,
             self._having_columns,
             self._with_tags,
+            self._data_source_formats,
         )
         with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_concurrency) as executor:
             # Submit tasks to the thread pool
@@ -211,6 +247,12 @@ class DataExplorerActions:
         return f"stack({len(string_col_names)}, {stack_parameters})"
 
     @staticmethod
+    def _get_stack_all_columns_expression(table_info: TableInfo) -> str:
+        col_names = [c.name for c in table_info.columns]
+        stack_parameters = ", ".join([f"'{c}', cast(`{c}` AS string)" for c in col_names])
+        return f"stack({len(col_names)}, {stack_parameters})"
+
+    @staticmethod
     def _build_sql(sql_template: str, table_info: TableInfo) -> str:
         if table_info.catalog and table_info.catalog != "None":
             full_table_name = f"{table_info.catalog}.{table_info.schema}.{table_info.table}"
@@ -218,6 +260,7 @@ class DataExplorerActions:
             full_table_name = f"{table_info.schema}.{table_info.table}"
 
         stack_string_columns = DataExplorerActions._get_stack_string_columns_expression(table_info)
+        stack_all_columns_as_string = DataExplorerActions._get_stack_all_columns_expression(table_info)
 
         sql = sql_template.format(
             table_catalog=table_info.catalog,
@@ -225,6 +268,7 @@ class DataExplorerActions:
             table_name=table_info.table,
             full_table_name=full_table_name,
             stack_string_columns=stack_string_columns,
+            stack_all_columns_as_string=stack_all_columns_as_string,
         )
         return sql
 
