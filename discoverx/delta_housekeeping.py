@@ -276,13 +276,13 @@ class DeltaHousekeepingActions:
 
     def _optimize_not_needed(self) -> pd.DataFrame:
         def check_min_table_size_apply_legend(stats_sub, boolean_column_name, reason_column_name):
-            condition2 = stats_sub.max_optimize_timestamp.notnull() & (stats_sub.bytes.astype(int) > self.min_table_size_optimize)
+            condition2 = stats_sub.max_optimize_timestamp.notnull() & (stats_sub.bytes.astype(int) < self.min_table_size_optimize)
             stats_sub.loc[condition2, boolean_column_name] = True
             stats_sub.loc[condition2, reason_column_name] = self.tables_do_not_need_optimize
             return stats_sub
 
         self._apply_changes_to_stats(
-            condition=self._stats.max_optimize_timestamp.isnull() & self._stats.bytes.notnull(),
+            condition=self._stats.max_optimize_timestamp.notnull() & self._stats.bytes.notnull(),
             boolean_column_name="rec_optimize",
             reason_column_name="rec_optimize_reason",
             f_apply_legend=check_min_table_size_apply_legend,
@@ -321,14 +321,14 @@ class DeltaHousekeepingActions:
         stats_sub.loc[:, 'lag'] = (
             stats_sub[kwargs["timestamp1_to_evaluate"]] - stats_sub[kwargs["timestamp2_to_evaluate"]]
         ).dt.days
-        condition2 = stats_sub['lag'] > kwargs["threshold"]
+        condition2 = stats_sub['lag'] < kwargs["threshold"]
         stats_sub.loc[condition2, boolean_column_name] = True
         stats_sub.loc[condition2, reason_column_name] = kwargs["reason"]
         return stats_sub
 
     def _optimized_too_frequently(self) -> pd.DataFrame:
         self._apply_changes_to_stats(
-            condition=~self._stats.max_optimize_timestamp.isnull() & ~self._stats["2nd_optimize_timestamp"].isnull(),
+            condition=self._stats.max_optimize_timestamp.notnull() & self._stats["2nd_optimize_timestamp"].notnull(),
             boolean_column_name="rec_optimize",
             reason_column_name="rec_optimize_reason",
             f_apply_legend=self.check_timestamp_diff_apply_legend,
@@ -372,7 +372,7 @@ class DeltaHousekeepingActions:
 
     def _vacuumed_too_frequently(self) -> pd.DataFrame:
         self._apply_changes_to_stats(
-            condition=~self._stats.max_vacuum_timestamp.isnull() & ~self._stats["2nd_vacuum_timestamp"].isnull(),
+            condition=self._stats.max_vacuum_timestamp.notnull() & self._stats["2nd_vacuum_timestamp"].notnull(),
             boolean_column_name="rec_vacuum",
             reason_column_name="rec_vacuum_reason",
             f_apply_legend=self.check_timestamp_diff_apply_legend,

@@ -2,7 +2,7 @@ catalog,database,tableName,number_of_files,bytes,max_optimize_timestamp,2nd_opti
 lorenzorubi,default,housekeeping_summary_v3,1,3787,null,null,null,null,null,null,null,null,null
 lorenzorubi,maxmind_geo,gold_ipv6,1,4907069,null,null,null,null,null,null,null,null,null
 lorenzorubi,default,click_sales,6,326068799,null,null,2023-12-06T16:40:28Z,2023-12-05T01:19:47Z,null,null,null,null,null
-lorenzorubi,default,housekeeping_summary,1,192917,2023-12-05T05:50:14Z,2023-12-05T05:21:22Z,null,null,192917,192917,192917,[],null
+lorenzorubi,default,housekeeping_summary,1,192917,2023-12-05T05:50:14Z,2023-12-05T05:21:22Z,null,null,192917,192917,192917,["a"],null
 lorenzorubi,default,housekeeping_summary_v2,3,12326,2023-12-18T11:25:35Z,null,null,null,5273,5273,5273,[],null
 lorenzorubi,maxmind_geo,raw_locations,1,6933,null,null,null,null,null,null,null,null,null
 lorenzorubi,tpch,customer,1,61897021,null,null,null,null,null,null,null,null,null
