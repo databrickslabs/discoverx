@@ -57,7 +57,7 @@ jobs:
 
       - name: Publish test coverage
         continue-on-error: true #this will first work once repo is public
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           env_vars: OS,PYTHON
