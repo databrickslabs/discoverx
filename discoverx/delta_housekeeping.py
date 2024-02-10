@@ -214,15 +214,45 @@ class DeltaHousekeepingActions:
         self.max_vacuum_freq = max_vacuum_freq
         self.small_file_threshold = small_file_threshold
         self.min_number_of_files_for_zorder = min_number_of_files_for_zorder
-        self.tables_not_optimized_legend = "The table has not been OPTIMIZED and would benefit from it"
-        self.tables_not_vacuumed_legend = "The table has never been VACUUM'ed"
-        self.tables_not_optimized_last_days = "Tables that are not OPTIMIZED often enough"
-        self.tables_not_vacuumed_last_days = "Tables that are not VACUUM'ed often enough"
-        self.tables_optimized_too_freq = "Tables that are OPTIMIZED too often"
-        self.tables_vacuumed_too_freq = "Tables that are VACUUM'ed too often"
-        self.tables_do_not_need_optimize = "Tables that are too small to be OPTIMIZED"
-        self.tables_to_analyze = "Tables that need more analysis -small_files"
-        self.tables_zorder_not_effective = "Tables for which ZORDER is not being effective"
+        self.reason_col_suffix = "_reason"
+        self.recomendations_dict = {
+            "not_optimized": {
+                "legend": "Tables that have never been OPTIMIZED and would benefit from it",
+                "col_name": "rec_optimize"  # "rec_not_optimized"
+            },
+            "not_vacuumed": {
+                "legend": "Tables that have never been VACUUM'ed",
+                "col_name": "rec_vacuum"  # "rec_not_vacuumed"
+            },
+            "not_optimized_last_days": {
+                "legend": "Tables that are not OPTIMIZED often enough",
+                "col_name": "rec_optimize"  # "rec_not_optimized_last_days"
+            },
+            "not_vacuumed_last_days": {
+                "legend": "Tables that are not VACUUM'ed often enough",
+                "col_name": "rec_vacuum"  # "rec_not_vacuumed_last_days"
+            },
+            "optimized_too_freq": {
+                "legend": "Tables that are OPTIMIZED too often",
+                "col_name": "rec_optimize"  # "rec_optimized_too_freq"
+            },
+            "vacuumed_too_freq": {
+                "legend": "Tables that are VACUUM'ed too often",
+                "col_name": "rec_vacuum"  # "rec_vacuumed_too_freq"
+            },
+            "do_not_need_optimize": {
+                "legend": "Tables that are too small to be OPTIMIZED",
+                "col_name": "rec_optimize"  # "rec_do_not_need_optimize"
+            },
+            "to_analyze": {
+                "legend": "Tables that need more analysis -small_files",
+                "col_name": "rec_misc"  # "rec_to_analyze"
+            },
+            "zorder_not_effective": {
+                "legend": "Tables for which ZORDER is not being effective",
+                "col_name": "rec_misc"  # "rec_zorder_not_effective"
+            },
+        }
 
     def _apply_changes_to_stats(
         self,
@@ -264,13 +294,13 @@ class DeltaHousekeepingActions:
         def check_min_table_size_apply_legend(stats_sub, boolean_column_name, reason_column_name):
             condition2 = stats_sub.bytes.astype(int) > self.min_table_size_optimize
             stats_sub.loc[condition2, boolean_column_name] = True
-            stats_sub.loc[condition2, reason_column_name] = self.tables_not_optimized_legend
+            stats_sub.loc[condition2, reason_column_name] = self.recomendations_dict["not_optimized"]["legend"]
             return stats_sub
 
         self._apply_changes_to_stats(
             condition=self._stats.max_optimize_timestamp.isnull() & self._stats.bytes.notnull(),
-            boolean_column_name="rec_optimize",
-            reason_column_name="rec_optimize_reason",
+            boolean_column_name=self.recomendations_dict["not_optimized"]["col_name"],
+            reason_column_name=self.recomendations_dict["not_optimized"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=check_min_table_size_apply_legend,
         )
 
@@ -278,13 +308,13 @@ class DeltaHousekeepingActions:
         def check_min_table_size_apply_legend(stats_sub, boolean_column_name, reason_column_name):
             condition2 = stats_sub.max_optimize_timestamp.notnull() & (stats_sub.bytes.astype(int) < self.min_table_size_optimize)
             stats_sub.loc[condition2, boolean_column_name] = True
-            stats_sub.loc[condition2, reason_column_name] = self.tables_do_not_need_optimize
+            stats_sub.loc[condition2, reason_column_name] = self.recomendations_dict["do_not_need_optimize"]["legend"]
             return stats_sub
 
         self._apply_changes_to_stats(
             condition=self._stats.max_optimize_timestamp.notnull() & self._stats.bytes.notnull(),
-            boolean_column_name="rec_optimize",
-            reason_column_name="rec_optimize_reason",
+            boolean_column_name=self.recomendations_dict["do_not_need_optimize"]["col_name"],
+            reason_column_name=self.recomendations_dict["do_not_need_optimize"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=check_min_table_size_apply_legend,
         )
 
@@ -304,12 +334,12 @@ class DeltaHousekeepingActions:
     def _not_optimized_last_days(self) -> pd.DataFrame:
         self._apply_changes_to_stats(
             condition=~self._stats.max_optimize_timestamp.isnull(),
-            boolean_column_name="rec_optimize",
-            reason_column_name="rec_optimize_reason",
+            boolean_column_name=self.recomendations_dict["not_optimized_last_days"]["col_name"],
+            reason_column_name=self.recomendations_dict["not_optimized_last_days"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=self.check_timestamps_apply_legend,
             timestamp_to_evaluate="max_optimize_timestamp",
             threshold=self.min_days_not_optimized,
-            reason=self.tables_not_optimized_last_days,
+            reason=self.recomendations_dict["not_optimized_last_days"]["legend"],
         )
 
     @staticmethod
@@ -329,37 +359,37 @@ class DeltaHousekeepingActions:
     def _optimized_too_frequently(self) -> pd.DataFrame:
         self._apply_changes_to_stats(
             condition=self._stats.max_optimize_timestamp.notnull() & self._stats["2nd_optimize_timestamp"].notnull(),
-            boolean_column_name="rec_optimize",
-            reason_column_name="rec_optimize_reason",
+            boolean_column_name=self.recomendations_dict["optimized_too_freq"]["col_name"],
+            reason_column_name=self.recomendations_dict["optimized_too_freq"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=self.check_timestamp_diff_apply_legend,
             timestamp1_to_evaluate="max_optimize_timestamp",
             timestamp2_to_evaluate="2nd_optimize_timestamp",
             threshold=self.max_optimize_freq,
-            reason=self.tables_optimized_too_freq,
+            reason=self.recomendations_dict["optimized_too_freq"]["legend"],
         )
 
     def _never_vacuumed(self) -> pd.DataFrame:
         def apply_legend(stats_sub, boolean_column_name, reason_column_name):
             stats_sub.loc[:, boolean_column_name] = True
-            stats_sub.loc[:, reason_column_name] = self.tables_not_vacuumed_legend
+            stats_sub.loc[:, reason_column_name] = self.recomendations_dict["not_vacuumed"]["legend"]
             return stats_sub
 
         self._apply_changes_to_stats(
             condition=self._stats.max_vacuum_timestamp.isnull(),
-            boolean_column_name="rec_vacuum",
-            reason_column_name="rec_vacuum_reason",
+            boolean_column_name=self.recomendations_dict["not_vacuumed"]["col_name"],
+            reason_column_name=self.recomendations_dict["not_vacuumed"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=apply_legend,
         )
 
     def _not_vacuumed_last_days(self) -> pd.DataFrame:
         self._apply_changes_to_stats(
             condition=~self._stats.max_vacuum_timestamp.isnull(),
-            boolean_column_name="rec_vacuum",
-            reason_column_name="rec_vacuum_reason",
+            boolean_column_name=self.recomendations_dict["not_vacuumed_last_days"]["col_name"],
+            reason_column_name=self.recomendations_dict["not_vacuumed_last_days"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=self.check_timestamps_apply_legend,
             timestamp_to_evaluate="max_vacuum_timestamp",
             threshold=self.min_days_not_vacuumed,
-            reason=self.tables_not_vacuumed_last_days,
+            reason=self.recomendations_dict["not_vacuumed_last_days"]["legend"],
         )
         stats = self._stats.copy()
         stats['max_vacuum_timestamp'] = pd.to_datetime(stats['max_vacuum_timestamp'], utc=True)
@@ -373,26 +403,26 @@ class DeltaHousekeepingActions:
     def _vacuumed_too_frequently(self) -> pd.DataFrame:
         self._apply_changes_to_stats(
             condition=self._stats.max_vacuum_timestamp.notnull() & self._stats["2nd_vacuum_timestamp"].notnull(),
-            boolean_column_name="rec_vacuum",
-            reason_column_name="rec_vacuum_reason",
+            boolean_column_name=self.recomendations_dict["vacuumed_too_freq"]["col_name"],
+            reason_column_name=self.recomendations_dict["vacuumed_too_freq"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=self.check_timestamp_diff_apply_legend,
             timestamp1_to_evaluate="max_vacuum_timestamp",
             timestamp2_to_evaluate="2nd_vacuum_timestamp",
             threshold=self.max_vacuum_freq,
-            reason=self.tables_vacuumed_too_freq,
+            reason=self.recomendations_dict["vacuumed_too_freq"]["legend"],
         )
 
     def _analyze_these_tables(self) -> pd.DataFrame:
         def check_analyze_tables_apply_legend(stats_sub, boolean_column_name, reason_column_name):
             condition2 = stats_sub['p50_file_size'].astype(int) < self.small_file_threshold
             stats_sub.loc[condition2, boolean_column_name] = True
-            stats_sub.loc[condition2, reason_column_name] = self.tables_to_analyze
+            stats_sub.loc[condition2, reason_column_name] = self.recomendations_dict["to_analyze"]["legend"]
             return stats_sub
 
         self._apply_changes_to_stats(
             condition=self._stats.max_optimize_timestamp.notnull() & self._stats.p50_file_size.notnull() & (self._stats.number_of_files > 1),
-            boolean_column_name="rec_misc",
-            reason_column_name="rec_misc_reason",
+            boolean_column_name=self.recomendations_dict["to_analyze"]["col_name"],
+            reason_column_name=self.recomendations_dict["to_analyze"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=check_analyze_tables_apply_legend,
         )
 
@@ -406,13 +436,13 @@ class DeltaHousekeepingActions:
             stats_sub = stats_sub.loc[stats_sub['number_of_files'].astype(int) < self.min_number_of_files_for_zorder, :]
 
             stats_sub.loc[:, boolean_column_name] = True
-            stats_sub.loc[:, reason_column_name] = self.tables_zorder_not_effective
+            stats_sub.loc[:, reason_column_name] = self.recomendations_dict["zorder_not_effective"]["legend"]
             return stats_sub
 
         self._apply_changes_to_stats(
             condition=self._stats.max_optimize_timestamp.notnull() & self._stats.p50_file_size.notnull(),
-            boolean_column_name="rec_misc",
-            reason_column_name="rec_misc_reason",
+            boolean_column_name=self.recomendations_dict["zorder_not_effective"]["col_name"],
+            reason_column_name=self.recomendations_dict["zorder_not_effective"]["col_name"] + self.reason_col_suffix,
             f_apply_legend=check_zorder_not_effective_apply_legend,
         )
 
@@ -448,37 +478,19 @@ class DeltaHousekeepingActions:
 
     def _explain(self) -> Iterable[dict]:
         stats = self.generate_recommendations()
-        stats_optimize = stats.loc[stats["rec_optimize"], :]
-        stats_vacuum = stats.loc[stats["rec_vacuum"], :]
-        stats_misc = stats.loc[stats["rec_misc"], :]
         schema = self._spark.createDataFrame(stats).schema
         out = []
-        for legend_optimize in [
-            self.tables_not_optimized_legend,
-            self.tables_not_optimized_last_days,
-            self.tables_optimized_too_freq,
-        ]:
-            out.append({legend_optimize: self._spark.createDataFrame(
-                stats_optimize.loc[stats_optimize["rec_optimize_reason"].str.contains(legend_optimize)],
-                schema
-            )})
+        for _, item in self.recomendations_dict.items():
+            legend = None
+            col_name = None
+            for k, v in item.items():
+                if k == "legend":
+                    legend = v
+                elif k == "col_name":
+                    col_name = v
 
-        for legend_vacuum in [
-            self.tables_not_vacuumed_legend,
-            self.tables_not_vacuumed_last_days,
-            self.tables_vacuumed_too_freq,
-        ]:
-            out.append({legend_vacuum: self._spark.createDataFrame(
-                stats_vacuum.loc[stats_vacuum["rec_vacuum_reason"].str.contains(legend_vacuum)],
-                schema
-            )})
-
-        for legend_misc in [
-            self.tables_to_analyze,
-            self.tables_zorder_not_effective,
-        ]:
-            out.append({legend_misc: self._spark.createDataFrame(
-                stats_misc.loc[stats_misc["rec_misc_reason"].str.contains(legend_misc)],
+            out.append({legend: self._spark.createDataFrame(
+                stats.loc[stats[col_name] & stats[col_name + self.reason_col_suffix].str.contains(legend)],
                 schema
             )})
 

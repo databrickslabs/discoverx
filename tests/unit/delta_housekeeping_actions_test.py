@@ -78,7 +78,7 @@ def test_apply_need_optimize(housekeeping_stats, expected_need_optimize, patch_d
     )
     res = dha.generate_recommendations()
     need_optimize_df = res.loc[
-        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.tables_not_optimized_legend), :
+        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.recomendations_dict["not_optimized"]["legend"]), :
     ]
     assert need_optimize_df.shape[0] == 3
     pd.testing.assert_frame_equal(
@@ -95,7 +95,7 @@ def test_empty_apply_need_optimize(housekeeping_stats, patch_datetime_now):
     )
     res = dha.generate_recommendations()
     need_optimize_df = res.loc[
-        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.tables_not_optimized_legend), :
+        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.recomendations_dict["not_optimized"]["legend"]), :
     ]
     assert need_optimize_df.shape[0] == 0
 
@@ -106,7 +106,7 @@ def test_apply_need_vacuum(housekeeping_stats, expected_need_vacuum, patch_datet
         stats=housekeeping_stats,
     )
     res = dha.generate_recommendations()
-    need_vacuum_df = res.loc[res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.tables_not_vacuumed_legend), :]
+    need_vacuum_df = res.loc[res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.recomendations_dict["not_vacuumed"]["legend"]), :]
     assert need_vacuum_df.shape[0] == 17
     pd.testing.assert_frame_equal(
         need_vacuum_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -121,7 +121,7 @@ def test_apply_not_optimized_last_days(housekeeping_stats, expected_not_optimize
     )
     res = dha.generate_recommendations()
     need_optimize_df = res.loc[
-        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.tables_not_optimized_last_days), :
+        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.recomendations_dict["not_optimized_last_days"]["legend"]), :
     ]
     assert need_optimize_df.shape[0] == 2
     pd.testing.assert_frame_equal(
@@ -138,7 +138,7 @@ def test_empty_apply_not_optimized_last_days(housekeeping_stats, patch_datetime_
     )
     res = dha.generate_recommendations()
     need_optimize_df = res.loc[
-        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.tables_not_optimized_last_days), :
+        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.recomendations_dict["not_optimized_last_days"]["legend"]), :
     ]
     assert need_optimize_df.shape[0] == 0
 
@@ -150,7 +150,7 @@ def test_apply_not_vacuumed_last_days(housekeeping_stats, expected_not_vacuumed_
     )
     res = dha.generate_recommendations()
     need_vacuum_df = res.loc[
-        res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.tables_not_vacuumed_last_days), :
+        res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.recomendations_dict["not_vacuumed_last_days"]["legend"]), :
     ]
     assert need_vacuum_df.shape[0] == 2
     pd.testing.assert_frame_equal(
@@ -167,7 +167,7 @@ def test_empty_apply_not_vacuumed_last_days(housekeeping_stats, patch_datetime_n
     )
     res = dha.generate_recommendations()
     need_vacuum_df = res.loc[
-        res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.tables_not_vacuumed_last_days), :
+        res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.recomendations_dict["not_vacuumed_last_days"]["legend"]), :
     ]
     assert need_vacuum_df.shape[0] == 0
 
@@ -179,7 +179,7 @@ def test_apply_optimized_too_freq(housekeeping_stats, expected_optimized_too_fre
     )
     res = dha.generate_recommendations()
     need_optimize_df = res.loc[
-        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.tables_optimized_too_freq), :
+        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.recomendations_dict["optimized_too_freq"]["legend"]), :
     ]
     assert need_optimize_df.shape[0] == 1
     pd.testing.assert_frame_equal(
@@ -196,7 +196,7 @@ def test_empty_apply_optimized_too_freq(housekeeping_stats, patch_datetime_now):
     )
     res = dha.generate_recommendations()
     need_optimize_df = res.loc[
-        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.tables_optimized_too_freq), :
+        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.recomendations_dict["optimized_too_freq"]["legend"]), :
     ]
     assert need_optimize_df.shape[0] == 0
 
@@ -208,7 +208,7 @@ def test_apply_vacuumed_too_freq(housekeeping_stats, expected_vacuumed_too_freq,
     )
     res = dha.generate_recommendations()
     need_vacuum_df = res.loc[
-        res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.tables_vacuumed_too_freq), :
+        res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.recomendations_dict["vacuumed_too_freq"]["legend"]), :
     ]
     assert need_vacuum_df.shape[0] == 2
     pd.testing.assert_frame_equal(
@@ -225,7 +225,7 @@ def test_empty_apply_vacuumed_too_freq(housekeeping_stats, patch_datetime_now):
     )
     res = dha.generate_recommendations()
     need_vacuum_df = res.loc[
-        res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.tables_vacuumed_too_freq), :
+        res["rec_vacuum"] & res["rec_vacuum_reason"].str.contains(dha.recomendations_dict["vacuumed_too_freq"]["legend"]), :
     ]
     assert need_vacuum_df.shape[0] == 0
 
@@ -237,7 +237,7 @@ def test_apply_do_not_need_optimize(housekeeping_stats, expected_do_not_need_opt
     )
     res = dha.generate_recommendations()
     need_optimize_df = res.loc[
-        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.tables_do_not_need_optimize), :
+        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.recomendations_dict["do_not_need_optimize"]["legend"]), :
     ]
     assert need_optimize_df.shape[0] == 2
     pd.testing.assert_frame_equal(
@@ -254,7 +254,7 @@ def test_empty_apply_do_not_need_optimize(housekeeping_stats, patch_datetime_now
     )
     res = dha.generate_recommendations()
     need_optimize_df = res.loc[
-        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.tables_do_not_need_optimize), :
+        res["rec_optimize"] & res["rec_optimize_reason"].str.contains(dha.recomendations_dict["do_not_need_optimize"]["legend"]), :
     ]
     assert need_optimize_df.shape[0] == 0
 
@@ -266,7 +266,7 @@ def test_apply_analyze_tables(housekeeping_stats, expected_need_analysis, patch_
     )
     res = dha.generate_recommendations()
     need_analysis_df = res.loc[
-        res["rec_misc"] & res["rec_misc_reason"].str.contains(dha.tables_to_analyze), :
+        res["rec_misc"] & res["rec_misc_reason"].str.contains(dha.recomendations_dict["to_analyze"]["legend"]), :
     ]
     assert need_analysis_df.shape[0] == 1
     pd.testing.assert_frame_equal(
@@ -283,7 +283,7 @@ def test_empty_apply_analyze_tables(housekeeping_stats, patch_datetime_now):
     )
     res = dha.generate_recommendations()
     need_analysis_df = res.loc[
-        res["rec_misc"] & res["rec_misc_reason"].str.contains(dha.tables_to_analyze), :
+        res["rec_misc"] & res["rec_misc_reason"].str.contains(dha.recomendations_dict["to_analyze"]["legend"]), :
     ]
     assert need_analysis_df.shape[0] == 0
 
@@ -295,7 +295,7 @@ def test_apply_zorder_not_effective(housekeeping_stats, expected_zorder_not_effe
     )
     res = dha.generate_recommendations()
     need_analysis_df = res.loc[
-        res["rec_misc"] & res["rec_misc_reason"].str.contains(dha.tables_zorder_not_effective), :
+        res["rec_misc"] & res["rec_misc_reason"].str.contains(dha.recomendations_dict["zorder_not_effective"]["legend"]), :
     ]
     assert need_analysis_df.shape[0] == 1
     pd.testing.assert_frame_equal(
@@ -312,7 +312,7 @@ def test_empty_apply_zorder_not_effective(housekeeping_stats, patch_datetime_now
     )
     res = dha.generate_recommendations()
     need_analysis_df = res.loc[
-        res["rec_misc"] & res["rec_misc_reason"].str.contains(dha.tables_zorder_not_effective), :
+        res["rec_misc"] & res["rec_misc_reason"].str.contains(dha.recomendations_dict["zorder_not_effective"]["legend"]), :
     ]
     assert need_analysis_df.shape[0] == 0
 
@@ -323,4 +323,4 @@ def test_explain(housekeeping_stats, patch_datetime_now):
         stats=housekeeping_stats,
     )
     res = dha._explain()
-    assert len(res) == 8
+    assert len(res) == 9
