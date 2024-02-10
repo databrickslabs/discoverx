@@ -48,7 +48,7 @@ output = (
 
 # DBTITLE 1,apply() operation generates a spark dataframe with recommendations
 result = output.apply()
-result.select("catalog", "database", "tableName", "recommendation").display()
+result.select("catalog", "database", "tableName", "rec_optimize", "rec_optimize_reason", "rec_vacuum", "rec_vacuum_reason", "rec_misc", "rec_misc_reason").display()
 
 # COMMAND ----------
 

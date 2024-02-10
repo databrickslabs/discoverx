@@ -244,7 +244,7 @@ class DeltaHousekeepingActions:
         stats[boolean_column_name_new] = False
         stats[reason_column_name_new] = None
         stats_sub = stats.loc[condition]
-        stats_sub = f_apply_legend(stats_sub, boolean_column_name_new, reason_column_name_new, **kwargs)
+        stats_sub = f_apply_legend(stats_sub.copy(), boolean_column_name_new, reason_column_name_new, **kwargs)
         self._stats = pd.merge(
             self._stats,
             stats_sub.loc[:, ["catalog", "database", "tableName", boolean_column_name_new, reason_column_name_new]],
@@ -426,17 +426,9 @@ class DeltaHousekeepingActions:
 
     def apply(self) -> DataFrame:
         """Displays recommendations in a DataFrame format"""
-        out = None
-        for recomm in self.generate_recommendations():
-            for legend, df in recomm.items():
-                out_df = self._spark.createDataFrame(df).withColumn("recommendation", F.lit(legend))
-                if out is None:
-                    out = out_df
-                else:
-                    out = out.unionByName(out_df, allowMissingColumns=True)
-        return out
+        return self._spark.createDataFrame(self.generate_recommendations())
 
-    def generate_recommendations(self) -> Iterable[dict]:
+    def generate_recommendations(self) -> pd.DataFrame:
         """
         Generates Delta Housekeeping recommendations as a list of dictionaries (internal use + unit tests only)
         A dict per recommendation where:
@@ -454,38 +446,48 @@ class DeltaHousekeepingActions:
         self._zorder_not_effective(),
         return self._stats.copy()
 
-    def _explain(self) -> Iterable:
+    def _explain(self) -> Iterable[dict]:
         stats = self.generate_recommendations()
         stats_optimize = stats.loc[stats["rec_optimize"], :]
         stats_vacuum = stats.loc[stats["rec_vacuum"], :]
         stats_misc = stats.loc[stats["rec_misc"], :]
+        schema = self._spark.createDataFrame(stats).schema
         out = []
         for legend_optimize in [
             self.tables_not_optimized_legend,
             self.tables_not_optimized_last_days,
             self.tables_optimized_too_freq,
         ]:
-            out.append({legend_optimize: stats_optimize.loc[stats_optimize["rec_optimize_reason"].str.contains(legend_optimize)]})
+            out.append({legend_optimize: self._spark.createDataFrame(
+                stats_optimize.loc[stats_optimize["rec_optimize_reason"].str.contains(legend_optimize)],
+                schema
+            )})
 
         for legend_vacuum in [
             self.tables_not_vacuumed_legend,
             self.tables_not_vacuumed_last_days,
             self.tables_vacuumed_too_freq,
         ]:
-            out.append({legend_vacuum: stats_vacuum.loc[stats_vacuum["rec_vacuum_reason"].str.contains(legend_vacuum)]})
+            out.append({legend_vacuum: self._spark.createDataFrame(
+                stats_vacuum.loc[stats_vacuum["rec_vacuum_reason"].str.contains(legend_vacuum)],
+                schema
+            )})
 
         for legend_misc in [
             self.tables_to_analyze,
             self.tables_zorder_not_effective,
         ]:
-            out.append({legend_misc: stats_misc.loc[stats_misc["rec_misc_reason"].str.contains(legend_misc)]})
+            out.append({legend_misc: self._spark.createDataFrame(
+                stats_misc.loc[stats_misc["rec_misc_reason"].str.contains(legend_misc)],
+                schema
+            )})
 
         return out
 
     def explain(self) -> None:
-        # TODO better formatting!
         from databricks.sdk.runtime import display
 
-        for legend, df in self._explain().items():
-            display(legend)
-            display(df)
+        for item in self._explain():
+            for legend, df in item.items():
+                display(legend)
+                display(df)
