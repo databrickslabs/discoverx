@@ -206,6 +206,14 @@ class DeltaHousekeepingActions:
             self._mapped_pd_dfs = mapped_pd_dfs
             stats = pd.concat(self._mapped_pd_dfs)
         self._stats_df: DataFrame = self._spark.createDataFrame(stats)
+        for column in [col_name for col_name in self._stats_df.columns if 'timestamp' in col_name]:
+            column_type = [dtype for col_name, dtype in self._stats_df.dtypes if col_name == column][0]
+            if column_type == 'timestamp':
+                continue
+            self._stats_df = self._stats_df.withColumn(
+                column,
+                F.when(F.isnan(F.col(column)), None).otherwise(F.col(column))
+            )
         self._stats_rec: DataFrame = None
 
         self.min_table_size_optimize = min_table_size_optimize
@@ -260,7 +268,7 @@ class DeltaHousekeepingActions:
         return stats_rec.withColumn(
             conf_dict["col_name"],
             F.when(
-                (F.col("max_optimize_timestamp").isNull() | F.isnan("max_optimize_timestamp")) &
+                F.col("max_optimize_timestamp").isNull() &
                 F.col("bytes").isNotNull() & (F.col("bytes").astype("int") > F.lit(self.min_table_size_optimize)),
                 F.lit(True)
             ).otherwise(F.lit(False))
@@ -273,7 +281,7 @@ class DeltaHousekeepingActions:
         return stats_rec.withColumn(
             conf_dict["col_name"],
             F.when(
-                F.col("max_optimize_timestamp").isNotNull() & ~F.isnan(F.col("max_optimize_timestamp")) &
+                F.col("max_optimize_timestamp").isNotNull() &
                 F.col("bytes").isNotNull() &
                 (F.col("bytes").astype("int") < F.lit(self.min_table_size_optimize)),
                 F.lit(True)
@@ -302,8 +310,7 @@ class DeltaHousekeepingActions:
         return stats_rec.withColumn(
             "optimize_freq",
             F.when(
-                F.col("max_optimize_timestamp").isNotNull() & ~F.isnan(F.col("max_optimize_timestamp")) &
-                F.col("2nd_optimize_timestamp").isNotNull() & ~F.isnan(F.col("2nd_optimize_timestamp")),
+                F.col("max_optimize_timestamp").isNotNull() & F.col("2nd_optimize_timestamp").isNotNull(),
                 F.date_diff(F.col("max_optimize_timestamp"), F.col("2nd_optimize_timestamp"))
             )
         ).withColumn(
@@ -321,7 +328,7 @@ class DeltaHousekeepingActions:
         return stats_rec.withColumn(
             conf_dict["col_name"],
             F.when(
-                F.col("max_vacuum_timestamp").isNull() | F.isnan("max_vacuum_timestamp"),
+                F.col("max_vacuum_timestamp").isNull(),
                 F.lit(True)
             ).otherwise(F.lit(False))
         ).withColumn(
@@ -348,8 +355,7 @@ class DeltaHousekeepingActions:
         return stats_rec.withColumn(
             "vacuum_freq",
             F.when(
-                F.col("max_vacuum_timestamp").isNotNull() & ~F.isnan(F.col("max_vacuum_timestamp")) &
-                F.col("2nd_vacuum_timestamp").isNotNull() & ~F.isnan(F.col("2nd_vacuum_timestamp")),
+                F.col("max_vacuum_timestamp").isNotNull() & F.col("2nd_vacuum_timestamp").isNotNull(),
                 F.date_diff(F.col("max_vacuum_timestamp"), F.col("2nd_vacuum_timestamp"))
             )
         ).withColumn(
@@ -367,7 +373,7 @@ class DeltaHousekeepingActions:
         return stats_rec.withColumn(
             conf_dict["col_name"],
             F.when(
-                F.col("max_optimize_timestamp").isNotNull() & ~F.isnan(F.col("max_optimize_timestamp")) &
+                F.col("max_optimize_timestamp").isNotNull() &
                 F.col("p50_file_size").isNotNull() & (F.col("number_of_files") > F.lit(1)) &
                 (F.col("p50_file_size").astype("int") < F.lit(self.small_file_threshold)),
                 F.lit(True)
@@ -381,7 +387,7 @@ class DeltaHousekeepingActions:
         return stats_rec.withColumn(
             "z_order_by_clean",
             F.when(
-                F.col("max_optimize_timestamp").isNull() | F.isnan(F.col("max_optimize_timestamp")) |
+                F.col("max_optimize_timestamp").isNull() |
                 F.col("p50_file_size").isNull() | (F.col("z_order_by") == "[]"),
                 None
             ).otherwise(
