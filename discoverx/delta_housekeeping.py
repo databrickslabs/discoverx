@@ -272,8 +272,6 @@ class DeltaHousekeepingActions:
                 F.col("bytes").isNotNull() & (F.col("bytes").astype("int") > F.lit(self.min_table_size_optimize)),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def _optimize_not_needed(self, stats_rec: DataFrame) -> DataFrame:
@@ -286,8 +284,6 @@ class DeltaHousekeepingActions:
                 (F.col("bytes").astype("int") < F.lit(self.min_table_size_optimize)),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def _not_optimized_last_days(self, stats_rec: DataFrame) -> DataFrame:
@@ -301,8 +297,6 @@ class DeltaHousekeepingActions:
                 F.col("optimize_lag") > F.lit(self.min_days_not_optimized),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def _optimized_too_frequently(self, stats_rec: DataFrame) -> DataFrame:
@@ -319,8 +313,6 @@ class DeltaHousekeepingActions:
                 F.col("optimize_freq") < F.lit(self.max_optimize_freq),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def _never_vacuumed(self, stats_rec: DataFrame) -> DataFrame:
@@ -331,8 +323,6 @@ class DeltaHousekeepingActions:
                 F.col("max_vacuum_timestamp").isNull(),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def _not_vacuumed_last_days(self, stats_rec: DataFrame) -> DataFrame:
@@ -346,8 +336,6 @@ class DeltaHousekeepingActions:
                 F.col("vacuum_lag") > F.lit(self.min_days_not_vacuumed),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def _vacuumed_too_frequently(self, stats_rec: DataFrame) -> DataFrame:
@@ -364,8 +352,6 @@ class DeltaHousekeepingActions:
                 F.col("vacuum_freq") < F.lit(self.max_vacuum_freq),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def _analyze_these_tables(self, stats_rec: DataFrame) -> DataFrame:
@@ -378,8 +364,6 @@ class DeltaHousekeepingActions:
                 (F.col("p50_file_size").astype("int") < F.lit(self.small_file_threshold)),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def _zorder_not_effective(self, stats_rec: DataFrame) -> DataFrame:
@@ -408,8 +392,6 @@ class DeltaHousekeepingActions:
                 (F.col("number_of_files") < F.lit(self.min_number_of_files_for_zorder)),
                 F.lit(True)
             ).otherwise(F.lit(False))
-        ).withColumn(
-            conf_dict["col_name"] + self.reason_col_suffix, F.lit(conf_dict["legend"])
         )
 
     def display(self) -> None:
@@ -454,7 +436,7 @@ class DeltaHousekeepingActions:
                     col_name = v
 
             out.append({
-                legend: stats.filter(F.col(col_name) & F.col(col_name + self.reason_col_suffix).rlike(legend))
+                legend: stats.filter(F.col(col_name))
             })
 
         return out

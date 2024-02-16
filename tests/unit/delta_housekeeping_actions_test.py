@@ -83,9 +83,7 @@ def test_apply_need_optimize(housekeeping_stats, expected_need_optimize, patch_d
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["not_optimized"]["col_name"]
-    need_optimize_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["not_optimized"]["legend"]), :
-    ]
+    need_optimize_df = res.loc[res[col_name], :]
     assert need_optimize_df.shape[0] == 3
     pd.testing.assert_frame_equal(
         need_optimize_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -101,9 +99,7 @@ def test_empty_apply_need_optimize(housekeeping_stats, patch_datetime_now):
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["not_optimized"]["col_name"]
-    need_optimize_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["not_optimized"]["legend"]), :
-    ]
+    need_optimize_df = res.loc[res[col_name], :]
     assert need_optimize_df.shape[0] == 0
 
 
@@ -114,9 +110,7 @@ def test_apply_need_vacuum(housekeeping_stats, expected_need_vacuum, patch_datet
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["not_vacuumed"]["col_name"]
-    need_vacuum_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["not_vacuumed"]["legend"]), :
-    ]
+    need_vacuum_df = res.loc[res[col_name], :]
     assert need_vacuum_df.shape[0] == 17
     pd.testing.assert_frame_equal(
         need_vacuum_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -131,9 +125,7 @@ def test_apply_not_optimized_last_days(housekeeping_stats, expected_not_optimize
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["not_optimized_last_days"]["col_name"]
-    need_optimize_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["not_optimized_last_days"]["legend"]), :
-    ]
+    need_optimize_df = res.loc[res[col_name], :]
     assert need_optimize_df.shape[0] == 2
     pd.testing.assert_frame_equal(
         need_optimize_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -149,9 +141,7 @@ def test_empty_apply_not_optimized_last_days(housekeeping_stats, patch_datetime_
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["not_optimized_last_days"]["col_name"]
-    need_optimize_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["not_optimized_last_days"]["legend"]), :
-    ]
+    need_optimize_df = res.loc[res[col_name], :]
     assert need_optimize_df.shape[0] == 0
 
 
@@ -162,9 +152,7 @@ def test_apply_not_vacuumed_last_days(housekeeping_stats, expected_not_vacuumed_
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["not_vacuumed_last_days"]["col_name"]
-    need_vacuum_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["not_vacuumed_last_days"]["legend"]), :
-    ]
+    need_vacuum_df = res.loc[res[col_name], :]
     assert need_vacuum_df.shape[0] == 2
     pd.testing.assert_frame_equal(
         need_vacuum_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -180,9 +168,7 @@ def test_empty_apply_not_vacuumed_last_days(housekeeping_stats, patch_datetime_n
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["not_vacuumed_last_days"]["col_name"]
-    need_vacuum_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["not_vacuumed_last_days"]["legend"]), :
-    ]
+    need_vacuum_df = res.loc[res[col_name], :]
     assert need_vacuum_df.shape[0] == 0
 
 
@@ -193,9 +179,7 @@ def test_apply_optimized_too_freq(housekeeping_stats, expected_optimized_too_fre
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["optimized_too_freq"]["col_name"]
-    need_optimize_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["optimized_too_freq"]["legend"]), :
-    ]
+    need_optimize_df = res.loc[res[col_name], :]
     assert need_optimize_df.shape[0] == 1
     pd.testing.assert_frame_equal(
         need_optimize_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -211,9 +195,7 @@ def test_empty_apply_optimized_too_freq(housekeeping_stats, patch_datetime_now):
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["optimized_too_freq"]["col_name"]
-    need_optimize_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["optimized_too_freq"]["legend"]), :
-    ]
+    need_optimize_df = res.loc[res[col_name], :]
     assert need_optimize_df.shape[0] == 0
 
 
@@ -224,9 +206,7 @@ def test_apply_vacuumed_too_freq(housekeeping_stats, expected_vacuumed_too_freq,
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["vacuumed_too_freq"]["col_name"]
-    need_vacuum_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["vacuumed_too_freq"]["legend"]), :
-    ]
+    need_vacuum_df = res.loc[res[col_name], :]
     assert need_vacuum_df.shape[0] == 2
     pd.testing.assert_frame_equal(
         need_vacuum_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -242,9 +222,7 @@ def test_empty_apply_vacuumed_too_freq(housekeeping_stats, patch_datetime_now):
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["vacuumed_too_freq"]["col_name"]
-    need_vacuum_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["vacuumed_too_freq"]["legend"]), :
-    ]
+    need_vacuum_df = res.loc[res[col_name], :]
     assert need_vacuum_df.shape[0] == 0
 
 
@@ -255,9 +233,7 @@ def test_apply_do_not_need_optimize(housekeeping_stats, expected_do_not_need_opt
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["do_not_need_optimize"]["col_name"]
-    need_optimize_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["do_not_need_optimize"]["legend"]), :
-    ]
+    need_optimize_df = res.loc[res[col_name], :]
     assert need_optimize_df.shape[0] == 2
     pd.testing.assert_frame_equal(
         need_optimize_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -273,9 +249,7 @@ def test_empty_apply_do_not_need_optimize(housekeeping_stats, patch_datetime_now
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["do_not_need_optimize"]["col_name"]
-    need_optimize_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["do_not_need_optimize"]["legend"]), :
-    ]
+    need_optimize_df = res.loc[res[col_name], :]
     assert need_optimize_df.shape[0] == 0
 
 
@@ -286,9 +260,7 @@ def test_apply_analyze_tables(housekeeping_stats, expected_need_analysis, patch_
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["to_analyze"]["col_name"]
-    need_analysis_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["to_analyze"]["legend"]), :
-    ]
+    need_analysis_df = res.loc[res[col_name], :]
     assert need_analysis_df.shape[0] == 1
     pd.testing.assert_frame_equal(
         need_analysis_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -304,9 +276,7 @@ def test_empty_apply_analyze_tables(housekeeping_stats, patch_datetime_now):
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["to_analyze"]["col_name"]
-    need_analysis_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["to_analyze"]["legend"]), :
-    ]
+    need_analysis_df = res.loc[res[col_name], :]
     assert need_analysis_df.shape[0] == 0
 
 
@@ -317,9 +287,7 @@ def test_apply_zorder_not_effective(housekeeping_stats, expected_zorder_not_effe
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["zorder_not_effective"]["col_name"]
-    need_analysis_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["zorder_not_effective"]["legend"]), :
-    ]
+    need_analysis_df = res.loc[res[col_name], :]
     assert need_analysis_df.shape[0] == 1
     pd.testing.assert_frame_equal(
         need_analysis_df.reset_index().loc[:, ["catalog", "database", "tableName"]],
@@ -335,9 +303,7 @@ def test_empty_apply_zorder_not_effective(housekeeping_stats, patch_datetime_now
     )
     res = dha.generate_recommendations().toPandas()
     col_name = dha.recomendations_dict["zorder_not_effective"]["col_name"]
-    need_analysis_df = res.loc[
-        res[col_name] & res[col_name + dha.reason_col_suffix].str.contains(dha.recomendations_dict["zorder_not_effective"]["legend"]), :
-    ]
+    need_analysis_df = res.loc[res[col_name], :]
     assert need_analysis_df.shape[0] == 0
 
 
