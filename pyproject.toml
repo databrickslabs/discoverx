@@ -1,5 +1,5 @@
 [project]
-name = "databricks-labs-blueprint"
+name = "databricks-labs-discoverx"
 dynamic = ["version"]
 description = 'Common libraries for Databricks Labs'
 readme = "README.md"
@@ -20,8 +20,8 @@ dependencies = ["databricks-sdk>=0.16.0"]
 yaml = ["PyYAML>=6.0.0,<7.0.0"]
 
 [project.urls]
-Issues = "https://github.com/databrickslabs/blueprint/issues"
-Source = "https://github.com/databrickslabs/blueprint"
+Issues = "https://github.com/databrickslabs/discoverx/issues"
+Source = "https://github.com/databrickslabs/discoverx"
 
 [build-system]
 requires = ["hatchling"]
@@ -32,11 +32,11 @@ sources = ["src"]
 include = ["src"]
 
 [tool.hatch.version]
-path = "src/databricks/labs/blueprint/__about__.py"
+path = "src/databricks/labs/discoverx/__about__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
-    "databricks-labs-blueprint[yaml]",
+    "databricks-labs-discoverx[yaml]",
     "coverage[toml]>=6.5",
     "pytest",
     "pylint",
@@ -89,14 +89,14 @@ target-version = "py310"
 line-length = 120
 
 [tool.ruff.isort]
-known-first-party = ["databricks.labs.blueprint"]
+known-first-party = ["databricks.labs.discoverx"]
 
 [tool.coverage.run]
 branch = true
 parallel = true
 
 [tool.coverage.report]
-omit = ["*/working-copy/*", 'src/databricks/labs/blueprint/__main__.py']
+omit = ["*/working-copy/*", 'src/databricks/labs/discoverx/__main__.py']
 exclude_lines = [
     "no cov",
     "if __name__ == .__main__.:",
