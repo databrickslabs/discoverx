@@ -1,7 +1,7 @@
 [project]
 name = "databricks-labs-discoverx"
 dynamic = ["version"]
-description = 'Common libraries for Databricks Labs'
+description = 'DiscoverX - A swiss-army-knife for the Databricks Data Intelligence platform operations'
 readme = "README.md"
 license-files = { paths = ["LICENSE", "NOTICE"] }
 requires-python = ">=3.10"
@@ -14,10 +14,15 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = ["databricks-sdk>=0.16.0"]
+dependencies = [
+    "databricks-sdk>=0.16.0",
+    "pyspark>=3.3.0",
+    "delta-spark>=2.2.0",
+    "pandas<2.0.0",  # From 2.0.0 onwards, pandas does not support iteritems() anymore, spark.createDataFrame will fail
+    "numpy<1.24"  # From 1.24 onwards, module 'numpy' has no attribute 'bool'.
+]
 
 [project.optional-dependencies]
-yaml = ["PyYAML>=6.0.0,<7.0.0"]
 
 [project.urls]
 Issues = "https://github.com/databrickslabs/discoverx/issues"
@@ -36,7 +41,7 @@ path = "src/databricks/labs/discoverx/__about__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
-    "databricks-labs-discoverx[yaml]",
+    "databricks-labs-discoverx",
     "coverage[toml]>=6.5",
     "pytest",
     "pylint",
