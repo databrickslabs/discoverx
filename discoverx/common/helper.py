@@ -1,6 +1,7 @@
 """
 This module contains common utility functions used throughout the package
 """
+
 import sys
 
 
