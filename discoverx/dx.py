@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from pyspark.sql import SparkSession
 from typing import List, Optional, Union
 from discoverx import logging
@@ -40,9 +41,10 @@ class DX:
         self.logger = logging.Logging()
 
         self.rules = Rules(custom_rules=custom_rules, locale=locale)
-        self.uc_enabled = (os.getenv("IS_SERVERLESS", "FALSE").lower() == "true" or self.spark.conf.get(
-            "spark.databricks.unityCatalog.enabled", "false") == "true")
-
+        self.uc_enabled = (
+            os.getenv("IS_SERVERLESS", "FALSE").lower() == "true"
+            or self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
+        )
         self.scanner: Optional[Scanner] = None
         self._scan_result: Optional[ScanResult] = None
 

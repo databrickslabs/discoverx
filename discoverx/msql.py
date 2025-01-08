@@ -1,4 +1,5 @@
 """This module contains the M-SQL compiler"""
+
 from dataclasses import dataclass
 from functools import reduce
 from discoverx import logging
