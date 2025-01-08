@@ -45,7 +45,6 @@ class DX:
             os.getenv("IS_SERVERLESS", "FALSE").lower() == "true"
             or self.spark.conf.get("spark.databricks.unityCatalog.enabled", "false") == "true"
         )
-
         self.scanner: Optional[Scanner] = None
         self._scan_result: Optional[ScanResult] = None
 
