@@ -1,0 +1,4 @@
+catalog,database,tableName,operation,timestamp,min_file_size,p50_file_size,max_file_size,z_order_by
+lorenzorubi,default,click_sales,VACUUM END,2023-12-06T16:40:28Z,null,null,null,null
+lorenzorubi,default,click_sales,VACUUM END,2023-12-05T01:19:47Z,null,null,null,null
+lorenzorubi,default,click_sales,VACUUM END,2023-11-25T04:03:41Z,null,null,null,null

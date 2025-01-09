@@ -1,0 +1,3 @@
+catalog,database,tableName,number_of_files,bytes,max_optimize_timestamp,2nd_optimize_timestamp,max_vacuum_timestamp,2nd_vacuum_timestamp,min_file_size,p50_file_size,max_file_size,z_order_by,error,rec_optimize,rec_optimize_reason,rec_vacuum,rec_vacuum_reason
+lorenzorubi,default,housekeeping_summary,1.0,192917.0,2023-12-05T05:50:14Z,2023-12-05T05:21:22Z,,,192917.0,192917.0,192917.0,[],,True, | Tables that are not OPTIMIZED often enough,True,The table has never been VACUUM'ed
+lorenzorubi,default,housekeeping_summary_v2,3.0,12326.0,2023-12-18T11:25:35Z,,,,5273.0,5273.0,5273.0,[],,True, | Tables that are not OPTIMIZED often enough,True,The table has never been VACUUM'ed

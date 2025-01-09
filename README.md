@@ -59,6 +59,11 @@ The properties available in table_info are
 * **Maintenance**
   * [VACUUM all tables](docs/Vacuum.md) ([example notebook](examples/vacuum_multiple_tables.py))
   * Detect tables having too many small files ([example notebook](examples/detect_small_files.py))
+  * Delta housekeeping analysis ([example notebook](examples/exec_delta_housekeeping.py)) which provide:
+    * stats (size of tables and number of files, timestamps of latest OPTIMIZE & VACUUM operations, stats of OPTIMIZE)
+    * recommendations on tables that need to be OPTIMIZED/VACUUM'ed
+    * are tables OPTIMIZED/VACUUM'ed often enough
+    * tables that have small files / tables for which ZORDER is not being effective
   * Deep clone a catalog ([example notebook](examples/deep_clone_schema.py))
 * **Governance**
   * PII detection with Presidio ([example notebook](examples/pii_detection_presidio.py))
@@ -91,7 +96,7 @@ from discoverx import DX
 dx = DX(locale="US")
 ```
 
-You can now run operations across multiple tables. 
+You can now run operations across multiple tables.
 
 ## Available functionality
 
@@ -128,4 +133,3 @@ After a `with_sql` or `unpivot_string_columns` command, you can apply the follow
 Please note that all projects in the /databrickslabs github account are provided for your exploration only, and are not formally supported by Databricks with Service Level Agreements (SLAs).  They are provided AS-IS and we do not make any guarantees of any kind.  Please do not submit a support ticket relating to any issues arising from the use of these projects.
 
 Any issues discovered through the use of this project should be filed as GitHub Issues on the Repo.  They will be reviewed as time permits, but there are no formal SLAs for support.
-
