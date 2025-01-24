@@ -38,6 +38,9 @@ class ScanContent:
 class ScanResult:
     df: pd.DataFrame
     spark: SparkSession
+    catalogs: Optional[str] = None
+    schemas: Optional[str] = None
+    tables: Optional[str] = None
 
     @property
     def is_empty(self) -> bool:
@@ -93,6 +96,11 @@ class ScanResult:
         )
         logger.friendly(f"The scan result table {scan_table_name} has been created.")
 
+        if (self.catalogs is not None) and (self.schemas is not None) and (self.tables is not None):
+            self.spark.sql(
+                f"ALTER TABLE {scan_table_name} SET TBLPROPERTIES (catalogs='{self.catalogs}', schemas='{self.schemas}', tables='{self.tables}')"
+            )
+
     def _get_or_create_result_table_from_delta(self, scan_table_name: str) -> DeltaTable:
         try:
             return DeltaTable.forName(self.spark, scan_table_name)
@@ -100,9 +108,27 @@ class ScanResult:
             self._create_databes_if_not_exists(scan_table_name)
             return DeltaTable.forName(self.spark, scan_table_name)
 
+    def save_discovery(self, scan_table_name: str):
+        scan_delta_table = self._get_or_create_result_table_from_delta(scan_table_name)
+        table_props = (scan_delta_table.detail().select("properties").collect())[0].properties
+        try:
+            delta_scanned_tables = ".".join([table_props.catalogs, table_props.schemas, table_props.tables])
+        except Exception: # TODO: Use specific exception instead of general one
+            raise Exception("The scan result table has been created without catalogs, schemas and tables properties using the old dx.save() method. Use dx.load() instead.")
+        scanned_tables = ".".join([self.catalogs, self.schemas, self.tables])
+        if delta_scanned_tables != scanned_tables:
+            raise Exception(
+                f"The scan result table has been created for tables {delta_scanned_tables}. The current scan has been performed for tables {scanned_tables}. Please delete the scan result table and rerun the scan."
+            )
+
+        self._merge_scan_results(scan_table_name, scan_delta_table)
+
     def save(self, scan_table_name: str):
         scan_delta_table = self._get_or_create_result_table_from_delta(scan_table_name)
 
+        self._merge_scan_results(scan_table_name, scan_delta_table)
+
+    def _merge_scan_results(self, scan_table_name: str, scan_delta_table: DeltaTable):
         scan_result_df = self.spark.createDataFrame(
             self.df,
             "table_catalog: string, table_schema: string, table_name: string, column_name: string, class_name: string, score: double",
@@ -124,6 +150,23 @@ class ScanResult:
         except Exception as e:
             logger.error(f"Error while reading the scan result table {scan_table_name}: {e}")
             raise e
+
+    def load_classification(self, scan_table_name: str):
+        try:
+            scan_delta_table = DeltaTable.forName(self.spark, scan_table_name)
+            self.df = scan_delta_table.toDF().drop("effective_timestamp").toPandas()
+        except Exception as e:
+            logger.error(f"Error while reading the scan result table {scan_table_name}: {e}")
+            raise e
+
+        table_props = (scan_delta_table.detail().select("properties").collect())[0].properties
+        try:
+            self.catalogs = table_props.catalogs
+            self.schemas = table_props.schemas
+            self.tables = table_props.tables
+        except Exception:  # TODO: Use specific exception instead of general one
+            raise Exception(
+                "The scan result table has been created without catalogs, schemas and tables properties using the old dx.save() method. Use dx.load() instead.")
 
 
 class Scanner:

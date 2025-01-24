@@ -57,6 +57,20 @@ class Discovery:
             logger.debug(f"Executing SQL:\n{sql_rows}")
             return msql_builder.execute_sql_rows(sql_rows, self.spark)
 
+    def save(self, full_table_name: str):
+        """Saves the scan results to the lakehouse
+
+        Args:
+            full_table_name (str): The full table name to be
+                used to save the scan results.
+        Raises:
+            Exception: If the scan has not been run
+
+        """
+        self._check_scan_result()
+        # save classes
+        self._scan_result.save(full_table_name)
+
     def scan(
         self,
         rules="*",

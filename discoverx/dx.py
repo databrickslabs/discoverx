@@ -3,6 +3,7 @@ import os
 from pyspark.sql import SparkSession
 from typing import List, Optional, Union
 from discoverx import logging
+from discoverx.discovery import Discovery
 from discoverx.explorer import DataExplorer, InfoFetcher
 from discoverx.msql import Msql
 from discoverx.rules import Rules, Rule
@@ -190,6 +191,30 @@ class DX:
         """
         self._scan_result = ScanResult(df=pd.DataFrame(), spark=self.spark)
         self._scan_result.load(full_table_name)
+
+    def load_classification(self, full_table_name: str):
+        """Loads previously saved classification results from a table
+
+        Args:
+            full_table_name (str, optional): The full table name to be
+                used to load the classification results.
+        Raises:
+            Exception: If the table to be loaded does not exist
+        """
+        scan_result = ScanResult(df=pd.DataFrame(), spark=self.spark)
+        scan_result.load_classification(full_table_name)
+        discover = Discovery(
+            self.spark,
+            scan_result.catalogs,
+            scan_result.schemas,
+            scan_result.tables,
+            InfoFetcher(self.spark, self.COLUMNS_TABLE_NAME).get_tables_info(
+                scan_result.catalogs, scan_result.schemas, scan_result.tables, columns=[]
+            ),  # TODO: Need to add column support, i.e. include having_columns functionality
+        )
+        discover._scan_result = scan_result # TODO: Move the loading of the scan result into Discover or ScanResult class
+        return discover
+
 
     def search(
         self,
