@@ -1,9 +1,8 @@
+import pandas
 import pytest
 from discoverx.explorer import DataExplorer, DataExplorerActions, InfoFetcher, TableInfo
 
 
-# # Sample test data
-# sample_table_info = TableInfo("catalog1", "schema1", "table1", [])
 @pytest.fixture()
 def info_fetcher(spark):
     return InfoFetcher(spark=spark, information_schema="default")
@@ -71,8 +70,8 @@ def test_map(spark, info_fetcher):
     assert len(result) == 1
     assert result[0].table == "tb_1"
     assert result[0].schema == "default"
-    assert result[0].catalog == None
-    assert result[0].tags == None
+    assert result[0].catalog is None
+    assert result[0].tags is None
 
 
 def test_map_with_tags(spark, info_fetcher):
@@ -81,7 +80,7 @@ def test_map_with_tags(spark, info_fetcher):
     assert len(result) == 1
     assert result[0].table == "tb_1"
     assert result[0].schema == "default"
-    assert result[0].catalog == None
+    assert result[0].catalog is None
     assert len(result[0].tags.table_tags) == 1
 
 
@@ -93,7 +92,7 @@ def test_map_with_source_data_formats(spark, info_fetcher):
     assert len(result) == 1
     assert result[0].table == "tb_1"
     assert result[0].schema == "default"
-    assert result[0].catalog == None
+    assert result[0].catalog is None
 
     data_explorer = DataExplorer("*.default.tb_1", spark, info_fetcher).with_data_source_formats(
         data_source_formats=["CSV"]
@@ -106,3 +105,14 @@ def test_no_tables_matching_filter(spark, info_fetcher):
     data_explorer = DataExplorer("some_catalog.default.non_existent_table", spark, info_fetcher)
     with pytest.raises(ValueError):
         data_explorer.map(lambda table_info: table_info)
+
+
+def test_delta_housekeeeping_call(spark, info_fetcher):
+    data_explorer = DataExplorer("*.default.*", spark, info_fetcher)
+    result: pandas.DataFrame = data_explorer.delta_housekeeping()._stats_df.toPandas()
+    print(result['tableName'].count())
+    assert result['tableName'].count() == 3
+    for res in result['tableName'].tolist():
+        assert res in ["tb_all_types", "tb_1", "tb_2"]
+    for col in result.columns:
+        assert col in ["catalog", "database", "tableName", "error"]

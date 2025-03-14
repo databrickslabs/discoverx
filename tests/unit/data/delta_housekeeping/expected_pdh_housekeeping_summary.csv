@@ -1,0 +1,2 @@
+catalog,database,tableName,number_of_files,bytes,max_optimize_timestamp,2nd_optimize_timestamp,max_vacuum_timestamp,2nd_vacuum_timestamp,min_file_size,p50_file_size,max_file_size,z_order_by
+lorenzorubi,default,housekeeping_summary,1,192917,2023-12-05T05:50:14Z,2023-12-05T05:21:22Z,,,192917,192917,192917,[]

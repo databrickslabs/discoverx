@@ -1,7 +1,8 @@
 import concurrent.futures
 import copy
 import re
-from typing import Optional, List
+import pandas as pd
+from typing import Optional, List, Callable, Iterable, Any
 from discoverx import logging
 from discoverx.common import helper
 from discoverx.discovery import Discovery
@@ -11,6 +12,7 @@ from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
 from discoverx.table_info import InfoFetcher, TableInfo
+from discoverx.delta_housekeeping import DeltaHousekeeping, DeltaHousekeepingActions
 
 
 logger = logging.Logging()
@@ -182,7 +184,7 @@ class DataExplorer:
         discover.scan(rules=rules, sample_size=sample_size, what_if=what_if)
         return discover
 
-    def map(self, f) -> list[any]:
+    def map(self, f: Callable[[TableInfo], Any]) -> list[Any]:
         """Runs a function for each table in the data explorer
 
         Args:
@@ -213,6 +215,14 @@ class DataExplorer:
         logger.debug("Finished lakehouse map task")
 
         return res
+
+    def delta_housekeeping(self) -> pd.DataFrame:
+        """
+        Gathers stats and recommendations on Delta Housekeeping
+        """
+        dh = DeltaHousekeeping(self._spark)
+        dfs_pd: Iterable[pd.DataFrame] = self.map(dh.scan)
+        return DeltaHousekeepingActions(dfs_pd, spark=self._spark)
 
 
 class DataExplorerActions:
