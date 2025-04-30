@@ -1,5 +1,7 @@
 # DiscoverX
 
+[![lines of code](https://tokei.rs/b1/github/databrickslabs/discoverx)]([https://codecov.io/github/databrickslabs/discoverx](https://github.com/databrickslabs/discoverx))
+
 Your Swiss-Army-knife for Lakehouse administration.
 
 DiscoverX automates administration tasks that require inspecting or applying operations to a large number of Lakehouse assets.
