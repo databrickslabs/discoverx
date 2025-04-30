@@ -10,9 +10,17 @@ on:
 jobs:
   release-pipeline:
 
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
+    runs-on:
+      group: databrickslabs-protected-runner-group
+      labels: ubuntu-latest
+
+    environment: release
+
+    permissions:
+      # Used to authenticate to PyPI via OIDC and sign the release's artifacts with sigstore-python.
+      id-token: write
+      # Used to attach signing artifacts to the published release.
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -39,5 +47,3 @@ jobs:
       - name: Publish distribution 📦 to PyPI
         if: startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.LABS_PYPI_TOKEN }}
