@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.9
+* Added Delta housekeeping
+* Fixed serverless compatibility
+
 ## v0.0.8
 * Fixed bug for tables containing `-` character
 * Added example for cloning all catalog/schema content

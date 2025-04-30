@@ -8,7 +8,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install dbl-discoverx==0.0.8
+# MAGIC %pip install dbl-discoverx==0.0.9
 
 # COMMAND ----------
 
