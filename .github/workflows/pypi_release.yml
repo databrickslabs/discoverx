@@ -12,7 +12,7 @@ jobs:
 
     runs-on:
       group: databrickslabs-protected-runner-group
-      labels: ubuntu-latest
+      labels: linux-ubuntu-latest
 
     environment: release
 
